@@ -34,14 +34,19 @@ BibleMate AI was developed from our agent development kit (ADK), [AgentMake AI](
 
 ```mermaid
 graph TD
-    A[User] --> B(Agent);
-    B --> C{Planner};
-    C --> D[Tool User];
-    D --> E(Tools);
-    E --> D;
-    D --> C;
-    C --> F(Response);
-    F --> A;
+    A[User] -- Request --> B(BibleMate AI);
+    B -- Generates Master Plan --> B;
+    B -- Master Plan --> C(Supervisor Agent);
+    C -- Suggestions --> B;
+    B -- Suggestions --> D(Bible Tool Selection Agent);
+    D -- Selected Tools --> B;
+    B -- Master Plan & Selected Tools --> E(Instruction Generation Agent);
+    E -- Instructions --> B;
+    B -- Instructions --> F(AI Assistant);
+    F -- Executes Instructions --> G((Bible Tools));
+    B -- Monitors --> F;
+    F -- Progress --> B;
+    B -- Summary --> A;
 ```
 
 ## Getting Started
@@ -54,7 +59,7 @@ graph TD
 
 ## License
 
-*(Coming soon)*
+This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
