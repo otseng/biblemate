@@ -34,25 +34,6 @@ BibleMate AI was developed from our agent development kit (ADK), [AgentMake AI](
 9.  Once all steps are completed, **BibleMate AI** provides a concise summary of the results to the user.
 10. The user receives the final response, which fully resolves their original request.
 
-## Workflow Diagram
-
-```mermaid
-graph TD
-    A[User] -- Request --> B(BibleMate AI);
-    B -- Generates Master Plan --> B;
-    B -- Master Plan --> C(Supervisor Agent);
-    C -- Suggestions --> B;
-    B -- Suggestions --> D(Bible Tool Selection Agent);
-    D -- Selected Tools --> B;
-    B -- Master Plan & Selected Tools --> E(Instruction Generation Agent);
-    E -- Instructions --> B;
-    B -- Instructions --> F(AI Assistant);
-    F -- Executes Instructions --> G((Bible Tools));
-    B -- Monitors --> F;
-    F -- Progress --> B;
-    B -- Summary --> A;
-```
-
 ## Getting Started
 
 > pip install --upgrade biblemate

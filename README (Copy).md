@@ -99,7 +99,6 @@ This project is licensed under the Creative Commons Attribution-NonCommercial 4.
 ## Acknowledgments
 
 BibleMate AI is built upon the foundations of our other projects:
-*   [UniqueBible App](https.github.com/eliranwong/UniqueBible)
-*   [XoMate AI](https.github.com/eliranwong/xomate)
 *   [AgentMake AI](https.github.com/eliranwong/agentmake)
-*   [AgentMake AI MCP](https.github.com/eliranwong/agentmakemcp)
+*   [BibleMate AI](https.github.com/eliranwong/BibleMate)
+*   [UniqueBible App](https.github.com/eliranwong/UniqueBible)
