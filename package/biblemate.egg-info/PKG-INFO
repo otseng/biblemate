@@ -1,3 +1,30 @@
+Metadata-Version: 2.1
+Name: biblemate
+Version: 0.0.18
+Summary: BibleMate AI - Automate Your Bible Study
+Home-page: https://toolmate.ai
+Author: Eliran Wong
+Author-email: support@marvel.bible
+License: GNU General Public License (GPL)
+Project-URL: Source, https://github.com/eliranwong/biblemate
+Project-URL: Tracker, https://github.com/eliranwong/biblemate/issues
+Project-URL: Documentation, https://github.com/eliranwong/biblemate/wiki
+Project-URL: Funding, https://www.paypal.me/toolmate
+Keywords: mcp agent toolmate ai anthropic azure chatgpt cohere deepseek genai github googleai groq llamacpp mistral ollama openai vertexai xai
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: Topic :: Utilities
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Software Development :: Build Tools
+Classifier: License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Requires-Python: >=3.8, <3.13
+Provides-Extra: genai
+
 # BibleMate AI
 
 BibleMate AI is a groundbreaking, autonomous AI agent designed to revolutionize your Bible study. It can create study plans, coordinate multiple Bible tools, and take multi-step actions to complete complex Bible-related tasks, such as conducting an in-depth study of a particular Bible passage.
@@ -13,33 +40,9 @@ BibleMate AI is a groundbreaking, autonomous AI agent designed to revolutionize 
 
 To see the full list of built-in tools and their descriptions, please see the [TOOLS.md](TOOLS.md) file.
 
-## Supported OS
-
-Windows / macOS / Linux / ChromeOS / Android
-
-## Supported Backends
-
-Powered by AgentMake AI, BibleMate AI offers users the flexibility to use various AI backends. Read more at https://github.com/eliranwong/agentmake#supported-backends
-
-For comparison, we tested some of the supported backends using the same prompt in the tests below: 'In-depth study on Lamentations 3:22-24'
-
-BibleMate AI + `Azure + ChatGPT 5` https://youtu.be/QvPIyHOhrP0
-
-BibleMate AI + `Gemini API + Gemini 2.5 Flash` https://youtu.be/AZ-zEl_StC0
-
-BibleMate AI + `Mistral Large` https://youtu.be/7sBfj2TMoOE
-
-BibleMate AI + `DeepSeek 3.1` https://youtu.be/FUr--ULDCZM
-
-BibleMate AI + `GPT-OSS 120B` https://youtu.be/7sBfj2TMoOE
-
-BibleMate AI + `Llama 3.3 70B` https://youtu.be/2XPv1x0Dyts
-
 ## Demo
 
 See BibleMate AI in action in our YouTube video: [BibleMate AI Demo](https://youtu.be/QvPIyHOhrP0)
-
-[![Watch the video](https://img.youtube.com/vi/QvPIyHOhrP0/maxresdefault.jpg)](https://youtu.be/QvPIyHOhrP0)
 
 ## Our Other AI Projects
 
@@ -57,25 +60,6 @@ BibleMate AI was developed from our agent development kit (ADK), [AgentMake AI](
 8.  **BibleMate AI** monitors the progress of the AI assistant and provides additional suggestions or instructions as needed.
 9.  Once all steps are completed, **BibleMate AI** provides a concise summary of the results to the user.
 10. The user receives the final response, which fully resolves their original request.
-
-## Workflow Diagram
-
-```mermaid
-graph TD
-    A[User] -- Request --> B(BibleMate AI);
-    B -- Generates Master Plan --> B;
-    B -- Master Plan --> C(Supervisor Agent);
-    C -- Suggestions --> B;
-    B -- Suggestions --> D(Bible Tool Selection Agent);
-    D -- Selected Tools --> B;
-    B -- Master Plan & Selected Tools --> E(Instruction Generation Agent);
-    E -- Instructions --> B;
-    B -- Instructions --> F(AI Assistant);
-    F -- Executes Instructions --> G((Bible Tools));
-    B -- Monitors --> F;
-    F -- Progress --> B;
-    B -- Summary --> A;
-```
 
 ## Getting Started
 

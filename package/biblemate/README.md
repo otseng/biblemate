@@ -15,7 +15,7 @@ To see the full list of built-in tools and their descriptions, please see the [T
 
 ## Demo
 
-See BibleMate AI in action in our YouTube video: [BibleMate AI Demo](https://www.youtube.com/watch?v=2BPZVufnKJU&feature=youtu.be)
+See BibleMate AI in action in our YouTube video: [BibleMate AI Demo](https://youtu.be/QvPIyHOhrP0)
 
 ## Our Other AI Projects
 
