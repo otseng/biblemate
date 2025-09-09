@@ -21,7 +21,7 @@ Windows / macOS / Linux / ChromeOS / Android
 
 Powered by AgentMake AI, BibleMate AI offers users the flexibility to use various AI backends. Read more at https://github.com/eliranwong/agentmake#supported-backends
 
-For comparison, we tested some of the supported backends using the same prompt in the tests below: 'In-depth study on Lamentations 3:22-24'
+For comparison, we tested some of the supported backends using the same prompt `In-depth study on Lamentations 3:22-24` in the tests below:
 
 BibleMate AI + `Azure + ChatGPT 5` https://youtu.be/QvPIyHOhrP0
 
@@ -31,9 +31,9 @@ BibleMate AI + `Mistral Large` https://youtu.be/7sBfj2TMoOE
 
 BibleMate AI + `DeepSeek 3.1` https://youtu.be/FUr--ULDCZM
 
-BibleMate AI + `GPT-OSS 120B` https://youtu.be/7sBfj2TMoOE
+BibleMate AI + `Groq + GPT-OSS 120B` https://youtu.be/7sBfj2TMoOE
 
-BibleMate AI + `Llama 3.3 70B` https://youtu.be/2XPv1x0Dyts
+BibleMate AI + `Groq + Llama 3.3 70B` https://youtu.be/2XPv1x0Dyts
 
 ## Demo
 
