@@ -29,7 +29,7 @@ BibleMate AI + `DeepSeek 3.1` https://youtu.be/FUr--ULDCZM
 
 BibleMate AI + `Groq + GPT-OSS 120B` https://youtu.be/7sBfj2TMoOE
 
-BibleMate AI + `Groq + Llama 3.3 70B` https://youtu.be/2XPv1x0Dyts
+BibleMate AI + `Groq + Llama 3.3 70B` https://youtu.be/oKQyIEnMM8M
 
 BibleMate AI + `XAI + Grok 4` https://youtu.be/JgcxciOc_Ys
 
