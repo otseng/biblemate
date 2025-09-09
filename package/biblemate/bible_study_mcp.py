@@ -33,6 +33,20 @@ def retrieve_bible_cross_references(request:str) -> str:
     return getResponse(messages)
 
 @mcp.tool
+def retrieve_pointed_hebrew_or_accented_greek_bible_verses(request:str) -> str:
+    """retrieve Hebrew (with pointed vowels) or Greek (with accents) Bible verses; bible verse reference(s) must be given"""
+    global agentmake, getResponse
+    messages = agentmake(request, **{'tool': 'uba/ohgb'}, **AGENTMAKE_CONFIG)
+    return getResponse(messages)
+
+@mcp.tool
+def retrieve_hebrew_or_greek_bible_verses(request:str) -> str:
+    """retrieve Hebrew (without pointed vowels) or Greek (without accents) Bible verses; bible verse reference(s) must be given"""
+    global agentmake, getResponse
+    messages = agentmake(request, **{'tool': 'uba/mob'}, **AGENTMAKE_CONFIG)
+    return getResponse(messages)
+
+@mcp.tool
 def retrieve_english_bible_verses(request:str) -> str:
     """retrieve English Bible verses; bible verse reference(s) must be given"""
     global agentmake, getResponse

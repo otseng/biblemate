@@ -1,3 +1,7 @@
+# BibleMate AI - Built-in Tools
+
+The following list may not show all the latest available tools. To get the latest list, enter `.tools` at the BibleMate AI prompt.
+
 ### compare_bible_translations
 compare Bible translations; bible verse reference(s) must be given
 

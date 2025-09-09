@@ -9,10 +9,6 @@ BibleMate AI is a groundbreaking, autonomous AI agent designed to revolutionize 
 *   **Rich Toolset:** Comes with over 40 built-in bible tools, powered by our comprehensive bible suite, the [UniqueBible App](https://github.com/eliranwong/UniqueBible).
 *   **Customizable and Extensible:** Advanced users can customize existing tools or add new ones to suit their specific needs.
 
-## Built-in Tools
-
-To see the full list of built-in tools and their descriptions, please see the [TOOLS.md](TOOLS.md) file.
-
 ## Supported OS
 
 Windows / macOS / Linux / ChromeOS / Android
@@ -34,6 +30,12 @@ BibleMate AI + `DeepSeek 3.1` https://youtu.be/FUr--ULDCZM
 BibleMate AI + `Groq + GPT-OSS 120B` https://youtu.be/7sBfj2TMoOE
 
 BibleMate AI + `Groq + Llama 3.3 70B` https://youtu.be/2XPv1x0Dyts
+
+BibleMate AI + `XAI + Grok 4` https://youtu.be/JgcxciOc_Ys
+
+## Built-in Tools
+
+To see the full list of built-in tools and their descriptions, please see the [TOOLS.md](TOOLS.md) file.
 
 ## Demo
 
