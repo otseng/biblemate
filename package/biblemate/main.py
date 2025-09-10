@@ -39,6 +39,7 @@ async def main_async():
         tools_raw = await client.list_tools()
         #print(tools_raw)
         tools = {t.name: t.description for t in tools_raw}
+        tools = dict(sorted(tools.items()))
         tools_schema = {}
         for t in tools_raw:
             schema = {
@@ -55,6 +56,7 @@ async def main_async():
         available_tools = list(tools.keys())
         if not "get_direct_text_response" in available_tools:
             available_tools.insert(0, "get_direct_text_response")
+        available_tools_pattern = "|".join(available_tools)
 
         # add tool description for get_direct_text_response if not exists
         if not "get_direct_text_response" in tools:
@@ -126,13 +128,14 @@ Get a static text-based response directly from a text-based AI model without usi
                         bar() # Update the bar
                         await asyncio.sleep(0.01) # Yield control back to the event loop
                 return task.result()
-            async def process_step_async(step_number):
+            async def process_tool(tool, tool_instruction, step_number=None):
                 """
                 Manages the async task and the progress bar.
                 """
-                print(f"# Starting Step [{step_number}]...")
+                if step_number:
+                    print(f"# Starting Step [{step_number}]...")
                 # Create the async task but don't await it yet.
-                task = asyncio.create_task(process_step())
+                task = asyncio.create_task(run_tool(tool, tool_instruction))
                 # Await the custom async progress bar that awaits the task.
                 await async_alive_bar(task)
 
@@ -173,9 +176,12 @@ Get a static text-based response directly from a text-based AI model without usi
                 ".chat": "enable chat mode",
                 ".agent": "enable agent mode",
                 ".tools": "list available tools",
+                #".resources": "list available resources",
+                #".prompts": "list available prompts",
+                ".backup": "backup conversation",
                 ".open": "open a file or directory",
             }
-            input_suggestions = list(action_list.keys())+prompt_list
+            input_suggestions = list(action_list.keys())+[f"@{t} " for t in available_tools]+prompt_list
             user_request = await getInput("> ", input_suggestions)
             while not user_request.strip():
                 user_request = await getInput("> ", input_suggestions)
@@ -190,7 +196,9 @@ Get a static text-based response directly from a text-based AI model without usi
 
             # TODO: ui - radio list menu
             if user_request in action_list:
-                if user_request == ".tools":
+                if user_request == ".backup":
+                    backup()
+                elif user_request == ".tools":
                     console.rule()
                     tools_descriptions = [f"- `{name}`: {description}" for name, description in tools.items()]
                     console.print(Markdown("## Available Tools\n\n"+"\n".join(tools_descriptions)))
@@ -222,14 +230,68 @@ Get a static text-based response directly from a text-based AI model without usi
                     console.print(get_banner())
                 continue
 
-            # auto prompt engineering
-            async def run_prompt_engineering():
-                nonlocal user_request
-                user_request = agentmake(user_request, tool="improve_prompt", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()[20:-4]
-            await thinking(run_prompt_engineering, "Prompt Engineering ...")
+            # Check if a single tool is specified
+            specified_tool = ""
+            if re.search(f"""^@({available_tools_pattern}) """, user_request):
+                specified_tool = re.search(f"""^@({available_tools_pattern}) """, user_request).group(1)
+                user_request = user_request[len(specified_tool)+2:]
+            elif user_request.startswith("@@"):
+                specified_tool = "@@"
+                master_plan = user_request[2:].strip()
+                async def refine_custom_plan():
+                    nonlocal messages, user_request, master_plan
+                    # Prompt engineering
+                    #master_plan = agentmake(messages if messages else master_plan, follow_up_prompt=master_plan if messages else None, tool="improve_prompt", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()[20:-4]
+                    # Summarize user request in one-sentence instruction
+                    user_request = agentmake(master_plan, tool="biblemate/summarize_task_instruction", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()[15:-4]
+                await thinking(refine_custom_plan)
+                # display info
+                console.print(Markdown(f"# User Request\n\n{user_request}\n\n# Master plan\n\n{master_plan}"))
+
+            # Prompt Engineering
+            if not specified_tool == "@@":
+                async def run_prompt_engineering():
+                    nonlocal user_request
+                    user_request = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, tool="improve_prompt", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()[20:-4]
+                await thinking(run_prompt_engineering, "Prompt Engineering ...")
+
+            if not messages:
+                messages = [
+                    {"role": "system", "content": "You are BibleMate, an autonomous AI agent."},
+                    {"role": "user", "content": user_request},
+                ]
+            else:
+                messages.append({"role": "user", "content": user_request})
+
+            async def run_tool(tool, tool_instruction):
+                nonlocal messages
+                if tool == "get_direct_text_response":
+                    messages = agentmake(messages, system="auto", **AGENTMAKE_CONFIG)
+                else:
+                    try:
+                        tool_schema = tools_schema[tool]
+                        tool_properties = tool_schema["parameters"]["properties"]
+                        if len(tool_properties) == 1 and "request" in tool_properties: # AgentMake MCP Servers or alike
+                            tool_result = await client.call_tool(tool, {"request": tool_instruction})
+                        else:
+                            structured_output = getDictionaryOutput(messages=messages, schema=tool_schema)
+                            tool_result = await client.call_tool(tool, structured_output)
+                        tool_result = tool_result.content[0].text
+                        messages[-1]["content"] += f"\n\n[Using tool `{tool}`]"
+                        messages.append({"role": "assistant", "content": tool_result if tool_result.strip() else "Tool error!"})
+                    except Exception as e:
+                        if DEVELOPER_MODE:
+                            console.print(f"Error: {e}\nFallback to direct response...\n\n")
+                        messages = agentmake(messages, system="auto", **AGENTMAKE_CONFIG)
+
+            # user specify a single tool
+            if specified_tool and not specified_tool == "@@":
+                await process_tool(specified_tool, user_request)
+                console.print(Markdown(f"# User Request\n\n{messages[-2]['content']}\n\n# AI Response\n\n{messages[-1]['content']}"))
+                continue
 
             # Chat mode
-            if not config.agent_mode:
+            if not config.agent_mode and not specified_tool == "@@":
                 async def run_chat_mode():
                     nonlocal messages, user_request
                     messages = agentmake(messages if messages else user_request, system="auto", **AGENTMAKE_CONFIG)
@@ -237,30 +299,35 @@ Get a static text-based response directly from a text-based AI model without usi
                 console.print(Markdown(f"# User Request\n\n{messages[-2]['content']}\n\n# AI Response\n\n{messages[-1]['content']}"))
                 continue
 
-            if re.search(prompt_pattern, user_request):
-                prompt_name = re.search(prompt_pattern, user_request).group(1)
-                user_request = user_request[len(prompt_name):]
-                # Call the MCP prompt
-                prompt_schema = prompts_schema[prompt_name[1:]]
-                prompt_properties = prompt_schema["parameters"]["properties"]
-                if len(prompt_properties) == 1 and "request" in prompt_properties: # AgentMake MCP Servers or alike
-                    result = await client.get_prompt(prompt_name[1:], {"request": user_request})
+            # agent mode
+
+            # generate master plan
+            if not master_plan:
+                if re.search(prompt_pattern, user_request):
+                    prompt_name = re.search(prompt_pattern, user_request).group(1)
+                    user_request = user_request[len(prompt_name):]
+                    # Call the MCP prompt
+                    prompt_schema = prompts_schema[prompt_name[1:]]
+                    prompt_properties = prompt_schema["parameters"]["properties"]
+                    if len(prompt_properties) == 1 and "request" in prompt_properties: # AgentMake MCP Servers or alike
+                        result = await client.get_prompt(prompt_name[1:], {"request": user_request})
+                    else:
+                        structured_output = getDictionaryOutput(messages=messages, schema=prompt_schema)
+                        result = await client.get_prompt(prompt_name[1:], structured_output)
+                    #print(result, "\n\n")
+                    master_plan = result.messages[0].content.text
+                    # display info# display info
+                    console.print(Markdown(f"# User Request\n\n{user_request}\n\n# Master plan\n\n{master_plan}"))
+                    console.print(Markdown(f"# User Request\n\n{user_request}\n\n# Master plan\n\n{master_plan}"))
                 else:
-                    structured_output = getDictionaryOutput(messages=messages, schema=prompt_schema)
-                    result = await client.get_prompt(prompt_name[1:], structured_output)
-                #print(result, "\n\n")
-                master_plan = result.messages[0].content.text
-                # display info
-                console.print(Markdown(f"# User Request\n\n{user_request}\n\n# Master plan\n\n{master_plan}"))
-            else:
-                # display info
-                console.print(Markdown(f"# User Request\n\n{user_request}"), "\n")
-                # Generate master plan
-                master_plan = ""
-                async def generate_master_plan():
-                    nonlocal master_plan
-                    # Create initial prompt to create master plan
-                    initial_prompt = f"""Provide me with the `Preliminary Action Plan` and the `Measurable Outcome` for resolving `My Request`.
+                    # display info
+                    console.print(Markdown(f"# User Request\n\n{user_request}"), "\n")
+                    # Generate master plan
+                    master_plan = ""
+                    async def generate_master_plan():
+                        nonlocal master_plan
+                        # Create initial prompt to create master plan
+                        initial_prompt = f"""Provide me with the `Preliminary Action Plan` and the `Measurable Outcome` for resolving `My Request`.
     
 # Available Tools
 
@@ -271,13 +338,14 @@ Available tools are: {available_tools}.
 # My Request
 
 {user_request}"""
-                    console.print(Markdown("# Master plan"), "\n")
-                    print()
-                    master_plan = agentmake(messages+[{"role": "user", "content": initial_prompt}], system="create_action_plan", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
-                await thinking(generate_master_plan)
-                # display info
-                console.print(Markdown(master_plan), "\n\n")
+                        console.print(Markdown("# Master plan"), "\n")
+                        print()
+                        master_plan = agentmake(messages+[{"role": "user", "content": initial_prompt}], system="create_action_plan", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                    await thinking(generate_master_plan)
+                    # display info
+                    console.print(Markdown(master_plan), "\n\n")
 
+            # Step suggestion system message
             system_suggestion = get_system_suggestion(master_plan)
 
             # Tool selection systemm message
@@ -291,14 +359,6 @@ Available tools are: {available_tools}.
                 next_suggestion = agentmake(user_request, system=system_suggestion, **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
             await thinking(get_first_suggestion)
             console.print(Markdown(next_suggestion), "\n\n")
-
-            if not messages:
-                messages = [
-                    {"role": "system", "content": "You are BibleMate, an autonomous AI agent."},
-                    {"role": "user", "content": user_request},
-                ]
-            else:
-                messages.append({"role": "user", "content": user_request})
 
             step = 1
             while not ("DONE" in next_suggestion or re.sub("^[^A-Za-z]*?([A-Za-z]+?)[^A-Za-z]*?$", r"\1", next_suggestion).upper() == "DONE"):
@@ -343,28 +403,7 @@ Available tools are: {available_tools}.
                     messages.append({"role": "assistant", "content": "Please provide me with an initial instruction to begin."})
                 messages.append({"role": "user", "content": next_step})
 
-                async def process_step():
-                    nonlocal messages, next_tool, next_step
-                    if next_tool == "get_direct_text_response":
-                        messages = agentmake(messages, system="auto", **AGENTMAKE_CONFIG)
-                    else:
-                        try:
-                            tool_schema = tools_schema[next_tool]
-                            tool_properties = tool_schema["parameters"]["properties"]
-                            if len(tool_properties) == 1 and "request" in tool_properties: # AgentMake MCP Servers or alike
-                                tool_result = await client.call_tool(next_tool, {"request": next_step})
-                            else:
-                                structured_output = getDictionaryOutput(messages=messages, schema=tool_schema)
-                                tool_result = await client.call_tool(next_tool, structured_output)
-                            tool_result = tool_result.content[0].text
-                            messages[-1]["content"] += f"\n\n[Using tool `{next_tool}`]"
-                            messages.append({"role": "assistant", "content": tool_result if tool_result.strip() else "Done!"})
-                        except Exception as e:
-                            if DEVELOPER_MODE:
-                                console.print(f"Error: {e}\nFallback to direct response...\n\n")
-                            messages = agentmake(messages, system="auto", **AGENTMAKE_CONFIG)
-                await process_step_async(step)
-
+                await process_tool(next_tool, next_step, step_number=step)
                 console.print(Markdown(f"\n## Output [{step}]\n\n{messages[-1]["content"]}"))
 
                 # iteration count
@@ -382,6 +421,9 @@ Available tools are: {available_tools}.
                 await thinking(get_next_suggestion)
                 #print()
                 console.print(Markdown(next_suggestion), "\n")
+            
+            if messages[-1].get("role") == "user":
+                messages.append({"role": "assistant", "content": next_suggestion})
 
             # Backup
             backup()
