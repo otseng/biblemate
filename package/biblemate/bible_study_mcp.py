@@ -1,5 +1,6 @@
 import logging
 from fastmcp import FastMCP
+from fastmcp.prompts.prompt import PromptMessage, TextContent
 from agentmake import agentmake
 from biblemate import AGENTMAKE_CONFIG
 
@@ -346,5 +347,23 @@ def write_bible_sermon(request:str) -> str:
     global agentmake, getResponse
     messages = agentmake(request, **{'instruction': 'bible/sermon', 'system': 'auto'}, **AGENTMAKE_CONFIG)
     return getResponse(messages)
+
+@mcp.prompt
+def simple_bible_study(request:str) -> PromptMessage:
+    """Perform a simple bible study task; bible reference(s) must be given"""
+    global PromptMessage, TextContent
+    prompt_text = f"""You are a bible study agent. You check the user request, under the `User Request` section, and resolve it with the following steps in order:
+1. Call tool 'retrieve_english_bible_verses' for Bible text, 
+2. Call tool 'retrieve_bible_cross_references' for Bible cross-references, 
+3. Call tool 'study_old_testament_themes' for study old testament themes or 'study_new_testament_themes' for study old testament themes, and 
+4. Call tool 'write_bible_theology' to explain its theology.
+
+# User Request
+
+---
+{request}
+---
+"""
+    return PromptMessage(role="user", content=TextContent(type="text", text=prompt_text))
 
 mcp.run(show_banner=False)

@@ -70,6 +70,7 @@ Get a static text-based response directly from a text-based AI model without usi
         prompts_raw = await client.list_prompts()
         #print("# Prompts\n\n", prompts_raw, "\n\n")
         prompts = {p.name: p.description for p in prompts_raw}
+        prompts = dict(sorted(prompts.items()))
         prompt_list = [f"/{p}" for p in prompts.keys()]
         prompt_pattern = "|".join(prompt_list)
         prompt_pattern = f"""^({prompt_pattern}) """
@@ -177,7 +178,7 @@ Get a static text-based response directly from a text-based AI model without usi
                 ".agent": "enable agent mode",
                 ".tools": "list available tools",
                 #".resources": "list available resources",
-                #".prompts": "list available prompts",
+                ".prompts": "list available prompts",
                 ".backup": "backup conversation",
                 ".open": "open a file or directory",
             }
@@ -202,6 +203,11 @@ Get a static text-based response directly from a text-based AI model without usi
                     console.rule()
                     tools_descriptions = [f"- `{name}`: {description}" for name, description in tools.items()]
                     console.print(Markdown("## Available Tools\n\n"+"\n".join(tools_descriptions)))
+                    console.rule()
+                elif user_request == ".prompts":
+                    console.rule()
+                    prompts_descriptions = [f"- `{name}`: {description}" for name, description in prompts.items()]
+                    console.print(Markdown("## Available Prompts\n\n"+"\n".join(prompts_descriptions)))
                     console.rule()
                 elif user_request == ".backend":
                     edit_configurations()
@@ -231,8 +237,12 @@ Get a static text-based response directly from a text-based AI model without usi
                 continue
 
             # Check if a single tool is specified
+            specified_prompt = ""
             specified_tool = ""
-            if re.search(f"""^@({available_tools_pattern}) """, user_request):
+            if re.search(prompt_pattern, user_request):
+                specified_prompt = re.search(prompt_pattern, user_request).group(1)
+                user_request = user_request[len(specified_prompt):]
+            elif re.search(f"""^@({available_tools_pattern}) """, user_request):
                 specified_tool = re.search(f"""^@({available_tools_pattern}) """, user_request).group(1)
                 user_request = user_request[len(specified_tool)+2:]
             elif user_request.startswith("@@"):
@@ -303,21 +313,18 @@ Get a static text-based response directly from a text-based AI model without usi
 
             # generate master plan
             if not master_plan:
-                if re.search(prompt_pattern, user_request):
-                    prompt_name = re.search(prompt_pattern, user_request).group(1)
-                    user_request = user_request[len(prompt_name):]
+                if specified_prompt:
                     # Call the MCP prompt
-                    prompt_schema = prompts_schema[prompt_name[1:]]
+                    prompt_schema = prompts_schema[specified_prompt[1:]]
                     prompt_properties = prompt_schema["parameters"]["properties"]
                     if len(prompt_properties) == 1 and "request" in prompt_properties: # AgentMake MCP Servers or alike
-                        result = await client.get_prompt(prompt_name[1:], {"request": user_request})
+                        result = await client.get_prompt(specified_prompt[1:], {"request": user_request})
                     else:
                         structured_output = getDictionaryOutput(messages=messages, schema=prompt_schema)
-                        result = await client.get_prompt(prompt_name[1:], structured_output)
+                        result = await client.get_prompt(specified_prompt[1:], structured_output)
                     #print(result, "\n\n")
                     master_plan = result.messages[0].content.text
                     # display info# display info
-                    console.print(Markdown(f"# User Request\n\n{user_request}\n\n# Master plan\n\n{master_plan}"))
                     console.print(Markdown(f"# User Request\n\n{user_request}\n\n# Master plan\n\n{master_plan}"))
                 else:
                     # display info

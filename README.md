@@ -33,10 +33,6 @@ BibleMate AI + `Groq + Llama 3.3 70B` https://youtu.be/oKQyIEnMM8M
 
 BibleMate AI + `XAI + Grok 4` https://youtu.be/JgcxciOc_Ys
 
-## Built-in Tools
-
-To see the full list of built-in tools and their descriptions, please see the [TOOLS.md](TOOLS.md) file.
-
 ## Demo
 
 See BibleMate AI in action in our YouTube video: [BibleMate AI Demo](https://youtu.be/QvPIyHOhrP0)
@@ -136,6 +132,18 @@ Watch this video: https://youtu.be/Lejq0sAx030
 
 The '@@' trick works even when you are using 'chat' mode with 'agent' mode disabled.
 
+## Built-in Tools
+
+To see the full list of built-in tools and their descriptions, please see the [TOOLS.md](TOOLS.md) file.
+
+## Built-in Plans
+
+Built-in plans are predefined, frequently used 'master plans' that users can quickly access. Currently, we have added one for demonstration purposes. Users can add their own plans via [customization](https://github.com/eliranwong/biblemate#customization).
+
+Starts your prompt with a forward slash `/` to call a plan, e.g.:
+
+> /simple_bible_study John 3:16
+
 ## Action Menu
 
 There is a set of predefined entries, that starts with a dot sign `.`:
@@ -146,6 +154,7 @@ There is a set of predefined entries, that starts with a dot sign `.`:
 - `.chat` - enable chat mode
 - `.agent` - enable agent mode
 - `.tools` - list available tools
+- `.plans` - list available plans
 - `.backup` - backup conversation
 - `.open` - open a file or directory, e.g. `.open /home/user/report.html`
 
