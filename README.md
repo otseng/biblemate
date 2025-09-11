@@ -200,7 +200,7 @@ The agent's core logic is guided by system prompts, which are markdown files. Yo
 
 The customizable system prompt files are: `supervisor.md`, `tool_instruction.md`, and `tool_selection.md`. You can copy them from the `biblemate/systems` directory in the package installation folder to your user directory and modify them as needed.
 
-## Tutorials
+## 📖 Tutorials
 
 ... (coming soon) ...
 

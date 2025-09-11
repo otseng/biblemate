@@ -22,110 +22,82 @@ client = Client(user_mcp_server if os.path.isfile(user_mcp_server) else builtin_
 def main():
     asyncio.run(main_async())
 
-async def initialize_app(client):
-    """Initializes the application by fetching tools and prompts from the MCP server."""
-    await client.ping()
-
-    tools_raw = await client.list_tools()
-    tools = {t.name: t.description for t in tools_raw}
-    tools = dict(sorted(tools.items()))
-    tools_schema = {}
-    for t in tools_raw:
-        schema = {
-            "name": t.name,
-            "description": t.description,
-            "parameters": {
-                "type": "object",
-                "properties": t.inputSchema["properties"],
-                "required": t.inputSchema["required"],
-            },
-        }
-        tools_schema[t.name] = schema
-
-    available_tools = list(tools.keys())
-    if "get_direct_text_response" not in available_tools:
-        available_tools.insert(0, "get_direct_text_response")
-
-    tool_descriptions = ""
-    if "get_direct_text_response" not in tools:
-        tool_descriptions = """# TOOL DESCRIPTION: `get_direct_text_response`
-Get a static text-based response directly from a text-based AI model without using any other tools. This is useful when you want to provide a simple and direct answer to a question or request, without the need for online latest updates or task execution.\n\n\n"""
-    for tool_name, tool_description in tools.items():
-        tool_descriptions += f"""# TOOL DESCRIPTION: `{tool_name}`
-{tool_description}\n\n\n"""
-
-    prompts_raw = await client.list_prompts()
-    prompts = {p.name: p.description for p in prompts_raw}
-    prompts = dict(sorted(prompts.items()))
-
-    prompts_schema = {}
-    for p in prompts_raw:
-        arg_properties = {}
-        arg_required = []
-        for a in p.arguments:
-            arg_properties[a.name] = {
-                "type": "string",
-                "description": str(a.description) if a.description else "no description available",
-            }
-            if a.required:
-                arg_required.append(a.name)
-        schema = {
-            "name": p.name,
-            "description": p.description,
-            "parameters": {
-                "type": "object",
-                "properties": arg_properties,
-                "required": arg_required,
-            },
-        }
-        prompts_schema[p.name] = schema
-    
-    return tools, tools_schema, available_tools, tool_descriptions, prompts, prompts_schema
-
-def backup_conversation(console, messages, master_plan):
-    """Backs up the current conversation to the user's directory."""
-    timestamp = getCurrentDateTime()
-    storagePath = os.path.join(AGENTMAKE_USER_DIR, "biblemate", timestamp)
-    Path(storagePath).mkdir(parents=True, exist_ok=True)
-    # Save full conversation
-    conversation_file = os.path.join(storagePath, "conversation.py")
-    writeTextFile(conversation_file, str(messages))
-    # Save master plan
-    writeTextFile(os.path.join(storagePath, "master_plan.md"), master_plan)
-    # Save html
-    html_file = os.path.join(storagePath, "conversation.html")
-    console.save_html(html_file, inline_styles=True, theme=MONOKAI)
-    # Save markdown
-    console.save_text(os.path.join(storagePath, "conversation.md"))
-    # Inform users of the backup location
-    print(f"Conversation backup saved to {storagePath}")
-    print(f"Report saved to {html_file}\n")
-
-def write_user_config():
-    """Writes the current configuration to the user's config file."""
-    user_config_dir = os.path.join(AGENTMAKE_USER_DIR, "biblemate")
-    Path(user_config_dir).mkdir(parents=True, exist_ok=True)
-    config_file = os.path.join(user_config_dir, "config.py")
-    configurations = f"""agent_mode={config.agent_mode}
-prompt_engineering={config.prompt_engineering}
-max_steps={config.max_steps}"""
-    writeTextFile(config_file, configurations)
-
 async def main_async():
 
     APP_START = True
     DEFAULT_SYSTEM = "You are BibleMate AI, an autonomous agent designed to assist users with their Bible study."
+
     console = Console(record=True)
     console.clear()
     console.print(get_banner())
 
     async with client:
-        tools, tools_schema, available_tools, tool_descriptions, prompts, prompts_schema = await initialize_app(client)
-        
+        await client.ping()
+
+        #resources = await client.list_resources()
+        #print("# Resources\n\n", resources, "\n\n")
+
+        # List available tools, resources, and prompts
+        tools_raw = await client.list_tools()
+        #print(tools_raw)
+        tools = {t.name: t.description for t in tools_raw}
+        tools = dict(sorted(tools.items()))
+        tools_schema = {}
+        for t in tools_raw:
+            schema = {
+                "name": t.name,
+                "description": t.description,
+                "parameters": {
+                    "type": "object",
+                    "properties": t.inputSchema["properties"],
+                    "required": t.inputSchema["required"],
+                },
+            }
+            tools_schema[t.name] = schema
+
+        available_tools = list(tools.keys())
+        if not "get_direct_text_response" in available_tools:
+            available_tools.insert(0, "get_direct_text_response")
         available_tools_pattern = "|".join(available_tools)
+
+        # add tool description for get_direct_text_response if not exists
+        if not "get_direct_text_response" in tools:
+            tool_descriptions = f"""# TOOL DESCRIPTION: `get_direct_text_response`
+Get a static text-based response directly from a text-based AI model without using any other tools. This is useful when you want to provide a simple and direct answer to a question or request, without the need for online latest updates or task execution.\n\n\n"""
+        # add tool descriptions
+        for tool_name, tool_description in tools.items():
+            tool_descriptions += f"""# TOOL DESCRIPTION: `{tool_name}`
+{tool_description}\n\n\n"""
+
+        prompts_raw = await client.list_prompts()
+        #print("# Prompts\n\n", prompts_raw, "\n\n")
+        prompts = {p.name: p.description for p in prompts_raw}
+        prompts = dict(sorted(prompts.items()))
         prompt_list = [f"/{p}" for p in prompts.keys()]
         prompt_pattern = "|".join(prompt_list)
         prompt_pattern = f"""^({prompt_pattern}) """
+
+        prompts_schema = {}
+        for p in prompts_raw:
+            arg_properties = {}
+            arg_required = []
+            for a in p.arguments:
+                arg_properties[a.name] = {
+                    "type": "string",
+                    "description": str(a.description) if a.description else "no description available",
+                }
+                if a.required:
+                    arg_required.append(a.name)
+            schema = {
+                "name": p.name,
+                "description": p.description,
+                "parameters": {
+                    "type": "object",
+                    "properties": arg_properties,
+                    "required": arg_required,
+                },
+            }
+            prompts_schema[p.name] = schema
 
         user_request = ""
         master_plan = ""
@@ -169,6 +141,32 @@ async def main_async():
                 task = asyncio.create_task(run_tool(tool, tool_instruction))
                 # Await the custom async progress bar that awaits the task.
                 await async_alive_bar(task)
+
+            # backup
+            def backup():
+                nonlocal console, messages, master_plan
+                timestamp = getCurrentDateTime()
+                storagePath = os.path.join(AGENTMAKE_USER_DIR, "biblemate", timestamp)
+                Path(storagePath).mkdir(parents=True, exist_ok=True)
+                # Save full conversation
+                conversation_file = os.path.join(storagePath, "conversation.py")
+                writeTextFile(conversation_file, str(messages))
+                # Save master plan
+                writeTextFile(os.path.join(storagePath, "master_plan.md"), master_plan)
+                # Save html
+                html_file = os.path.join(storagePath, "conversation.html")
+                console.save_html(html_file, inline_styles=True, theme=MONOKAI)
+                # Save markdown
+                console.save_text(os.path.join(storagePath, "conversation.md"))
+                # Inform users of the backup location
+                print(f"Conversation backup saved to {storagePath}")
+                print(f"Report saved to {html_file}\n")
+            def write_config():
+                config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py")
+                configurations = f"""agent_mode={config.agent_mode}
+prompt_engineering={config.prompt_engineering}
+max_steps={config.max_steps}"""
+                writeTextFile(config_file, configurations)
 
             if messages:
                 console.rule()
@@ -235,7 +233,7 @@ async def main_async():
             # predefined operations with `.` commands
             if user_request in action_list:
                 if user_request == ".backup":
-                    backup_conversation(console, messages, master_plan)
+                    backup()
                 elif user_request == ".help":
                     console.rule()
                     console.print(Markdown("Viist https://github.com/eliranwong/biblemate for help."))
@@ -261,29 +259,29 @@ async def main_async():
                     max_steps = await getInput("> ", number_validator=True)
                     if max_steps:
                         config.max_steps = int(max_steps)
-                        write_user_config()
+                        write_config()
                         console.print("Maximum number of steps set to", config.max_steps, "steps.", justify="center")
                     console.rule()
                 elif user_request == ".promptengineering":
                     config.prompt_engineering = not config.prompt_engineering
-                    write_user_config()
+                    write_config()
                     console.rule()
                     console.print("Prompt Engineering Enabled" if config.prompt_engineering else "Prompt Engineering Disabled", justify="center")
                     console.rule()
                 elif user_request == ".chat":
                     config.agent_mode = False
-                    write_user_config()
+                    write_config()
                     console.rule()
                     console.print("Chat Mode Enabled", justify="center")
                     console.rule()
                 elif user_request == ".agent":
                     config.agent_mode = True
-                    write_user_config()
+                    write_config()
                     console.rule()
                     console.print("Agent Mode Enabled", justify="center")
                     console.rule()
                 elif user_request in (".new", ".quit"):
-                    backup_conversation(console, messages, master_plan) # backup
+                    backup() # backup
                 # reset
                 if user_request == ".new":
                     user_request = ""
@@ -490,7 +488,7 @@ Available tools are: {available_tools}.
                 messages.append({"role": "assistant", "content": next_suggestion})
 
             # Backup
-            backup_conversation(console, messages, master_plan)
+            backup()
 
 if __name__ == "__main__":
     asyncio.run(main())
