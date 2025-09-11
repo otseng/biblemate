@@ -467,7 +467,7 @@ Available tools are: {available_tools}.
                 messages.append({"role": "user", "content": next_step})
 
                 await process_tool(next_tool, next_step, step_number=step)
-                console.print(Markdown(f"\n## Output [{step}]\n\n{messages[-1]["content"]}"))
+                console.print(Markdown(f"\n## Output [{step}]\n\n{messages[-1]['content']}"))
 
                 # iteration count
                 step += 1
