@@ -350,7 +350,7 @@ def write_bible_sermon(request:str) -> str:
 
 @mcp.prompt
 def simple_bible_study(request:str) -> PromptMessage:
-    """Perform a simple bible study task; bible reference(s) must be given"""
+    """Perform a simple bible study task"""
     global PromptMessage, TextContent
     prompt_text = f"""You are a bible study agent. You check the user request, under the `User Request` section, and resolve it with the following steps in order:
 1. Call tool 'retrieve_english_bible_verses' for Bible text, 
@@ -359,6 +359,28 @@ def simple_bible_study(request:str) -> PromptMessage:
 4. Call tool 'write_bible_theology' to explain its theology.
 
 # User Request
+
+---
+{request}
+---
+"""
+    return PromptMessage(role="user", content=TextContent(type="text", text=prompt_text))
+
+@mcp.prompt
+def bible_devotion(request:str) -> PromptMessage:
+    """Write bible devotion based on user content"""
+    global PromptMessage, TextContent
+    prompt_text = f"""
+You are a bible devotional agent. You check the user content, under the `User Content` section, and write a devotional about it with the following steps in order:
+
+1. Analyze the themes using @study_new_testament_themes for new testament passages or @study_old_testament_themes for old testament passages.
+2. Identify and explain key biblical keywords from the passage using @identify_bible_keywords.
+3. Write insights for the devotion using @write_bible_insights.
+4. Relate the passage to daily life using @write_bible_applications.
+5. Compose a touching devotion using @write_bible_devotion.
+Ensure each step is clearly addressed and the final output is cohesive and inspiring.
+
+# User Content
 
 ---
 {request}
