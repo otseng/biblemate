@@ -1,19 +1,24 @@
 # BibleMate AI
 
-BibleMate AI is a groundbreaking, autonomous AI agent designed to revolutionize your Bible study. It can create study plans, coordinate multiple Bible tools, and take multi-step actions to complete complex Bible-related tasks, such as conducting an in-depth study of a particular Bible passage.
+**BibleMate AI** is a groundbreaking, autonomous AI agent designed to revolutionize your Bible study. It can create study plans, coordinate multiple Bible tools, and take multi-step actions to complete complex Bible-related tasks, such as conducting an in-depth study of a particular Bible passage.
 
-## Core Features
+## ✨ Core Features
 
-*   **Autonomous AI Agent:** BibleMate AI can work independently to fulfill your bible study requests.
-*   **Multi-step Task Execution:** It can break down complex tasks into smaller, manageable steps and execute them sequentially.
-*   **Rich Toolset:** Comes with over 40 built-in bible tools, powered by our comprehensive bible suite, the [UniqueBible App](https://github.com/eliranwong/UniqueBible).
-*   **Customizable and Extensible:** Advanced users can customize existing tools or add new ones to suit their specific needs.
+- **Autonomous AI Agent:** BibleMate AI can work independently to fulfill your bible study requests.
+- **Multi-step Task Execution:** It can break down complex tasks into smaller, manageable steps and execute them sequentially.
+- **Rich Toolset:** Comes with over 40 built-in bible tools, powered by our comprehensive bible suite, the [UniqueBible App](https://github.com/eliranwong/UniqueBible).
+- **Customizable and Extensible:** Advanced users can customize existing tools or add new ones to suit their specific needs.
+- **Flexible AI Backend:** Supports a variety of AI backends via [AgentMake AI](https://github.com/eliranwong/agentmake).
 
-## Supported OS
+## 🖥️ Supported Platforms
 
-Windows / macOS / Linux / ChromeOS / Android (via Piexel Terminal / Termux Terminal)
+- Windows
+- macOS
+- Linux
+- ChromeOS
+- Android (via Piexel Terminal / Termux)
 
-## Supported Backends
+## 🧠 Supported AI Backends
 
 Powered by AgentMake AI, BibleMate AI offers users the flexibility to use various AI backends. Read more at https://github.com/eliranwong/agentmake#supported-backends
 
@@ -33,17 +38,11 @@ BibleMate AI + `Groq + Llama 3.3 70B` https://youtu.be/oKQyIEnMM8M
 
 BibleMate AI + `XAI + Grok 4` https://youtu.be/JgcxciOc_Ys
 
-## Demo
-
-See BibleMate AI in action in our YouTube video: [BibleMate AI Demo](https://youtu.be/QvPIyHOhrP0)
+## 🎬 Demo
 
 [![Watch the video](https://img.youtube.com/vi/QvPIyHOhrP0/maxresdefault.jpg)](https://youtu.be/QvPIyHOhrP0)
 
-## Our Other AI Projects
-
-BibleMate AI was developed from our agent development kit (ADK), [AgentMake AI](https://github.com/eliranwong/agentmake), and was a side-project we explored while developing [BibleMate AI](https://github.com/eliranwong/BibleMate). Its success as a bible study tool prompted us to develop it further as a standalone project.
-
-## BibleMate AI Agentic Workflow
+## 🧩 Agentic Workflow
 
 1.  **BibleMate AI** receives a request from a user.
 2.  **BibleMate AI** analyzes the request and determines that it requires multiple steps to complete.
@@ -56,7 +55,8 @@ BibleMate AI was developed from our agent development kit (ADK), [AgentMake AI](
 9.  Once all steps are completed, **BibleMate AI** provides a concise summary of the results to the user.
 10. The user receives the final response, which fully resolves their original request.
 
-## Workflow Diagram
+<details>
+<summary>Workflow Diagram (click to expand)</summary>
 
 ```mermaid
 graph TD
@@ -75,13 +75,13 @@ graph TD
     B -- Summary --> A;
 ```
 
-## Getting Started
+## 🚀 Quick Start
 
 > pip install --upgrade biblemate
 
 > biblemate
 
-## Configure AI Backend
+## ⚙️ Configure AI Backend
 
 After BibleMate AI is launched, enter:
 
@@ -89,7 +89,7 @@ After BibleMate AI is launched, enter:
 
 A text editor is opened for you to edit the AgentMake AI settings. Change the `DEFAULT_AI_BACKEND` to your own choice of AI backend and enter API keys where appropriate.
 
-## AI Modes
+## 🗣️ AI Modes
 
 You can swap between two AI modes:
 
@@ -102,7 +102,23 @@ How to swap?
 * Enter `.chat` in BibleMate AI prompt to enable chat mode and disable agent mode.
 * Enter `.agent` in BibleMate AI prompt to enable agent mode and disable chat mode.
 
-## Manual Tool Selection
+## 📚 Built-in Tools & Plans
+
+### Built-in Tools
+
+To see the full list of built-in tools and their descriptions, please see the [TOOLS.md](TOOLS.md) file.
+
+When `agent mode` is enabled, all built-in tools are considered and automatically selected for each step in fulfilling the user’s request.
+
+### Built-in Plans
+
+Built-in plans are predefined, frequently used 'master plans' that users can quickly access. Currently, we have added one for demonstration purposes. Users can add their own plans via [customization](https://github.com/eliranwong/biblemate#customization).
+
+Starts your prompt with a forward slash `/` to call a plan, e.g.:
+
+> /simple_bible_study John 3:16
+
+## 🛠️ Manual Tool Selection
 
 In some cases, you may want to specify a particular tool for a simple task, rather than having a tool automatically selected in the fully automatic `agent mode`.
 
@@ -114,7 +130,7 @@ You can specify a single tool by prefixing a tool name with `@` at the beginning
 
 Watch this video: https://youtu.be/50m1KRj6uhs
 
-## Custom Master Plan with Multiple Tools
+## 📝 Custom Master Plan
 
 In some cases, you may want to specify a `custom plan` with multiple tools specified for different steps for a complex task, rather than having a `master plan` automatically generated in fully automatic agent mode.
 
@@ -132,36 +148,24 @@ Watch this video: https://youtu.be/Lejq0sAx030
 
 The '@@' trick works even when you are using 'chat' mode with 'agent' mode disabled.
 
-## Built-in Tools
+## 🏃 Action Menu
 
-To see the full list of built-in tools and their descriptions, please see the [TOOLS.md](TOOLS.md) file.
+| Command              | Description                        |
+|----------------------|------------------------------------|
+| `.new`               | New conversation                   |
+| `.quit`              | Quit BibleMate AI                  |
+| `.backend`           | Change backend                     |
+| `.chat`              | Enable chat mode                   |
+| `.agent`             | Enable agent mode                  |
+| `.tools`             | List available tools               |
+| `.plans`             | List available plans               |
+| `.backup`            | Backup conversation                |
+| `.open`              | Open a file or directory           |
+| `.promptengineering` | Toggle auto prompt engineering     |
+| `.steps`             | Set max number of steps            |
+| `.help`              | Show help page                     |
 
-## Built-in Plans
-
-Built-in plans are predefined, frequently used 'master plans' that users can quickly access. Currently, we have added one for demonstration purposes. Users can add their own plans via [customization](https://github.com/eliranwong/biblemate#customization).
-
-Starts your prompt with a forward slash `/` to call a plan, e.g.:
-
-> /simple_bible_study John 3:16
-
-## Action Menu
-
-There is a set of predefined entries, that starts with a dot sign `.`:
-
-- `.new` - new conversation
-- `.quit` - quit
-- `.backend` - change backend
-- `.chat` - enable chat mode
-- `.agent` - enable agent mode
-- `.tools` - list available tools
-- `.plans` - list available plans
-- `.backup` - backup conversation
-- `.open` - open a file or directory, e.g. `.open /home/user/report.html`
-- `.promptengineering` - toggle auto prompt engineering",
-- `steps` - configure the maximum number of steps allowed
-- `.help` - help page
-
-## Keyboard Shortcuts
+## ⌨️ Keyboard Shortcuts
 
 The following key bindings are supported in BibleMate AI prompt field:
 
@@ -176,13 +180,13 @@ The following key bindings are supported in BibleMate AI prompt field:
 - `Esc+b` or `HOME` jump to the beginning of a line in a prompt
 - `Esc+e` or `END` jump to the end of a line in a prompt
 
-## Customization
+## 🛠️ Customization
 
 BibleMate AI is highly customizable. Advanced users can modify existing tools, create new ones, and even change the behavior of the AI agent by customizing system prompts.
 
 Custom files are placed in the `biblemate` sub-directory within the AgentMake user directory (typically `~/.agentmake/biblemate` on Linux/macOS or `%USERPROFILE%\.agentmake\biblemate` on Windows).
 
-### Custom Tools and Plans
+### Add or Modify Tools & Plans
 
 You can add your own tools and built-in plans (prompts) by creating a custom `bible_study_mcp.py` file.
 
@@ -190,17 +194,21 @@ You can add your own tools and built-in plans (prompts) by creating a custom `bi
 2.  Copy this file to your user customization directory at `~/.agentmake/biblemate/bible_study_mcp.py`.
 3.  Now you can edit this file to add or modify tools and prompts using the `fastmcp` syntax. BibleMate AI will automatically load your custom file instead of the built-in one.
 
-### Custom System Prompts
+### Override system prompts
 
 The agent's core logic is guided by system prompts, which are markdown files. You can override them by placing your own versions in `~/.agentmake/systems/biblemate/`.
 
 The customizable system prompt files are: `supervisor.md`, `tool_instruction.md`, and `tool_selection.md`. You can copy them from the `biblemate/systems` directory in the package installation folder to your user directory and modify them as needed.
 
-## License
+## Tutorials
+
+... (coming soon) ...
+
+## 📄 License
 
 This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
 BibleMate AI is built upon the foundations of our other projects:
 *   [UniqueBible App](https.github.com/eliranwong/UniqueBible)

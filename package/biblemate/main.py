@@ -179,6 +179,7 @@ max_steps={config.max_steps}"""
                         break
                     except Exception as e:
                         print("Connection failed! Please ensure that you have a stable internet connection and that my AI backend and model are properly configured.")
+                        print("Viist https://github.com/eliranwong/agentmake#supported-backends for help about the backend configuration.\n")
                         if click.confirm("Do you want to configure my AI backend and model now?", default=True):
                             edit_configurations()
                             console.rule()
