@@ -55,8 +55,7 @@ BibleMate AI + `XAI + Grok 4` https://youtu.be/JgcxciOc_Ys
 9.  Once all steps are completed, **BibleMate AI** provides a concise summary of the results to the user.
 10. The user receives the final response, which fully resolves their original request.
 
-<details>
-<summary>Workflow Diagram (click to expand)</summary>
+### Workflow Diagram
 
 ```mermaid
 graph TD
