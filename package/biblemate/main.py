@@ -3,7 +3,7 @@ from biblemate.ui.prompts import getInput
 from biblemate.ui.info import get_banner
 from biblemate import config, AGENTMAKE_CONFIG
 from pathlib import Path
-import asyncio, re, os, subprocess
+import asyncio, re, os, subprocess, click
 from alive_progress import alive_bar
 from fastmcp import Client
 from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_configurations, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE
@@ -19,13 +19,13 @@ builtin_mcp_server = os.path.join(os.path.dirname(os.path.realpath(__file__)), "
 user_mcp_server = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "bible_study_mcp.py") # The user path has the same basename as the built-in one; users may copy the built-in server settings to this location for customization. 
 client = Client(user_mcp_server if os.path.isfile(user_mcp_server) else builtin_mcp_server)
 
-# TODO: place in config.py
-MAX_STEPS = 50
-
 def main():
     asyncio.run(main_async())
 
 async def main_async():
+
+    APP_START = True
+    DEFAULT_SYSTEM = "You are BibleMate AI, an autonomous agent designed to assist users with their Bible study."
 
     console = Console(record=True)
     console.clear()
@@ -162,13 +162,29 @@ Get a static text-based response directly from a text-based AI model without usi
                 print(f"Conversation backup saved to {storagePath}")
                 print(f"Report saved to {html_file}\n")
             def write_config():
-                # TODO: support more configs
                 config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py")
-                writeTextFile(config_file, f"agent_mode={config.agent_mode}")
+                configurations = f"""agent_mode={config.agent_mode}
+prompt_engineering={config.prompt_engineering}
+max_steps={config.max_steps}"""
+                writeTextFile(config_file, configurations)
 
             if messages:
                 console.rule()
-
+            elif APP_START:
+                print()
+                APP_START = False
+                while True:
+                    try:
+                        agentmake("Hello!", system=DEFAULT_SYSTEM)
+                        break
+                    except Exception as e:
+                        print("Connection failed! Please ensure that you have a stable internet connection and that my AI backend and model are properly configured.")
+                        if click.confirm("Do you want to configure my AI backend and model now?", default=True):
+                            edit_configurations()
+                            console.rule()
+                            console.print("Restart to make the changes in the backend effective!", justify="center")
+                            console.rule()
+                            exit()
             # Original user request
             # note: `python3 -m rich.emoji` for checking emoji
             console.print("Enter your request :smiley: :" if not messages else "Enter a follow-up request :flexed_biceps: :")
@@ -179,14 +195,30 @@ Get a static text-based response directly from a text-based AI model without usi
                 ".chat": "enable chat mode",
                 ".agent": "enable agent mode",
                 ".tools": "list available tools",
-                #".resources": "list available resources",
-                ".prompts": "list available prompts",
+                ".plans": "list available plans",
+                #".resources": "list available resources", # TODO explore relevant usage for this project
+                ".promptengineering": "toggle auto prompt engineering",
+                ".steps": "configure the maximum number of steps allowed",
                 ".backup": "backup conversation",
                 ".open": "open a file or directory",
+                ".help": "help page",
             }
             input_suggestions = list(action_list.keys())+[f"@{t} " for t in available_tools]+prompt_list
             user_request = await getInput("> ", input_suggestions)
             while not user_request.strip():
+                # Generate ideas for `prompts to try`
+                ideas = ""
+                async def generate_ideas():
+                    nonlocal ideas
+                    if not messages:
+                        ideas = agentmake("Generate three `prompts to try` for bible study. Each one should be one sentence long.", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                    else:
+                        ideas = agentmake(messages, follow_up_prompt="Generate three follow-up questions according to the on-going conversation.", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                await thinking(generate_ideas, "Generating ideas ...")
+                console.rule()
+                console.print(Markdown(f"## Ideas\n\n{ideas}\n\n"))
+                console.rule()
+                # Get input agin
                 user_request = await getInput("> ", input_suggestions)
 
             # system command
@@ -197,24 +229,43 @@ Get a static text-based response directly from a text-based AI model without usi
                 subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 continue
 
-            # TODO: ui - radio list menu
+            # predefined operations with `.` commands
             if user_request in action_list:
                 if user_request == ".backup":
                     backup()
+                elif user_request == ".help":
+                    console.rule()
+                    console.print(Markdown("Viist https://github.com/eliranwong/biblemate for help."))
+                    console.rule()
                 elif user_request == ".tools":
                     console.rule()
                     tools_descriptions = [f"- `{name}`: {description}" for name, description in tools.items()]
                     console.print(Markdown("## Available Tools\n\n"+"\n".join(tools_descriptions)))
                     console.rule()
-                elif user_request == ".prompts":
+                elif user_request == ".plans":
                     console.rule()
                     prompts_descriptions = [f"- `{name}`: {description}" for name, description in prompts.items()]
-                    console.print(Markdown("## Available Prompts\n\n"+"\n".join(prompts_descriptions)))
+                    console.print(Markdown("## Available Plans\n\n"+"\n".join(prompts_descriptions)))
                     console.rule()
                 elif user_request == ".backend":
                     edit_configurations()
                     console.rule()
                     console.print("Restart to make the changes in the backend effective!", justify="center")
+                    console.rule()
+                elif user_request == ".steps":
+                    console.rule()
+                    console.print("Enter the maximum number of steps allowed below:")
+                    max_steps = await getInput("> ", number_validator=True)
+                    if max_steps:
+                        config.max_steps = int(max_steps)
+                        write_config()
+                        console.print("Maximum number of steps set to", config.max_steps, "steps.", justify="center")
+                    console.rule()
+                elif user_request == ".promptengineering":
+                    config.prompt_engineering = not config.prompt_engineering
+                    write_config()
+                    console.rule()
+                    console.print("Prompt Engineering Enabled" if config.prompt_engineering else "Prompt Engineering Disabled", justify="center")
                     console.rule()
                 elif user_request == ".chat":
                     config.agent_mode = False
@@ -261,7 +312,7 @@ Get a static text-based response directly from a text-based AI model without usi
                 console.print(Markdown(f"# User Request\n\n{user_request}\n\n# Master plan\n\n{master_plan}"))
 
             # Prompt Engineering
-            if not specified_tool == "@@":
+            if not specified_tool == "@@" and config.prompt_engineering:
                 async def run_prompt_engineering():
                     nonlocal user_request
                     user_request = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, tool="improve_prompt", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()[20:-4]
@@ -269,7 +320,7 @@ Get a static text-based response directly from a text-based AI model without usi
 
             if not messages:
                 messages = [
-                    {"role": "system", "content": "You are BibleMate, an autonomous AI agent."},
+                    {"role": "system", "content": DEFAULT_SYSTEM},
                     {"role": "user", "content": user_request},
                 ]
             else:
@@ -417,9 +468,10 @@ Available tools are: {available_tools}.
 
                 # iteration count
                 step += 1
-                if step > MAX_STEPS:
-                    print("Stopped! Too many steps! `MAX_STEPS` is currently set to ", MAX_STEPS, "!")
-                    print("You can increase it in the settings, but be careful not to create an infinite loop!")
+                if step > config.max_steps:
+                    console.rule()
+                    console.print("Stopped! Too many steps! The maximum steps is currently set to", config.max_steps, "steps. Enter `.steps` to configure.")
+                    console.rule()
                     break
 
                 # Get the next suggestion

@@ -1,9 +1,26 @@
 from agentmake.main import AGENTMAKE_USER_DIR
 from agentmake.utils.system import getCliOutput
-import os, shutil
+from prompt_toolkit.validation import Validator, ValidationError
+from biblemate import config
+import os, shutil, re
 
 
-async def getInput(prompt:str="Instruction: ", input_suggestions:list=None):
+class NumberValidator(Validator):
+    def validate(self, document):
+        text = document.text
+
+        if text and not re.search("^[0-9]+?$", text):
+            i = 0
+
+            # Get index of first non numeric character.
+            # We want to move the cursor here.
+            for i, c in enumerate(text):
+                if not c.isdigit():
+                    break
+
+            raise ValidationError(message='This entry accepts numbers only!', cursor_position=i)
+
+async def getInput(prompt:str="Instruction: ", input_suggestions:list=None, number_validator:bool=False):
     """
     Prompt for user input
     """
@@ -92,6 +109,8 @@ async def getInput(prompt:str="Instruction: ", input_suggestions:list=None):
         bottom_toolbar="[ENTER] submit [TAB] linebreak [Ctrl+N] new [Ctrl+Q] quit",
         completer=completer,
         key_bindings=bindings,
+        validator=NumberValidator() if number_validator else None,
+        default=str(config.max_steps) if number_validator else "",
     )
     print()
     return instruction.strip() if instruction else ""

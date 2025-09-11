@@ -11,7 +11,7 @@ BibleMate AI is a groundbreaking, autonomous AI agent designed to revolutionize 
 
 ## Supported OS
 
-Windows / macOS / Linux / ChromeOS / Android
+Windows / macOS / Linux / ChromeOS / Android (via Piexel Terminal / Termux Terminal)
 
 ## Supported Backends
 
@@ -157,6 +157,9 @@ There is a set of predefined entries, that starts with a dot sign `.`:
 - `.plans` - list available plans
 - `.backup` - backup conversation
 - `.open` - open a file or directory, e.g. `.open /home/user/report.html`
+- `.promptengineering` - toggle auto prompt engineering",
+- `steps` - configure the maximum number of steps allowed
+- `.help` - help page
 
 ## Keyboard Shortcuts
 
