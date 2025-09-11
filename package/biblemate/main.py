@@ -92,11 +92,13 @@ def backup_conversation(console, messages, master_plan):
     writeTextFile(conversation_file, str(messages))
     # Save master plan
     writeTextFile(os.path.join(storagePath, "master_plan.md"), master_plan)
+    # Save markdown
+    markdown_file = os.path.join(storagePath, "conversation.md")
+    markdown_text = "\n\n".join([f"```{role}\n{content}\n```" for role, content in messages.items() if role in ("user", "assistant")])
+    writeTextFile(markdown_file, markdown_text)
     # Save html
     html_file = os.path.join(storagePath, "conversation.html")
     console.save_html(html_file, inline_styles=True, theme=MONOKAI)
-    # Save markdown
-    console.save_text(os.path.join(storagePath, "conversation.md"))
     # Inform users of the backup location
     print(f"Conversation backup saved to {storagePath}")
     print(f"Report saved to {html_file}\n")
@@ -203,6 +205,7 @@ async def main_async():
                 ".promptengineering": "toggle auto prompt engineering",
                 ".steps": "configure the maximum number of steps allowed",
                 ".backup": "backup conversation",
+                ".load": "load a saved conversation",
                 ".open": "open a file or directory",
                 ".help": "help page",
             }
@@ -227,10 +230,22 @@ async def main_async():
             # system command
             if user_request == ".open":
                 user_request = f".open {os.getcwd()}"
-            if user_request.startswith(".open "):
+            if user_request.startswith(".open ") and os.path.exists(user_request[6:]):
                 cmd = f'''{getOpenCommand()} "{user_request[6:]}"'''
                 subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 continue
+            elif user_request.startswith(".load") and user_request.endswith(".py") and os.path.isfile(user_request[6:]):
+                try:
+                    backup_conversation(console, messages, master_plan) 
+                    with open(user_request[6:], "r", encoding="utf-8") as f:
+                        messages = eval(f.read())
+                    user_request = ""
+                    master_plan = ""
+                    console.clear()
+                    console.print(get_banner())
+                    continue
+                except Exception as e:
+                    pass
 
             # predefined operations with `.` commands
             if user_request in action_list:
@@ -282,11 +297,12 @@ async def main_async():
                     console.rule()
                     console.print("Agent Mode Enabled", justify="center")
                     console.rule()
-                elif user_request in (".new", ".quit"):
+                elif user_request in (".new", ".quit"): # TODO: .load
                     backup_conversation(console, messages, master_plan) # backup
                 # reset
                 if user_request == ".new":
                     user_request = ""
+                    master_plan = ""
                     messages = []
                     console.clear()
                     console.print(get_banner())
@@ -430,21 +446,24 @@ Available tools are: {available_tools}.
                 suggested_tools = []
                 async def get_tool_suggestion():
                     nonlocal suggested_tools, next_suggestion, system_tool_selection
-                    if DEVELOPER_MODE:
+                    if DEVELOPER_MODE and not config.hide_tools_order:
                         console.print(Markdown(f"## Tool Selection (descending order by relevance) [{step}]"), "\n")
                     else:
                         console.print(Markdown(f"## Tool Selection [{step}]"), "\n")
                     # Extract suggested tools from the step suggestion
                     suggested_tools = agentmake(next_suggestion, system=system_tool_selection, **AGENTMAKE_CONFIG)[-1].get("content", "").strip() # Note: suggested tools are printed on terminal by default, could be hidden by setting `print_on_terminal` to false
                     suggested_tools = re.sub(r"^.*?(\[.*?\]).*?$", r"\1", suggested_tools, flags=re.DOTALL)
-                    suggested_tools = eval(suggested_tools.replace("`", "'")) if suggested_tools.startswith("[") and suggested_tools.endswith("]") else ["get_direct_text_response"] # fallback to direct response
+                    try:
+                        suggested_tools = eval(suggested_tools.replace("`", "'")) if suggested_tools.startswith("[") and suggested_tools.endswith("]") else ["get_direct_text_response"] # fallback to direct response
+                    except:
+                        suggested_tools = ["get_direct_text_response"]
                 await thinking(get_tool_suggestion)
-                if DEVELOPER_MODE:
+                if DEVELOPER_MODE and not config.hide_tools_order:
                     console.print(Markdown(str(suggested_tools)))
 
                 # Use the next suggested tool
                 next_tool = suggested_tools[0] if suggested_tools else "get_direct_text_response"
-                prefix = f"## Next Tool [{step}]\n\n" if DEVELOPER_MODE else ""
+                prefix = f"## Next Tool [{step}]\n\n" if DEVELOPER_MODE and not config.hide_tools_order else ""
                 console.print(Markdown(f"{prefix}`{next_tool}`"))
                 print()
 
