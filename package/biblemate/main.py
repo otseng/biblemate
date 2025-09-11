@@ -14,8 +14,10 @@ from rich.terminal_theme import MONOKAI
 if not USER_OS == "Windows":
     import readline  # for better input experience
 
-# Client to interact with the built-in Bible Study MCP server
-client = Client(os.path.join(os.path.dirname(os.path.realpath(__file__)), "bible_study_mcp.py"))
+# The client that interacts with the Bible Study MCP server
+builtin_mcp_server = os.path.join(os.path.dirname(os.path.realpath(__file__)), "bible_study_mcp.py")
+user_mcp_server = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "bible_study_mcp.py") # The user path has the same basename as the built-in one; users may copy the built-in server settings to this location for customization. 
+client = Client(user_mcp_server if os.path.isfile(user_mcp_server) else builtin_mcp_server)
 
 # TODO: place in config.py
 MAX_STEPS = 50

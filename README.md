@@ -175,7 +175,23 @@ The following key bindings are supported in BibleMate AI prompt field:
 
 ## Customization
 
-*(Coming soon)*
+BibleMate AI is highly customizable. Advanced users can modify existing tools, create new ones, and even change the behavior of the AI agent by customizing system prompts.
+
+Custom files are placed in the `biblemate` sub-directory within the AgentMake user directory (typically `~/.agentmake/biblemate` on Linux/macOS or `%USERPROFILE%\.agentmake\biblemate` on Windows).
+
+### Custom Tools and Plans
+
+You can add your own tools and built-in plans (prompts) by creating a custom `bible_study_mcp.py` file.
+
+1.  First, locate the built-in `bible_study_mcp.py` file inside the `biblemate` package installation directory.
+2.  Copy this file to your user customization directory at `~/.agentmake/biblemate/bible_study_mcp.py`.
+3.  Now you can edit this file to add or modify tools and prompts using the `fastmcp` syntax. BibleMate AI will automatically load your custom file instead of the built-in one.
+
+### Custom System Prompts
+
+The agent's core logic is guided by system prompts, which are markdown files. You can override them by placing your own versions in `~/.agentmake/systems/biblemate/`.
+
+The customizable system prompt files are: `supervisor.md`, `tool_instruction.md`, and `tool_selection.md`. You can copy them from the `biblemate/systems` directory in the package installation folder to your user directory and modify them as needed.
 
 ## License
 
