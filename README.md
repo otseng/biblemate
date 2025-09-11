@@ -2,6 +2,12 @@
 
 **BibleMate AI** is a groundbreaking, autonomous AI agent designed to revolutionize your Bible study. It can create study plans, coordinate multiple Bible tools, and take multi-step actions to complete complex Bible-related tasks, such as conducting an in-depth study of a particular Bible passage.
 
+Developer: Eliran Wong
+
+## 🚀 An Overview
+
+[![Watch the video](https://img.youtube.com/vi/BxpLmpCm4QU/maxresdefault.jpg)](https://youtu.be/BxpLmpCm4QU)
+
 ## ✨ Core Features
 
 - **Autonomous AI Agent:** BibleMate AI can work independently to fulfill your bible study requests.
@@ -38,7 +44,7 @@ BibleMate AI + `Groq + Llama 3.3 70B` https://youtu.be/oKQyIEnMM8M
 
 BibleMate AI + `XAI + Grok 4` https://youtu.be/JgcxciOc_Ys
 
-## 🎬 Demo
+## 🎬 Demo - Agent Mode
 
 [![Watch the video](https://img.youtube.com/vi/QvPIyHOhrP0/maxresdefault.jpg)](https://youtu.be/QvPIyHOhrP0)
 
