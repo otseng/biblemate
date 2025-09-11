@@ -80,6 +80,10 @@ graph TD
 
 > biblemate
 
+Enter your request in the BibleMate AI prompt.
+
+Enter a blank entry to get some ideas for new requests or follow-up questions.
+
 ## ⚙️ Configure AI Backend
 
 After BibleMate AI is launched, enter:
