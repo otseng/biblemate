@@ -85,28 +85,42 @@ def retrieve_bible_cross_references(request:str) -> str:
 
 @mcp.tool
 def retrieve_pointed_hebrew_or_accented_greek_bible_verses(request:str) -> str:
-    """retrieve Hebrew (with pointed vowels) or Greek (with accents) Bible verses; bible verse reference(s) must be given"""
+    """retrieve Hebrew (with pointed vowels) or Greek (with accents) Bible verses; bible verse reference(s) must be given, e.g. John 3:16-17; single or multiple references accepted, e.g. Deut 6:4; Gen 1:26-27"""
     global agentmake, getResponse
     messages = agentmake(request, **{'tool': 'uba/ohgb'}, **AGENTMAKE_CONFIG)
     return getResponse(messages)
 
 @mcp.tool
 def retrieve_hebrew_or_greek_bible_verses(request:str) -> str:
-    """retrieve Hebrew (without pointed vowels) or Greek (without accents) Bible verses; bible verse reference(s) must be given"""
+    """retrieve Hebrew (without pointed vowels) or Greek (without accents) Bible verses; bible verse reference(s) must be given, e.g. John 3:16-17; single or multiple references accepted, e.g. Deut 6:4; Gen 1:26-27"""
     global agentmake, getResponse
     messages = agentmake(request, **{'tool': 'uba/mob'}, **AGENTMAKE_CONFIG)
     return getResponse(messages)
 
 @mcp.tool
 def retrieve_english_bible_verses(request:str) -> str:
-    """retrieve English Bible verses; bible verse reference(s) must be given, e.g. John 3:16-17; multiple references accepted, e.g. John 3:16; Deut 6:4"""
+    """retrieve English Bible verses; bible verse reference(s) must be given, e.g. John 3:16-17; single or multiple references accepted, e.g. Deut 6:4; Gen 1:26-27"""
     global agentmake, getResponse
     messages = agentmake(request, **{'tool': 'uba/net'}, **AGENTMAKE_CONFIG)
     return getResponse(messages)
 
 @mcp.tool
 def retrieve_english_bible_chapter(request:str) -> str:
-    """retrieve English Bible chapter, a whole chapter; bible chapter reference must be given, e.g. John 3"""
+    """retrieve a whole English Bible chapter; bible chapter reference must be given, e.g. John 3"""
+    global agentmake, getResponse
+    messages = agentmake(request, **{'tool': 'uba/net_chapter'}, **AGENTMAKE_CONFIG)
+    return getResponse(messages)
+
+@mcp.tool
+def retrieve_chinese_bible_verses(request:str) -> str:
+    """retrieve Chinese Bible verses; bible verse reference(s) must be given, e.g. John 3:16-17; single or multiple references accepted, e.g. Deut 6:4; Gen 1:26-27"""
+    global agentmake, getResponse
+    messages = agentmake(request, **{'tool': 'uba/cuv'}, **AGENTMAKE_CONFIG)
+    return getResponse(messages)
+
+@mcp.tool
+def retrieve_chinese_bible_chapter(request:str) -> str:
+    """retrieve a whole Chinese Bible chapter; bible chapter reference must be given, e.g. John 3"""
     global agentmake, getResponse
     messages = agentmake(request, **{'tool': 'uba/net_chapter'}, **AGENTMAKE_CONFIG)
     return getResponse(messages)
@@ -116,13 +130,6 @@ def read_bible_commentary(request:str) -> str:
     """read bible commentary; bible verse reference(s) must be given"""
     global agentmake, getResponse
     messages = agentmake(request, **{'tool': 'uba/ai_comment'}, **AGENTMAKE_CONFIG)
-    return getResponse(messages)
-
-@mcp.tool
-def retrieve_chinese_bible_verses(request:str) -> str:
-    """retrieve Chinese Bible verses; bible verse reference(s) must be given"""
-    global agentmake, getResponse
-    messages = agentmake(request, **{'tool': 'uba/cuv'}, **AGENTMAKE_CONFIG)
     return getResponse(messages)
 
 @mcp.tool
