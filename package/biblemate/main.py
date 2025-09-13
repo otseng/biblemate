@@ -2,17 +2,36 @@ from biblemate.core.systems import *
 from biblemate.ui.prompts import getInput
 from biblemate.ui.info import get_banner
 from biblemate import config, AGENTMAKE_CONFIG
+from biblemate.core.bible_db import BibleVectorDatabase
 from pathlib import Path
-import asyncio, re, os, subprocess, click
+import asyncio, re, os, subprocess, click, shutil
 from alive_progress import alive_bar
 from fastmcp import Client
-from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_configurations, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE
+from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_configurations, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.terminal_theme import MONOKAI
 if not USER_OS == "Windows":
     import readline  # for better input experience
+
+# bible data
+builtin_bible_data = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "bibles")
+user_bible_data = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "data", "bibles")
+Path(user_bible_data).mkdir(parents=True, exist_ok=True)
+user_bible = os.path.join(user_bible_data, "NET.bible")
+if not os.path.isfile(user_bible):
+    print("# Copying bible data ...")
+    shutil.copyfile(os.path.join(builtin_bible_data, "NET.bible"), user_bible)
+if os.path.isfile(user_bible) and os.path.getsize(user_bible) < 380000000:
+    if shutil.which("ollama"):
+        print("# Setting up a bible vector database to support semantic search with BibleMate AI. please kindly wait until it is finished ...")
+        db = BibleVectorDatabase(user_bible)
+        db.add_vectors()
+        db.clean_up()
+        del db
+    else:
+        print("`Ollama` is not found! BibleMate AI uses `Ollama` to generate embeddings for semantic searches. You may install it from https://ollama.com/ so that you can perform semantic searches of the Bible with BibleMate AI.")
 
 # The client that interacts with the Bible Study MCP server
 builtin_mcp_server = os.path.join(os.path.dirname(os.path.realpath(__file__)), "bible_study_mcp.py")
@@ -94,7 +113,7 @@ def backup_conversation(console, messages, master_plan):
     writeTextFile(os.path.join(storagePath, "master_plan.md"), master_plan)
     # Save markdown
     markdown_file = os.path.join(storagePath, "conversation.md")
-    markdown_text = "\n\n".join([f"```{role}\n{content}\n```" for role, content in messages.items() if role in ("user", "assistant")])
+    markdown_text = "\n\n".join([f"```{i["role"]}\n{i["content"]}\n```" for i in messages if i.get("role", "") in ("user", "assistant")])
     writeTextFile(markdown_file, markdown_text)
     # Save html
     html_file = os.path.join(storagePath, "conversation.html")
@@ -105,12 +124,13 @@ def backup_conversation(console, messages, master_plan):
 
 def write_user_config():
     """Writes the current configuration to the user's config file."""
-    user_config_dir = os.path.join(AGENTMAKE_USER_DIR, "biblemate")
-    Path(user_config_dir).mkdir(parents=True, exist_ok=True)
-    config_file = os.path.join(user_config_dir, "config.py")
+    config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py")
     configurations = f"""agent_mode={config.agent_mode}
 prompt_engineering={config.prompt_engineering}
-max_steps={config.max_steps}"""
+max_steps={config.max_steps}
+hide_tools_order={config.hide_tools_order}
+default_bible="{config.default_bible}"
+max_semantic_matches={config.max_semantic_matches}"""
     writeTextFile(config_file, configurations)
 
 async def main_async():
@@ -203,7 +223,8 @@ async def main_async():
                 ".plans": "list available plans",
                 #".resources": "list available resources", # TODO explore relevant usage for this project
                 ".promptengineering": "toggle auto prompt engineering",
-                ".steps": "configure the maximum number of steps allowed",
+                ".steps": "configure the maximum number of steps",
+                ".matches": "configure the maximum number of semantic matches",
                 ".backup": "backup conversation",
                 ".load": "load a saved conversation",
                 ".open": "open a file or directory",
@@ -272,12 +293,21 @@ async def main_async():
                     console.rule()
                 elif user_request == ".steps":
                     console.rule()
-                    console.print("Enter the maximum number of steps allowed below:")
-                    max_steps = await getInput("> ", number_validator=True)
+                    console.print("Enter below the maximum number of steps allowed:")
+                    max_steps = await getInput("> ", number_validator=True, default_entry=str(config.max_steps))
                     if max_steps:
                         config.max_steps = int(max_steps)
                         write_user_config()
-                        console.print("Maximum number of steps set to", config.max_steps, "steps.", justify="center")
+                        console.print("Maximum number of steps set to", config.max_steps, justify="center")
+                    console.rule()
+                elif user_request == ".matches":
+                    console.rule()
+                    console.print("Enter below the maximum number of semantic matches allowed:")
+                    max_semantic_matches = await getInput("> ", number_validator=True, default_entry=str(config.max_semantic_matches))
+                    if max_semantic_matches:
+                        config.max_semantic_matches = int(max_semantic_matches)
+                        write_user_config()
+                        console.print("Maximum number of semantic matches set to", config.max_semantic_matches, justify="center")
                     console.rule()
                 elif user_request == ".promptengineering":
                     config.prompt_engineering = not config.prompt_engineering
@@ -332,10 +362,13 @@ async def main_async():
 
             # Prompt Engineering
             if not specified_tool == "@@" and config.prompt_engineering:
-                async def run_prompt_engineering():
-                    nonlocal user_request
-                    user_request = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, tool="improve_prompt", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()[20:-4]
-                await thinking(run_prompt_engineering, "Prompt Engineering ...")
+                try:
+                    async def run_prompt_engineering():
+                        nonlocal user_request
+                        user_request = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, tool="improve_prompt", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()[20:-4]
+                    await thinking(run_prompt_engineering, "Prompt Engineering ...")
+                except:
+                    pass
 
             if not messages:
                 messages = [
@@ -356,7 +389,7 @@ async def main_async():
                         if len(tool_properties) == 1 and "request" in tool_properties: # AgentMake MCP Servers or alike
                             tool_result = await client.call_tool(tool, {"request": tool_instruction})
                         else:
-                            structured_output = getDictionaryOutput(messages=messages, schema=tool_schema)
+                            structured_output = getDictionaryOutput(messages=messages, schema=tool_schema, backend=DEFAULT_AI_BACKEND)
                             tool_result = await client.call_tool(tool, structured_output)
                         tool_result = tool_result.content[0].text
                         messages[-1]["content"] += f"\n\n[Using tool `{tool}`]"
@@ -392,7 +425,7 @@ async def main_async():
                     if len(prompt_properties) == 1 and "request" in prompt_properties: # AgentMake MCP Servers or alike
                         result = await client.get_prompt(specified_prompt[1:], {"request": user_request})
                     else:
-                        structured_output = getDictionaryOutput(messages=messages, schema=prompt_schema)
+                        structured_output = getDictionaryOutput(messages=messages, schema=prompt_schema, backend=DEFAULT_AI_BACKEND)
                         result = await client.get_prompt(specified_prompt[1:], structured_output)
                     #print(result, "\n\n")
                     master_plan = result.messages[0].content.text

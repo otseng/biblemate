@@ -27,7 +27,7 @@ with open(os.path.join(package, "requirements.txt"), "r") as fileObj:
 # https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/
 setup(
     name=package,
-    version="0.0.28",
+    version="0.0.34",
     python_requires=">=3.8, <3.13",
     description=f"BibleMate AI - Automate Your Bible Study",
     long_description=long_description,
@@ -37,11 +37,15 @@ setup(
         package,
         f"{package}.core",
         f"{package}.ui",
+        f"{package}.data",
+        f"{package}.data.bibles",
     ],
     package_data={
         package: ["*.*"],
         f"{package}.core": ["*.*"],
         f"{package}.ui": ["*.*"],
+        f"{package}.data": ["*.*"],
+        f"{package}.data.bibles": ["*.*"],
     },
     license="GNU General Public License (GPL)",
     install_requires=install_requires,

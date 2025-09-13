@@ -20,7 +20,7 @@ class NumberValidator(Validator):
 
             raise ValidationError(message='This entry accepts numbers only!', cursor_position=i)
 
-async def getInput(prompt:str="Instruction: ", input_suggestions:list=None, number_validator:bool=False):
+async def getInput(prompt:str="Instruction: ", input_suggestions:list=None, number_validator:bool=False, default_entry=""):
     """
     Prompt for user input
     """
@@ -110,7 +110,7 @@ async def getInput(prompt:str="Instruction: ", input_suggestions:list=None, numb
         completer=completer,
         key_bindings=bindings,
         validator=NumberValidator() if number_validator else None,
-        default=str(config.max_steps) if number_validator else "",
+        default=default_entry if default_entry else "",
     )
     print()
     return instruction.strip() if instruction else ""

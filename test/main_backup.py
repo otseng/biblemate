@@ -6,7 +6,7 @@ from pathlib import Path
 import asyncio, re, os, subprocess, click
 from alive_progress import alive_bar
 from fastmcp import Client
-from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_configurations, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE
+from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_configurations, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -338,7 +338,7 @@ max_steps={config.max_steps}"""
                         if len(tool_properties) == 1 and "request" in tool_properties: # AgentMake MCP Servers or alike
                             tool_result = await client.call_tool(tool, {"request": tool_instruction})
                         else:
-                            structured_output = getDictionaryOutput(messages=messages, schema=tool_schema)
+                            structured_output = getDictionaryOutput(messages=messages, schema=tool_schema, backend=DEFAULT_AI_BACKEND)
                             tool_result = await client.call_tool(tool, structured_output)
                         tool_result = tool_result.content[0].text
                         messages[-1]["content"] += f"\n\n[Using tool `{tool}`]"
@@ -374,7 +374,7 @@ max_steps={config.max_steps}"""
                     if len(prompt_properties) == 1 and "request" in prompt_properties: # AgentMake MCP Servers or alike
                         result = await client.get_prompt(specified_prompt[1:], {"request": user_request})
                     else:
-                        structured_output = getDictionaryOutput(messages=messages, schema=prompt_schema)
+                        structured_output = getDictionaryOutput(messages=messages, schema=prompt_schema, backend=DEFAULT_AI_BACKEND)
                         result = await client.get_prompt(specified_prompt[1:], structured_output)
                     #print(result, "\n\n")
                     master_plan = result.messages[0].content.text

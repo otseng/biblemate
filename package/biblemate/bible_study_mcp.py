@@ -1,8 +1,10 @@
-import logging
+import logging, os, re
 from fastmcp import FastMCP
 from fastmcp.prompts.prompt import PromptMessage, TextContent
-from agentmake import agentmake
-from biblemate import AGENTMAKE_CONFIG
+from agentmake import agentmake, getDictionaryOutput, DEFAULT_AI_BACKEND, AGENTMAKE_USER_DIR
+from biblemate import AGENTMAKE_CONFIG, config
+from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
+from biblemate.core.bible_db import BibleVectorDatabase
 
 # Configure logging before creating the FastMCP server
 logging.basicConfig(format="[%(levelname)s]: %(message)s", level=logging.ERROR)
@@ -11,6 +13,54 @@ mcp = FastMCP(name="BibleMate AI")
 
 def getResponse(messages:list) -> str:
     return messages[-1].get("content") if messages and "content" in messages[-1] else "Error!"
+
+@mcp.tool
+def search_bible(request:str) -> str:
+    """search the bible; search string must be given"""
+    bible_file = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "data", "bibles", f"{config.default_bible}.bible")
+    if os.path.isfile(bible_file):
+        # extract the search string
+        try:
+            schema = {
+                "name": "search_google",
+                "description": "search the bible; search string must be given",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "search_string": {
+                            "type": "string",
+                            "description": "search string for searching the bible",
+                        },
+                    },
+                    "required": ["search_string"],
+                },
+            }
+            search_string = getDictionaryOutput(request, schema=schema, backend=DEFAULT_AI_BACKEND)["search_string"]
+        except:
+            search_string_system = "You are a Bible Search String Identifier. Your expertise lies in your ability to identity a search string from the user request. Response the search string ONLY. Enclose the search string with ```search_string and ```"
+            search_string = agentmake(request, system=search_string_system)[-1].get("content", "").strip()
+            search_string = re.sub(r"^.*?```search_string(.+?)```.*?$", r"\1", search_string, flags=re.DOTALL).strip()
+        search_string = re.sub('''^['"]*(.+?)['"]*$''', r"\1", search_string).strip()
+        # perform the searches
+        abbr = BibleBooks.abbrev["eng"]
+        db = BibleVectorDatabase(bible_file)
+        exact_matches = [f"({abbr[str(b)][0]} {c}:{v}) {content.strip()}" for b, c, v, content in db.search_verses_partial([search_string])]
+        if os.path.getsize(bible_file) > 380000000:
+            semantic_matches = [f"({abbr[str(b)][0]} {c}:{v}) {content.strip()}" for b, c, v, content in db.search_meaning(search_string, top_k=config.max_semantic_matches)]
+        else:
+            semantic_matches = []
+        output = f"""# Search for `{search_string}`
+
+
+## Exact Matches ({len(exact_matches)} verse(s))
+
+{"- " if semantic_matches else ""}{"\n- ".join(exact_matches)}
+
+## Semantic Matches ({len(semantic_matches)} verse(s))
+
+{"- " if semantic_matches else ""}{"\n- ".join(semantic_matches) if semantic_matches else "[`Ollama` is not found! BibleMate AI uses `Ollama` to generate embeddings for semantic searches. You may install it from https://ollama.com/ so that you can perform semantic searches of the Bible with BibleMate AI.]"}"""
+        return output
+    return ""
 
 @mcp.tool
 def compare_bible_translations(request:str) -> str:
@@ -49,16 +99,16 @@ def retrieve_hebrew_or_greek_bible_verses(request:str) -> str:
 
 @mcp.tool
 def retrieve_english_bible_verses(request:str) -> str:
-    """retrieve English Bible verses; bible verse reference(s) must be given"""
+    """retrieve English Bible verses; bible verse reference(s) must be given, e.g. John 3:16-17; multiple references accepted, e.g. John 3:16; Deut 6:4"""
     global agentmake, getResponse
     messages = agentmake(request, **{'tool': 'uba/net'}, **AGENTMAKE_CONFIG)
     return getResponse(messages)
 
 @mcp.tool
-def search_bible_or_run_uba_command(request:str) -> str:
-    """search the bible; run UniqueBible App UBA command; either search string or full command must be given"""
+def retrieve_english_bible_chapter(request:str) -> str:
+    """retrieve English Bible chapter, a whole chapter; bible chapter reference must be given, e.g. John 3"""
     global agentmake, getResponse
-    messages = agentmake(request, **{'tool': 'uba/cmd'}, **AGENTMAKE_CONFIG)
+    messages = agentmake(request, **{'tool': 'uba/net_chapter'}, **AGENTMAKE_CONFIG)
     return getResponse(messages)
 
 @mcp.tool
