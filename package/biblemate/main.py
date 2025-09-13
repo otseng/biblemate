@@ -255,15 +255,21 @@ async def main_async():
                 cmd = f'''{getOpenCommand()} "{user_request[6:]}"'''
                 subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 continue
-            elif user_request.startswith(".load") and user_request.endswith(".py") and os.path.isfile(user_request[6:]):
+            elif user_request.startswith(".load") and re.search('''.py['" ]*?$''', user_request) and os.path.isfile(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:])):
                 try:
+                    file_path = re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:])
                     backup_conversation(console, messages, master_plan) 
-                    with open(user_request[6:], "r", encoding="utf-8") as f:
+                    with open(file_path, "r", encoding="utf-8") as f:
                         messages = eval(f.read())
                     user_request = ""
                     master_plan = ""
                     console.clear()
                     console.print(get_banner())
+                    if messages:
+                        for i in messages:
+                            if i.get("role", "") in ("user", "assistant"):
+                                console.rule()
+                                console.print(Markdown(f"# {i['role']}\n\n{i['content']}"))
                     continue
                 except Exception as e:
                     pass
@@ -327,7 +333,7 @@ async def main_async():
                     console.rule()
                     console.print("Agent Mode Enabled", justify="center")
                     console.rule()
-                elif user_request in (".new", ".quit"): # TODO: .load
+                elif user_request in (".new", ".quit"):
                     backup_conversation(console, messages, master_plan) # backup
                 # reset
                 if user_request == ".new":

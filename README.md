@@ -191,6 +191,7 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | `.open`              | Open a file or directory           |
 | `.promptengineering` | Toggle auto prompt engineering     |
 | `.steps`             | Set max number of steps            |
+| `.matches`           | Set max number of semantic matches |
 | `.help`              | Show help page                     |
 
 Remarks:
