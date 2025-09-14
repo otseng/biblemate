@@ -546,8 +546,24 @@ Available tools are: {available_tools}.
             
             if messages[-1].get("role") == "user":
                 messages.append({"role": "assistant", "content": next_suggestion})
+            
+            # write the final answer
+            console.rule()
+            console.print(Markdown("# Wrapping up ..."))
+            messages = agentmake(
+                messages,
+                system="write_final_answer",
+                follow_up_prompt=f"""# Instruction
+Please provide me with the final answer to my original request based on the work that has been completed.
+
+# Original Request
+{user_request}""",
+                stream=True)
+            console.rule()
+            console.print(Markdown(messages[-1]['content']))
 
             # Backup
+            print()
             backup_conversation(console, messages, master_plan)
 
 if __name__ == "__main__":
