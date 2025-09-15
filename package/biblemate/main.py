@@ -137,6 +137,8 @@ async def main_async():
 
     APP_START = True
     DEFAULT_SYSTEM = "You are BibleMate AI, an autonomous agent designed to assist users with their Bible study."
+    DEFAULT_MESSAGES = [{"role": "user", "content": "Hello!"}, {"role": "assistant", "content": "Hello! I'm BibleMate AI, your personal assistant for Bible study. How can I help you today?"}] # set a tone for bible study; it is userful when auto system is used.
+
     console = Console(record=True)
     console.clear()
     console.print(get_banner())
@@ -151,7 +153,7 @@ async def main_async():
 
         user_request = ""
         master_plan = ""
-        messages = []
+        messages = DEFAULT_MESSAGES # set the tone
 
         while not user_request == ".quit":
 
@@ -339,7 +341,7 @@ async def main_async():
                 if user_request == ".new":
                     user_request = ""
                     master_plan = ""
-                    messages = []
+                    messages = DEFAULT_MESSAGES
                     console.clear()
                     console.print(get_banner())
                 continue
@@ -368,13 +370,14 @@ async def main_async():
 
             # Prompt Engineering
             if not specified_tool == "@@" and config.prompt_engineering:
-                try:
-                    async def run_prompt_engineering():
-                        nonlocal user_request
+                async def run_prompt_engineering():
+                    nonlocal user_request
+                    try:
                         user_request = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, tool="improve_prompt", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()[20:-4]
-                    await thinking(run_prompt_engineering, "Prompt Engineering ...")
-                except:
-                    pass
+                    except:
+                        user_request = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, system="improve_prompt_2")[-1].get("content", "").strip()
+                        user_request = re.sub(r"^.*?(```improved_prompt|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
+                await thinking(run_prompt_engineering, "Prompt Engineering ...")
 
             if not messages:
                 messages = [

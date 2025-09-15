@@ -77,10 +77,15 @@ class BibleVectorDatabase:
             except sqlite3.IntegrityError:
                 pass  # Ignore duplicate entries
 
-    def search_vector(self, query_vector, top_k=3):
-        self.cursor.execute("SELECT text, vector FROM vectors")
+    def search_vector(self, query_vector, top_k=3, book=0):
+        q = "SELECT text, vector FROM vectors"
+        if book:
+            q += " WHERE book = ?"
+            args = (book,)
+        else:
+            args = ()
+        self.cursor.execute(q, args)
         rows = self.cursor.fetchall()
-        
         if not rows:
             return []
         
@@ -92,24 +97,25 @@ class BibleVectorDatabase:
         
         return [texts[i] for i in top_indices]
 
-    def search_meaning(self, query, top_k=3):
-        queries = self.search_vector(get_embeddings([query], self.embedding_model)[0], top_k=top_k)
+    def search_meaning(self, query, top_k=3, book=0):
+        queries = self.search_vector(get_embeddings([query], self.embedding_model)[0], top_k=top_k, book=book)
         return self.search_verses(queries)
 
-    def search_verses(self, queries: list):
+    def search_verses(self, queries: list, book: int=0):
         allVerses = []
         for query in queries:
-            allVerses += self.search_verse(query)
+            allVerses += self.search_verse(query, book=book)
         return allVerses
 
-    def search_verses_partial(self, queries: list):
+    def search_verses_partial(self, queries: list, book: int=0):
         allVerses = []
         for query in queries:
-            allVerses += self.search_verse(query, partial=True)
+            allVerses += self.search_verse(query, partial=True, book=book)
         return allVerses
 
-    def search_verse(self, query: str, partial: bool=False):
-        full_match = "SELECT * FROM Verses WHERE Scripture = ? ORDER BY Book, Chapter, Verse"
-        partial_match = "SELECT * FROM Verses WHERE Scripture LIKE ? ORDER BY Book, Chapter, Verse"
+    def search_verse(self, query: str, partial: bool=False, book: int=0):
+        book_search = f"Book = {book} AND " if book else ""
+        full_match = f'''SELECT * FROM Verses WHERE {book_search}Scripture = ? ORDER BY Book, Chapter, Verse'''
+        partial_match = f'''SELECT * FROM Verses WHERE {book_search}Scripture LIKE ? ORDER BY Book, Chapter, Verse'''
         self.cursor.execute(partial_match if partial else full_match, (f"""%{query}%""" if partial else query,))
         return self.cursor.fetchall()
