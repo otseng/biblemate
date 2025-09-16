@@ -370,7 +370,9 @@ async def main_async():
                 async def refine_custom_plan():
                     nonlocal messages, user_request, master_plan
                     # Summarize user request in one-sentence instruction
-                    user_request = agentmake(master_plan, tool="biblemate/summarize_task_instruction", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()[15:-4]
+                    user_request = agentmake(master_plan, tool="biblemate/summarize_task_instruction", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                    if "```" in user_request:
+                        user_request = re.sub(r"^.*?(```instruction|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
                 await thinking(refine_custom_plan)
                 # display info
                 console.print(Markdown(f"# User Request\n\n{user_request}\n\n# Master plan\n\n{master_plan}"))
@@ -380,7 +382,9 @@ async def main_async():
                 async def run_prompt_engineering():
                     nonlocal user_request
                     try:
-                        user_request = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, tool="improve_prompt", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()[20:-4]
+                        user_request = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, tool="improve_prompt", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                        if "```" in user_request:
+                            user_request = re.sub(r"^.*?(```improved_version|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
                     except:
                         user_request = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, system="improve_prompt_2")[-1].get("content", "").strip()
                         user_request = re.sub(r"^.*?(```improved_prompt|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
