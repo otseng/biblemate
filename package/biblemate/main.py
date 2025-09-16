@@ -1,7 +1,8 @@
 from biblemate.core.systems import *
 from biblemate.ui.prompts import getInput
 from biblemate.ui.info import get_banner
-from biblemate import config, AGENTMAKE_CONFIG
+from biblemate.ui.selection_dialog import TerminalModeDialogs
+from biblemate import config, AGENTMAKE_CONFIG, OLLAMA_NOT_FOUND
 from biblemate.core.bible_db import BibleVectorDatabase
 from pathlib import Path
 import asyncio, re, os, subprocess, click, shutil
@@ -31,7 +32,7 @@ if os.path.isfile(user_bible) and os.path.getsize(user_bible) < 380000000:
         db.clean_up()
         del db
     else:
-        print("`Ollama` is not found! BibleMate AI uses `Ollama` to generate embeddings for semantic searches. You may install it from https://ollama.com/ so that you can perform semantic searches of the Bible with BibleMate AI.")
+        print(OLLAMA_NOT_FOUND)
 
 # The client that interacts with the Bible Study MCP server
 builtin_mcp_server = os.path.join(os.path.dirname(os.path.realpath(__file__)), "bible_study_mcp.py")
@@ -142,6 +143,7 @@ async def main_async():
     console = Console(record=True)
     console.clear()
     console.print(get_banner())
+    dialogs = TerminalModeDialogs(None)
 
     async with client:
         tools, tools_schema, available_tools, tool_descriptions, prompts, prompts_schema = await initialize_app(client)
@@ -194,7 +196,7 @@ async def main_async():
                 # Await the custom async progress bar that awaits the task.
                 await async_alive_bar(task)
 
-            if messages:
+            if not len(messages) == len(DEFAULT_MESSAGES):
                 console.rule()
             elif APP_START:
                 print()
@@ -214,13 +216,12 @@ async def main_async():
                             exit()
             # Original user request
             # note: `python3 -m rich.emoji` for checking emoji
-            console.print("Enter your request :smiley: :" if not messages else "Enter a follow-up request :flexed_biceps: :")
+            console.print("Enter your request :smiley: :" if len(messages) == len(DEFAULT_MESSAGES) else "Enter a follow-up request :flexed_biceps: :")
             action_list = {
                 ".new": "new conversation",
                 ".quit": "quit",
                 ".backend": "change backend",
-                ".chat": "enable chat mode",
-                ".agent": "enable agent mode",
+                ".mode": "change AI mode",
                 ".tools": "list available tools",
                 ".plans": "list available plans",
                 #".resources": "list available resources", # TODO explore relevant usage for this project
@@ -239,7 +240,7 @@ async def main_async():
                 ideas = ""
                 async def generate_ideas():
                     nonlocal ideas
-                    if not messages:
+                    if len(messages) == len(DEFAULT_MESSAGES):
                         ideas = agentmake("Generate three `prompts to try` for bible study. Each one should be one sentence long.", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
                     else:
                         ideas = agentmake(messages, follow_up_prompt="Generate three follow-up questions according to the on-going conversation.", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
@@ -323,18 +324,26 @@ async def main_async():
                     console.rule()
                     console.print("Prompt Engineering Enabled" if config.prompt_engineering else "Prompt Engineering Disabled", justify="center")
                     console.rule()
-                elif user_request == ".chat":
-                    config.agent_mode = False
-                    write_user_config()
-                    console.rule()
-                    console.print("Chat Mode Enabled", justify="center")
-                    console.rule()
-                elif user_request == ".agent":
-                    config.agent_mode = True
-                    write_user_config()
-                    console.rule()
-                    console.print("Agent Mode Enabled", justify="center")
-                    console.rule()
+                elif user_request == ".mode":
+                    default_ai_mode = "chat" if config.agent_mode is None else "agent" if config.agent_mode else "partner"
+                    ai_mode = await dialogs.getValidOptions(
+                        default=default_ai_mode,
+                        options=["agent", "partner", "chat"],
+                        descriptions=["Fully automated", "Semi-automated, with review and edit prompts", "Direct text responses"],
+                        title="AI Modes",
+                        text="Select an AI mode:"
+                    )
+                    if ai_mode:
+                        if ai_mode == "agent":
+                            config.agent_mode = True
+                        elif ai_mode == "partner":
+                            config.agent_mode = False
+                        else:
+                            config.agent_mode = None
+                        write_user_config()
+                        console.rule()
+                        console.print(f"`{ai_mode.capitalize()}` Mode Enabled", justify="center")
+                        console.rule()
                 elif user_request in (".new", ".quit"):
                     backup_conversation(console, messages, master_plan) # backup
                 # reset
@@ -360,8 +369,6 @@ async def main_async():
                 master_plan = user_request[2:].strip()
                 async def refine_custom_plan():
                     nonlocal messages, user_request, master_plan
-                    # Prompt engineering
-                    #master_plan = agentmake(messages if messages else master_plan, follow_up_prompt=master_plan if messages else None, tool="improve_prompt", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()[20:-4]
                     # Summarize user request in one-sentence instruction
                     user_request = agentmake(master_plan, tool="biblemate/summarize_task_instruction", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()[15:-4]
                 await thinking(refine_custom_plan)
@@ -415,7 +422,7 @@ async def main_async():
                 continue
 
             # Chat mode
-            if not config.agent_mode and not specified_tool == "@@":
+            if config.agent_mode is None and not specified_tool == "@@":
                 async def run_chat_mode():
                     nonlocal messages, user_request
                     messages = agentmake(messages if messages else user_request, system="auto", **AGENTMAKE_CONFIG)
@@ -423,7 +430,7 @@ async def main_async():
                 console.print(Markdown(f"# User Request\n\n{messages[-2]['content']}\n\n# AI Response\n\n{messages[-1]['content']}"))
                 continue
 
-            # agent mode
+            # agent mode or partner mode
 
             # generate master plan
             if not master_plan:
@@ -463,6 +470,23 @@ Available tools are: {available_tools}.
                         print()
                         master_plan = agentmake(messages+[{"role": "user", "content": initial_prompt}], system="create_action_plan", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
                     await thinking(generate_master_plan)
+
+                    # partner mode
+                    if config.agent_mode == False:
+                        console.rule()
+                        console.print("Please review and confirm the master plan, or make any changes you need:", justify="center")
+                        console.rule()
+                        master_plan_edit = await getInput(default_entry=master_plan)
+                        if not master_plan_edit or master_plan_edit == ".quit":
+                            if messages and messages[-1].get("role", "") == "user":
+                                messages = messages[:-1]
+                            console.rule()
+                            console.print("I've stopped processing for you.")
+                            continue
+                        else:
+                            master_plan_edit = master_plan_edit
+                        console.rule()
+
                     # display info
                     console.print(Markdown(master_plan), "\n\n")
 
@@ -504,7 +528,11 @@ Available tools are: {available_tools}.
                     console.print(Markdown(str(suggested_tools)))
 
                 # Use the next suggested tool
-                next_tool = suggested_tools[0] if suggested_tools else "get_direct_text_response"
+                # partner mode
+                if config.agent_mode:
+                    next_tool = suggested_tools[0] if suggested_tools else "get_direct_text_response"
+                else: # `partner` mode when config.agent_mode is set to False
+                    next_tool = await dialogs.getValidOptions(options=suggested_tools if suggested_tools else available_tools, title="Suggested Tools", text="Select a tool:")
                 prefix = f"## Next Tool [{step}]\n\n" if DEVELOPER_MODE and not config.hide_tools_order else ""
                 console.print(Markdown(f"{prefix}`{next_tool}`"))
                 print()
@@ -521,6 +549,20 @@ Available tools are: {available_tools}.
                         system_tool_instruction = get_system_tool_instruction(next_tool, next_tool_description)
                         next_step = agentmake(next_suggestion, system=system_tool_instruction, **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
                 await thinking(get_next_step)
+                # partner mode
+                if config.agent_mode == False:
+                    console.rule()
+                    console.print("Please review and confirm the next step, or make any changes you need:")
+                    console.rule()
+                    next_step_edit = await getInput(default_entry=next_step)
+                    if not next_step_edit or next_step_edit == ".quit":
+                        console.rule()
+                        console.print("I've stopped processing for you.")
+                        #console.rule()
+                        break
+                    else:
+                        next_step = next_step_edit
+                    console.rule()
                 console.print(Markdown(next_step), "\n\n")
 
                 if messages[-1]["role"] != "assistant": # first iteration
@@ -534,7 +576,7 @@ Available tools are: {available_tools}.
                 step += 1
                 if step > config.max_steps:
                     console.rule()
-                    console.print("Stopped! Too many steps! The maximum steps is currently set to", config.max_steps, "steps. Enter `.steps` to configure.")
+                    console.print("I've stopped processing for you, as the maximum steps allowed is currently set to", config.max_steps, "steps. Enter `.steps` to configure more.")
                     console.rule()
                     break
 

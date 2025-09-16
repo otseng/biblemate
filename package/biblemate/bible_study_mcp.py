@@ -2,8 +2,8 @@ import logging, os, re
 from fastmcp import FastMCP
 from fastmcp.prompts.prompt import PromptMessage, TextContent
 from agentmake import agentmake, getDictionaryOutput, DEFAULT_AI_BACKEND, AGENTMAKE_USER_DIR
-from biblemate import AGENTMAKE_CONFIG, config
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
+from biblemate import AGENTMAKE_CONFIG, OLLAMA_NOT_FOUND, config
 from biblemate.core.bible_db import BibleVectorDatabase
 
 # Configure logging before creating the FastMCP server
@@ -55,6 +55,8 @@ def search_bible(request:str, book:int=0) -> str:
 ## Semantic Matches [{len(semantic_matches)} verse(s)]
 
 {"- " if semantic_matches else ""}{"\n- ".join(semantic_matches)}"""
+        if not os.path.getsize(bible_file) > 380000000:
+            output += f"[{OLLAMA_NOT_FOUND}]"
         return output
     return ""
 

@@ -50,16 +50,15 @@ A text editor is opened for you to edit the AgentMake AI settings. Change the `D
 
 ## AI Modes
 
-You can swap between two AI modes:
+You can select between three AI modes to suit your preferences:
 
-Chat mode – Provide users with direct text responses without using tools. This is useful when users have simple queries and need straightforward answers.
+*   **Chat mode** – Provides direct text responses without using tools, ideal for simple queries.
+*   **Agent mode** – A fully autonomous agent designed to plan, orchestrate tools, and take multiple actions to address user requests.
+*   **Partner mode** – A semi-automated mode that involves you in the process with review and edit prompts, giving you more control over the AI's actions.
 
-Agent mode - Fully autonomous agent designed to plan, orchestrate tools, and take multiple actions to address user requests.
+To switch between modes, use the `.mode` command in the BibleMate AI prompt. This will open a selection dialog where you can choose your preferred mode.
 
-How to swap?
-
-* Enter `.chat` in BibleMate AI prompt to enable chat mode and disable agent mode.
-* Enter `.agent` in BibleMate AI prompt to enable agent mode and disable chat mode.
+<img width="657" height="272" alt="Image" src="https://github.com/user-attachments/assets/aedcf30b-4120-403c-861b-d8ef77715582" />
 
 ## Manual Tool Selection
 

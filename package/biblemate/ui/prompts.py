@@ -20,7 +20,7 @@ class NumberValidator(Validator):
 
             raise ValidationError(message='This entry accepts numbers only!', cursor_position=i)
 
-async def getInput(prompt:str="Instruction: ", input_suggestions:list=None, number_validator:bool=False, default_entry=""):
+async def getInput(prompt:str="> ", input_suggestions:list=None, number_validator:bool=False, default_entry=""):
     """
     Prompt for user input
     """
