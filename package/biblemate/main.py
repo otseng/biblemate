@@ -66,6 +66,7 @@ async def initialize_app(client):
     available_tools = list(tools.keys())
     if "get_direct_text_response" not in available_tools:
         available_tools.insert(0, "get_direct_text_response")
+    master_available_tools = deepcopy(available_tools)
 
     tool_descriptions = ""
     if "get_direct_text_response" not in tools:
@@ -101,7 +102,7 @@ Get a static text-based response directly from a text-based AI model without usi
         }
         prompts_schema[p.name] = schema
     
-    return tools, tools_schema, available_tools, tool_descriptions, prompts, prompts_schema
+    return tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema
 
 def backup_conversation(console, messages, master_plan):
     """Backs up the current conversation to the user's directory."""
@@ -147,7 +148,7 @@ async def main_async():
     dialogs = TerminalModeDialogs(None)
 
     async with client:
-        tools, tools_schema, available_tools, tool_descriptions, prompts, prompts_schema = await initialize_app(client)
+        tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema = await initialize_app(client)
         
         available_tools_pattern = "|".join(available_tools)
         prompt_list = [f"/{p}" for p in prompts.keys()]
@@ -287,6 +288,14 @@ async def main_async():
                     console.print(Markdown("Viist https://github.com/eliranwong/biblemate for help."))
                     console.rule()
                 elif user_request == ".tools":
+                    enabled_tools = await dialogs.getMultipleSelection(
+                        default_values=available_tools,
+                        options=master_available_tools,
+                        title="Tool Options",
+                        text="Select tools to enable:"
+                    )
+                    if enabled_tools is not None:
+                        available_tools = enabled_tools
                     console.rule()
                     tools_descriptions = [f"- `{name}`: {description}" for name, description in tools.items()]
                     console.print(Markdown("## Available Tools\n\n"+"\n".join(tools_descriptions)))
@@ -479,6 +488,7 @@ Available tools are: {available_tools}.
                     # partner mode
                     if config.agent_mode == False:
                         console.rule()
+                        console.print(Markdown("# Review & Confirm"))
                         console.print("Please review and confirm the master plan, or make any changes you need:", justify="center")
                         console.rule()
                         master_plan_edit = await getInput(default_entry=master_plan)
@@ -504,7 +514,6 @@ Available tools are: {available_tools}.
 
             # Get the first suggestion
             next_suggestion = "START"
-            #console.print(Markdown(f"## Progress [1]\n\n{next_suggestion}\n\n"))
 
             step = 1
             while not ("STOP" in next_suggestion or re.sub("^[^A-Za-z]*?([A-Za-z]+?)[^A-Za-z]*?$", r"\1", next_suggestion).upper() == "STOP"):
@@ -560,13 +569,13 @@ Available tools are: {available_tools}.
                 # partner mode
                 if config.agent_mode == False:
                     console.rule()
+                    console.print(Markdown("# Review & Confirm"))
                     console.print("Please review and confirm the next step, or make any changes you need:")
                     console.rule()
                     next_step_edit = await getInput(default_entry=next_step)
                     if not next_step_edit or next_step_edit == ".quit":
                         console.rule()
                         console.print("I've stopped processing for you.")
-                        #console.rule()
                         break
                     else:
                         next_step = next_step_edit
@@ -591,11 +600,8 @@ Available tools are: {available_tools}.
                 # Get the next suggestion
                 async def get_next_suggestion():
                     nonlocal next_suggestion, messages, system_progress
-                    #console.print(Markdown(f"## Progress [{step}]"), "\n")
                     next_suggestion = agentmake([{"role": "system", "content": system_progress}]+messages[len(DEFAULT_MESSAGES):], system=system_progress, follow_up_prompt="Please decide either to `CONTINUE` or `STOP` the process.", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
-                await thinking(get_next_suggestion)
-                #print()
-                #console.print(Markdown(next_suggestion), "\n")
+                await thinking(get_next_suggestion, description="Checking the progress ...")
             
             if messages[-1].get("role") == "user":
                 messages.append({"role": "assistant", "content": next_suggestion})
