@@ -5,7 +5,8 @@ from biblemate.ui.selection_dialog import TerminalModeDialogs
 from biblemate import config, AGENTMAKE_CONFIG, OLLAMA_NOT_FOUND
 from biblemate.core.bible_db import BibleVectorDatabase
 from pathlib import Path
-import asyncio, re, os, subprocess, click, shutil
+import asyncio, re, os, subprocess, click, shutil, pprint
+from copy import deepcopy
 from alive_progress import alive_bar
 from fastmcp import Client
 from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_configurations, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND
@@ -109,7 +110,7 @@ def backup_conversation(console, messages, master_plan):
     Path(storagePath).mkdir(parents=True, exist_ok=True)
     # Save full conversation
     conversation_file = os.path.join(storagePath, "conversation.py")
-    writeTextFile(conversation_file, str(messages))
+    writeTextFile(conversation_file, pprint.pformat(messages))
     # Save master plan
     writeTextFile(os.path.join(storagePath, "master_plan.md"), master_plan)
     # Save markdown
@@ -138,7 +139,7 @@ async def main_async():
 
     APP_START = True
     DEFAULT_SYSTEM = "You are BibleMate AI, an autonomous agent designed to assist users with their Bible study."
-    DEFAULT_MESSAGES = [{"role": "user", "content": "Hello!"}, {"role": "assistant", "content": "Hello! I'm BibleMate AI, your personal assistant for Bible study. How can I help you today?"}] # set a tone for bible study; it is userful when auto system is used.
+    DEFAULT_MESSAGES = [{"role": "system", "content": DEFAULT_SYSTEM}, {"role": "user", "content": "Hello!"}, {"role": "assistant", "content": "Hello! I'm BibleMate AI, your personal assistant for Bible study. How can I help you today?"}] # set a tone for bible study; it is userful when auto system is used.
 
     console = Console(record=True)
     console.clear()
@@ -155,7 +156,7 @@ async def main_async():
 
         user_request = ""
         master_plan = ""
-        messages = DEFAULT_MESSAGES # set the tone
+        messages = deepcopy(DEFAULT_MESSAGES) # set the tone
 
         while not user_request == ".quit":
 
@@ -350,7 +351,7 @@ async def main_async():
                 if user_request == ".new":
                     user_request = ""
                     master_plan = ""
-                    messages = DEFAULT_MESSAGES
+                    messages = deepcopy(DEFAULT_MESSAGES)
                     console.clear()
                     console.print(get_banner())
                 continue
@@ -495,22 +496,25 @@ Available tools are: {available_tools}.
                     console.print(Markdown(master_plan), "\n\n")
 
             # Step suggestion system message
-            system_suggestion = get_system_suggestion(master_plan)
+            system_progress = get_system_progress(original_request=user_request, master_plan=master_plan)
+            system_make_suggestion = get_system_make_suggestion(original_request=user_request, master_plan=master_plan)
 
             # Tool selection systemm message
             system_tool_selection = get_system_tool_selection(available_tools, tool_descriptions)
 
             # Get the first suggestion
-            next_suggestion = ""
-            async def get_first_suggestion():
-                nonlocal next_suggestion
-                console.print(Markdown("## Suggestion [1]"), "\n")
-                next_suggestion = agentmake(user_request, system=system_suggestion, **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
-            await thinking(get_first_suggestion)
-            console.print(Markdown(next_suggestion), "\n\n")
+            next_suggestion = "START"
+            #console.print(Markdown(f"## Progress [1]\n\n{next_suggestion}\n\n"))
 
             step = 1
-            while not ("DONE" in next_suggestion or re.sub("^[^A-Za-z]*?([A-Za-z]+?)[^A-Za-z]*?$", r"\1", next_suggestion).upper() == "DONE"):
+            while not ("STOP" in next_suggestion or re.sub("^[^A-Za-z]*?([A-Za-z]+?)[^A-Za-z]*?$", r"\1", next_suggestion).upper() == "STOP"):
+
+                async def make_next_suggestion():
+                    nonlocal next_suggestion, system_make_suggestion, messages, step
+                    console.print(Markdown(f"## Suggestion [{step}]"), "\n")
+                    next_suggestion = agentmake(user_request if next_suggestion == "START" else [{"role": "system", "content": system_make_suggestion}]+messages[len(DEFAULT_MESSAGES):], system=system_make_suggestion, follow_up_prompt=None if next_suggestion == "START" else "Please provide me with the next step suggestion, based on the action plan.", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                await thinking(make_next_suggestion)
+                console.print(Markdown(next_suggestion), "\n\n")
 
                 # Get tool suggestion for the next iteration
                 suggested_tools = []
@@ -586,12 +590,12 @@ Available tools are: {available_tools}.
 
                 # Get the next suggestion
                 async def get_next_suggestion():
-                    nonlocal next_suggestion, messages, system_suggestion
-                    console.print(Markdown(f"## Suggestion [{step}]"), "\n")
-                    next_suggestion = agentmake(messages, system=system_suggestion, follow_up_prompt="Please provide me with the next suggestion.", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                    nonlocal next_suggestion, messages, system_progress
+                    #console.print(Markdown(f"## Progress [{step}]"), "\n")
+                    next_suggestion = agentmake([{"role": "system", "content": system_progress}]+messages[len(DEFAULT_MESSAGES):], system=system_progress, follow_up_prompt="Please decide either to `CONTINUE` or `STOP` the process.", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
                 await thinking(get_next_suggestion)
                 #print()
-                console.print(Markdown(next_suggestion), "\n")
+                #console.print(Markdown(next_suggestion), "\n")
             
             if messages[-1].get("role") == "user":
                 messages.append({"role": "assistant", "content": next_suggestion})
