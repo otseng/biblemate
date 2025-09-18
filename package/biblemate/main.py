@@ -72,7 +72,7 @@ async def initialize_app(client):
     tool_descriptions = ""
     if "get_direct_text_response" not in tools:
         tool_descriptions = """# TOOL DESCRIPTION: `get_direct_text_response`
-Get a static text-based response directly from a text-based AI model without using any other tools. This is useful when you want to provide a simple and direct answer to a question or request, without the need for online latest updates or task execution.\n\n\n"""
+Get a static text-based response directly from a text-based AI model without using any other tools. This is useful when you want to provide a simple and direct answer to a question or request, without the need for online latest updates or task execution."""
     for tool_name, tool_description in tools.items():
         tool_descriptions += f"""# TOOL DESCRIPTION: `{tool_name}`
 {tool_description}\n\n\n"""
@@ -132,6 +132,7 @@ def write_user_config():
     configurations = f"""agent_mode={config.agent_mode}
 prompt_engineering={config.prompt_engineering}
 max_steps={config.max_steps}
+tool_selection_lite={config.tool_selection_lite}
 hide_tools_order={config.hide_tools_order}
 default_bible="{config.default_bible}"
 max_semantic_matches={config.max_semantic_matches}
@@ -514,7 +515,7 @@ Available tools are: {available_tools}.
 
             # Step suggestion system message
             system_progress = get_system_progress(original_request=user_request, master_plan=master_plan)
-            system_make_suggestion = get_system_make_suggestion(original_request=user_request, master_plan=master_plan)
+            system_make_suggestion = get_system_make_suggestion(master_plan=master_plan)
 
             # Tool selection systemm message
             system_tool_selection = get_system_tool_selection(available_tools, tool_descriptions)
@@ -557,6 +558,8 @@ Available tools are: {available_tools}.
                     next_tool = suggested_tools[0] if suggested_tools else "get_direct_text_response"
                 else: # `partner` mode when config.agent_mode is set to False
                     next_tool = await dialogs.getValidOptions(options=suggested_tools if suggested_tools else available_tools, title="Suggested Tools", text="Select a tool:")
+                    if not next_tool:
+                        next_tool = "get_direct_text_response"
                 prefix = f"## Next Tool [{step}]\n\n" if DEVELOPER_MODE and not config.hide_tools_order else ""
                 console.print(Markdown(f"{prefix}`{next_tool}`"))
                 print()

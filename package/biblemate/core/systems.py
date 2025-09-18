@@ -1,4 +1,5 @@
 import os, re
+from biblemate import config
 from agentmake import PACKAGE_PATH, AGENTMAKE_USER_DIR, readTextFile
 from pathlib import Path
 
@@ -6,18 +7,18 @@ from pathlib import Path
 user_directory = os.path.join(AGENTMAKE_USER_DIR, "biblemate")
 Path(user_directory).mkdir(parents=True, exist_ok=True)
 
-def get_system_progress(original_request: str, master_plan: str) -> str:
+def get_system_progress(master_plan: str) -> str:
     """
     create system prompt for checking the progress
     """
     possible_system_file_path_2 = os.path.join(PACKAGE_PATH, "systems", "biblemate", "supervisor.md")
     possible_system_file_path_1 = os.path.join(AGENTMAKE_USER_DIR, "systems", "biblemate", "supervisor.md")
-    system_progress = readTextFile(possible_system_file_path_2 if os.path.isfile(possible_system_file_path_2) else possible_system_file_path_1).format(original_request=original_request, master_plan=master_plan)
+    system_progress = readTextFile(possible_system_file_path_2 if os.path.isfile(possible_system_file_path_2) else possible_system_file_path_1).format(master_plan=master_plan)
     if not "Preliminary Action Plan" in master_plan: # custom mcp prompts
         system_progress = system_progress.replace("\n# Master Plan", "\n# Preliminary Action Plan")
     return system_progress
 
-def get_system_make_suggestion(original_request: str, master_plan: str) -> str:
+def get_system_make_suggestion(master_plan: str) -> str:
     """
     create system prompt for makding suggestion
     """
@@ -39,6 +40,6 @@ def get_system_tool_selection(available_tools: list, tool_descriptions: str) -> 
     """
     create system prompt for tool selection
     """
-    possible_system_file_path_2 = os.path.join(PACKAGE_PATH, "systems", "biblemate", "tool_selection.md")
-    possible_system_file_path_1 = os.path.join(AGENTMAKE_USER_DIR, "systems", "biblemate", "tool_selection.md")
+    possible_system_file_path_2 = os.path.join(PACKAGE_PATH, "systems", "biblemate", "tool_selection_lite.md" if config.tool_selection_lite else "tool_selection.md")
+    possible_system_file_path_1 = os.path.join(AGENTMAKE_USER_DIR, "systems", "biblemate", "tool_selection_lite.md" if config.tool_selection_lite else "tool_selection.md")
     return readTextFile(possible_system_file_path_2 if os.path.isfile(possible_system_file_path_2) else possible_system_file_path_1).format(available_tools=available_tools, tool_descriptions=tool_descriptions)
