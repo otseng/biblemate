@@ -67,6 +67,7 @@ async def initialize_app(client):
     if "get_direct_text_response" not in available_tools:
         available_tools.insert(0, "get_direct_text_response")
     master_available_tools = deepcopy(available_tools)
+    available_tools = [i for i in available_tools if not i in config.disabled_tools]
 
     tool_descriptions = ""
     if "get_direct_text_response" not in tools:
@@ -133,7 +134,8 @@ prompt_engineering={config.prompt_engineering}
 max_steps={config.max_steps}
 hide_tools_order={config.hide_tools_order}
 default_bible="{config.default_bible}"
-max_semantic_matches={config.max_semantic_matches}"""
+max_semantic_matches={config.max_semantic_matches}
+disabled_tools={pprint.pformat(config.disabled_tools)}"""
     writeTextFile(config_file, configurations)
 
 async def main_async():
@@ -296,6 +298,8 @@ async def main_async():
                     )
                     if enabled_tools is not None:
                         available_tools = enabled_tools
+                        config.disabled_tools = [i for i in master_available_tools if not i in available_tools]
+                        write_user_config()
                     console.rule()
                     tools_descriptions = [f"- `{name}`: {description}" for name, description in tools.items()]
                     console.print(Markdown("## Available Tools\n\n"+"\n".join(tools_descriptions)))
