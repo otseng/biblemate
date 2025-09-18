@@ -373,6 +373,38 @@ async def main_async():
             # Check if a single tool is specified
             specified_prompt = ""
             specified_tool = ""
+
+            # Tool selection systemm message
+            system_tool_selection = get_system_tool_selection(available_tools, tool_descriptions)
+
+            if user_request.startswith("@ "):
+                user_request = user_request[2:].strip()
+                # Single Tool Suggestion
+                suggested_tools = []
+                async def get_tool_suggestion():
+                    nonlocal suggested_tools, user_request, system_tool_selection
+                    if DEVELOPER_MODE and not config.hide_tools_order:
+                        console.print(Markdown(f"## Tool Selection (descending order by relevance)"), "\n")
+                    else:
+                        console.print(Markdown(f"## Tool Selection"), "\n")
+                    # Extract suggested tools from the step suggestion
+                    suggested_tools = agentmake(user_request, system=system_tool_selection, **AGENTMAKE_CONFIG)[-1].get("content", "").strip() # Note: suggested tools are printed on terminal by default, could be hidden by setting `print_on_terminal` to false
+                    suggested_tools = re.sub(r"^.*?(\[.*?\]).*?$", r"\1", suggested_tools, flags=re.DOTALL)
+                    try:
+                        suggested_tools = eval(suggested_tools.replace("`", "'")) if suggested_tools.startswith("[") and suggested_tools.endswith("]") else ["get_direct_text_response"] # fallback to direct response
+                    except:
+                        suggested_tools = ["get_direct_text_response"]
+                await thinking(get_tool_suggestion)
+                # Single Tool Selection
+                if config.agent_mode:
+                    this_tool = suggested_tools[0] if suggested_tools else "get_direct_text_response"
+                else: # `partner` mode when config.agent_mode is set to False
+                    this_tool = await dialogs.getValidOptions(options=suggested_tools if suggested_tools else available_tools, title="Suggested Tools", text="Select a tool:")
+                    if not this_tool:
+                        this_tool = "get_direct_text_response"
+                # Re-format user request
+                user_request = f"@{this_tool} " + user_request
+
             if re.search(prompt_pattern, user_request):
                 specified_prompt = re.search(prompt_pattern, user_request).group(1)
                 user_request = user_request[len(specified_prompt):]
@@ -516,9 +548,6 @@ Available tools are: {available_tools}.
             # Step suggestion system message
             system_progress = get_system_progress(master_plan=master_plan)
             system_make_suggestion = get_system_make_suggestion(master_plan=master_plan)
-
-            # Tool selection systemm message
-            system_tool_selection = get_system_tool_selection(available_tools, tool_descriptions)
 
             # Get the first suggestion
             next_suggestion = "START"

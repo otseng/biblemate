@@ -144,6 +144,12 @@ You can specify a single tool by prefixing a tool name with `@` at the beginning
 
 Watch this video: https://youtu.be/50m1KRj6uhs
 
+BibleMate AI can also automatically select an appropriate tool to address your request. Simply begin your request with `@` followed by a space, instead of specifying a tool name. For example,
+
+```
+@ Read Deut 6:4; John 3:16
+```
+
 ## 📝 Custom Master Plan
 
 In some cases, you may want to specify a `custom plan` with multiple tools specified for different steps for a complex task, rather than having a `master plan` automatically generated in fully automatic agent mode.
