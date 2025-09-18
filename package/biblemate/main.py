@@ -514,7 +514,7 @@ Available tools are: {available_tools}.
                     console.print(Markdown(master_plan), "\n\n")
 
             # Step suggestion system message
-            system_progress = get_system_progress(original_request=user_request, master_plan=master_plan)
+            system_progress = get_system_progress(master_plan=master_plan)
             system_make_suggestion = get_system_make_suggestion(master_plan=master_plan)
 
             # Tool selection systemm message

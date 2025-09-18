@@ -106,6 +106,8 @@ You can select between three AI modes to suit your preferences:
 *   **Agent mode** – A fully autonomous agent designed to plan, orchestrate tools, and take multiple actions to address user requests.
 *   **Partner mode** – A semi-automated mode that involves you in the process with review and edit prompts, giving you more control over the AI's actions.
 
+`Partner mode` is set as the default on fresh installation.
+
 To switch between modes, use the `.mode` command in the BibleMate AI prompt. This will open a selection dialog where you can choose your preferred mode.
 
 <img width="657" height="272" alt="Image" src="https://github.com/user-attachments/assets/aedcf30b-4120-403c-861b-d8ef77715582" />
@@ -116,7 +118,9 @@ To switch between modes, use the `.mode` command in the BibleMate AI prompt. Thi
 
 To see the full list of built-in tools and their descriptions, please see the [TOOLS.md](TOOLS.md) file.
 
-When `agent mode` is enabled, all built-in tools are considered and automatically selected for each step in fulfilling the user’s request.
+To enable or disable some of the tools, enter `.tools` in the BibleMate AI prompt.
+
+When `agent mode` is enabled, all enabled built-in tools are considered and automatically selected for each step in fulfilling the user’s request.
 
 ### Built-in Plans
 
