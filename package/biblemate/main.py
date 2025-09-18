@@ -5,7 +5,7 @@ from biblemate.ui.selection_dialog import TerminalModeDialogs
 from biblemate import config, AGENTMAKE_CONFIG, OLLAMA_NOT_FOUND, fix_string
 from biblemate.core.bible_db import BibleVectorDatabase
 from pathlib import Path
-import asyncio, re, os, subprocess, click, shutil, pprint
+import asyncio, re, os, subprocess, click, shutil, pprint, argparse
 from copy import deepcopy
 from alive_progress import alive_bar
 from fastmcp import Client
@@ -34,6 +34,21 @@ if os.path.isfile(user_bible) and os.path.getsize(user_bible) < 380000000:
         del db
     else:
         print(OLLAMA_NOT_FOUND)
+
+# AI backend
+parser = argparse.ArgumentParser(description = """BibleMate AI CLI options""")
+parser.add_argument("-b", "--backend", action="store", dest="backend", help="AI backend; overrides the default backend temporarily.")
+args = parser.parse_args()
+# write to the `config.py` file temporarily for the MCP server to pick it up
+if args.backend:
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py"), "a", encoding="utf-8") as fileObj:
+        fileObj.write(f'''\nbackend="{args.backend}"''')
+    config.backend = args.backend
+else:
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py"), "a", encoding="utf-8") as fileObj:
+        fileObj.write(f'''\nbackend="{DEFAULT_AI_BACKEND}"''')
+    config.backend = DEFAULT_AI_BACKEND
+AGENTMAKE_CONFIG["backend"] = config.backend
 
 # The client that interacts with the Bible Study MCP server
 builtin_mcp_server = os.path.join(os.path.dirname(os.path.realpath(__file__)), "bible_study_mcp.py")
@@ -152,6 +167,7 @@ async def main_async():
 
     async with client:
         tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema = await initialize_app(client)
+        write_user_config() # remove the temporary `config.backend`
         
         available_tools_pattern = "|".join(available_tools)
         prompt_list = [f"/{p}" for p in prompts.keys()]
@@ -458,7 +474,7 @@ async def main_async():
                         if len(tool_properties) == 1 and "request" in tool_properties: # AgentMake MCP Servers or alike
                             tool_result = await client.call_tool(tool, {"request": tool_instruction})
                         else:
-                            structured_output = getDictionaryOutput(messages=messages, schema=tool_schema, backend=DEFAULT_AI_BACKEND)
+                            structured_output = getDictionaryOutput(messages=messages, schema=tool_schema, backend=config.backend)
                             tool_result = await client.call_tool(tool, structured_output)
                         tool_result = tool_result.content[0].text
                         messages[-1]["content"] += f"\n\n[Using tool `{tool}`]"
@@ -495,7 +511,7 @@ async def main_async():
                     if len(prompt_properties) == 1 and "request" in prompt_properties: # AgentMake MCP Servers or alike
                         result = await client.get_prompt(specified_prompt[1:], {"request": user_request})
                     else:
-                        structured_output = getDictionaryOutput(messages=messages, schema=prompt_schema, backend=DEFAULT_AI_BACKEND)
+                        structured_output = getDictionaryOutput(messages=messages, schema=prompt_schema, backend=config.backend)
                         result = await client.get_prompt(specified_prompt[1:], structured_output)
                     #print(result, "\n\n")
                     master_plan = result.messages[0].content.text

@@ -1,10 +1,13 @@
 import logging, os, re
 from fastmcp import FastMCP
 from fastmcp.prompts.prompt import PromptMessage, TextContent
-from agentmake import agentmake, getDictionaryOutput, DEFAULT_AI_BACKEND, AGENTMAKE_USER_DIR
+from agentmake import agentmake, getDictionaryOutput, AGENTMAKE_USER_DIR
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from biblemate import AGENTMAKE_CONFIG, OLLAMA_NOT_FOUND, config
 from biblemate.core.bible_db import BibleVectorDatabase
+
+# configure backend
+AGENTMAKE_CONFIG["backend"] = config.backend
 
 # Configure logging before creating the FastMCP server
 logging.basicConfig(format="[%(levelname)s]: %(message)s", level=logging.ERROR)
@@ -33,7 +36,7 @@ def search_bible(request:str, book:int=0) -> str:
                     "required": ["search_string"],
                 },
             }
-            search_string = getDictionaryOutput(request, schema=schema, backend=DEFAULT_AI_BACKEND)["search_string"]
+            search_string = getDictionaryOutput(request, schema=schema, backend=config.backend)["search_string"]
         except:
             search_string = agentmake(request, system="biblemate/identify_search_string")[-1].get("content", "").strip()
             search_string = re.sub(r"^.*?(```search_string|```)(.+?)```.*?$", r"\2", search_string, flags=re.DOTALL).strip()

@@ -98,6 +98,10 @@ After BibleMate AI is launched, enter:
 
 A text editor is opened for you to edit the AgentMake AI settings. Change the `DEFAULT_AI_BACKEND` to your own choice of AI backend and enter API keys where appropriate.
 
+You may override the default AI backend temporarily by using the CLI option `-b` or `--backend`. For example,
+
+> biblemate -b groq
+
 ## 🗣️ AI Modes
 
 You can select between three AI modes to suit your preferences:

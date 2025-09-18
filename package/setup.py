@@ -27,7 +27,7 @@ with open(os.path.join(package, "requirements.txt"), "r") as fileObj:
 # https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/
 setup(
     name=package,
-    version="0.0.56",
+    version="0.0.57",
     python_requires=">=3.8, <3.13",
     description=f"BibleMate AI - Automate Your Bible Study",
     long_description=long_description,
