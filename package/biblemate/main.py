@@ -2,7 +2,7 @@ from biblemate.core.systems import *
 from biblemate.ui.prompts import getInput
 from biblemate.ui.info import get_banner
 from biblemate.ui.selection_dialog import TerminalModeDialogs
-from biblemate import config, AGENTMAKE_CONFIG, OLLAMA_NOT_FOUND
+from biblemate import config, AGENTMAKE_CONFIG, OLLAMA_NOT_FOUND, fix_string
 from biblemate.core.bible_db import BibleVectorDatabase
 from pathlib import Path
 import asyncio, re, os, subprocess, click, shutil, pprint
@@ -414,6 +414,8 @@ async def main_async():
 
             async def run_tool(tool, tool_instruction):
                 nonlocal messages
+                tool_instruction = fix_string(tool_instruction)
+                messages[-1]["content"] = fix_string(messages[-1]["content"])
                 if tool == "get_direct_text_response":
                     messages = agentmake(messages, system="auto", **AGENTMAKE_CONFIG)
                 else:
@@ -432,6 +434,7 @@ async def main_async():
                         if DEVELOPER_MODE:
                             console.print(f"Error: {e}\nFallback to direct response...\n\n")
                         messages = agentmake(messages, system="auto", **AGENTMAKE_CONFIG)
+                messages[-1]["content"] = fix_string(messages[-1]["content"])
 
             # user specify a single tool
             if specified_tool and not specified_tool == "@@":
@@ -621,7 +624,9 @@ Please provide me with the final answer to my original request based on the work
 
 # Original Request
 {user_request}""",
-                stream=True)
+                stream=True,
+            )
+            messages[-1]["content"] = fix_string(messages[-1]["content"])
             console.rule()
             console.print(Markdown(messages[-1]['content']))
 
