@@ -136,9 +136,9 @@ Starts your prompt with a forward slash `/` to call a plan, e.g.:
 
 > /bible_devotion Deut 6:4
 
-## 🛠️ Manual Tool Selection
+## 🛠️ Single Tool Selection
 
-In some cases, you may want to specify a particular tool for a simple task, rather than having a tool automatically selected in the fully automatic `agent mode`.
+In some cases, you may want to specify a particular tool for a simple task, rather than having multiple tools automatically selected in the fully automatic `agent mode`.
 
 You can specify a single tool by prefixing a tool name with `@` at the beginning of your prompt. For example,
 
@@ -148,7 +148,7 @@ You can specify a single tool by prefixing a tool name with `@` at the beginning
 
 Watch this video: https://youtu.be/50m1KRj6uhs
 
-BibleMate AI can also automatically select an appropriate tool to address your request. Simply begin your request with `@` followed by a space, instead of specifying a tool name. For example,
+BibleMate AI can also automatically select a single tool to address your request. Simply begin your request with `@` followed by a space, instead of specifying a tool name. For example,
 
 ```
 @ Read Deut 6:4; John 3:16

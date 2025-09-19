@@ -472,7 +472,11 @@ async def main_async():
                         tool_schema = tools_schema[tool]
                         tool_properties = tool_schema["parameters"]["properties"]
                         if len(tool_properties) == 1 and "request" in tool_properties: # AgentMake MCP Servers or alike
-                            tool_result = await client.call_tool(tool, {"request": tool_instruction})
+                            if "items" in tool_properties["request"]: # requires a dictionary instead of a string
+                                request_dict = [{"role": "system", "content": DEFAULT_SYSTEM}]+messages[len(messages)-2:]+[{"role": "user", "content": tool_instruction}]
+                                tool_result = await client.call_tool(tool, {"request": request_dict})
+                            else:
+                                tool_result = await client.call_tool(tool, {"request": tool_instruction})
                         else:
                             structured_output = getDictionaryOutput(messages=messages, schema=tool_schema, backend=config.backend)
                             tool_result = await client.call_tool(tool, structured_output)
