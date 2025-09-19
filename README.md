@@ -90,6 +90,19 @@ Enter your request in the BibleMate AI prompt.
 
 Enter a blank entry to get some ideas for new requests or follow-up questions.
 
+### Set up virtual environment
+
+For example:
+
+```
+cd
+python3 -m venv biblemate
+source biblemate/bin/activate
+pip install --upgrade biblemate
+export PATH=$PATH:$HOME/biblemate/bin
+biblemate
+```
+
 ## ⚙️ Configure AI Backend
 
 After BibleMate AI is launched, enter:
@@ -201,13 +214,15 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | `.backup`            | Backup conversation                |
 | `.load`              | Load a saved conversation          |
 | `.open`              | Open a file or directory           |
-| `.promptengineering` | Toggle auto prompt engineering     |
+| `.promptengineer`    | Toggle auto prompt engineering     |
+| `.lite`              | Toggle lite context                |
 | `.steps`             | Set max number of steps            |
 | `.matches`           | Set max number of semantic matches |
 | `.help`              | Show help page                     |
 
 Remarks:
 
+* Use `.lite` to enable or disable lite context. When lite context is enabled, BibleMate runs faster, with a slight trade‑off in tool response quality.
 * To use `.load`, you need to specify a python file that contains a saved conversation.  Conversation is saved into a file each time when a backup is executed. Check the message `Conversation backup saved to ...` or locate the backups in `~/agentmake/xomate`.
 * To use `.open`, you need to specify a file or a directory that is to be opened.
 
@@ -245,6 +260,10 @@ You can add your own tools and built-in plans (prompts) by creating a custom `bi
 The agent's core logic is guided by system prompts, which are markdown files. You can override them by placing your own versions in `~/.agentmake/systems/biblemate/`.
 
 The customizable system prompt files are: `supervisor.md`, `tool_instruction.md`, and `tool_selection.md`. You can copy them from the `biblemate/systems` directory in the package installation folder to your user directory and modify them as needed.
+
+### Use Local Bible Data
+
+Read https://github.com/eliranwong/biblemate/issues/15#issuecomment-3314130281 for more details.
 
 ## 📖 Tutorials
 

@@ -4,6 +4,7 @@ import json, os
 from agentmake import OllamaAI
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 from prompt_toolkit.shortcuts import ProgressBar
+from biblemate import config
 
 
 class BibleVectorDatabase:
@@ -21,7 +22,9 @@ class BibleVectorDatabase:
     ```
     """
 
-    def __init__(self, uba_bible_path: str):
+    def __init__(self, uba_bible_path: str=None):
+        if not uba_bible_path:
+            uba_bible_path = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "data", "bibles", f"{config.default_bible}.bible")
         # check if file exists
         if os.path.isfile(uba_bible_path) and uba_bible_path.endswith(".bible"):
             # Download embedding model

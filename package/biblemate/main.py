@@ -10,6 +10,7 @@ from copy import deepcopy
 from alive_progress import alive_bar
 from fastmcp import Client
 from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_configurations, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND
+from agentmake.utils.handle_text import set_log_file_max_lines
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -17,14 +18,22 @@ from rich.terminal_theme import MONOKAI
 if not USER_OS == "Windows":
     import readline  # for better input experience
 
+# trim long log file
+log_path = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "logs")
+if not os.path.isdir(log_path):
+    Path(log_path).mkdir(parents=True, exist_ok=True)
+log_file = os.path.join(log_path, "requests")
+set_log_file_max_lines(log_file, config.max_log_lines)
+
 # bible data
 builtin_bible_data = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "bibles")
 user_bible_data = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "data", "bibles")
-Path(user_bible_data).mkdir(parents=True, exist_ok=True)
-user_bible = os.path.join(user_bible_data, "NET.bible")
+if not os.path.isdir(user_bible_data):
+    Path(user_bible_data).mkdir(parents=True, exist_ok=True)
+user_bible = os.path.join(user_bible_data, f"{config.default_bible}.bible")
 if not os.path.isfile(user_bible):
     print("# Copying bible data ...")
-    shutil.copyfile(os.path.join(builtin_bible_data, "NET.bible"), user_bible)
+    shutil.copyfile(os.path.join(builtin_bible_data, f"{config.default_bible}.bible"), user_bible)
 if os.path.isfile(user_bible) and os.path.getsize(user_bible) < 380000000:
     if shutil.which("ollama"):
         print("# Setting up a bible vector database to support semantic search with BibleMate AI. please kindly wait until it is finished ...")
@@ -123,8 +132,9 @@ Get a static text-based response directly from a text-based AI model without usi
 def backup_conversation(console, messages, master_plan):
     """Backs up the current conversation to the user's directory."""
     timestamp = getCurrentDateTime()
-    storagePath = os.path.join(AGENTMAKE_USER_DIR, "biblemate", timestamp)
-    Path(storagePath).mkdir(parents=True, exist_ok=True)
+    storagePath = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "chats", timestamp)
+    if not os.path.isdir(storagePath):
+        Path(storagePath).mkdir(parents=True, exist_ok=True)
     # Save full conversation
     conversation_file = os.path.join(storagePath, "conversation.py")
     writeTextFile(conversation_file, pprint.pformat(messages))
@@ -132,7 +142,7 @@ def backup_conversation(console, messages, master_plan):
     writeTextFile(os.path.join(storagePath, "master_plan.md"), master_plan)
     # Save markdown
     markdown_file = os.path.join(storagePath, "conversation.md")
-    markdown_text = "\n\n".join([f"```{i["role"]}\n{i["content"]}\n```" for i in messages if i.get("role", "") in ("user", "assistant")])
+    markdown_text = "\n\n".join(["```"+i["role"]+"\n"+i["content"]+"\n```" for i in messages if i.get("role", "") in ("user", "assistant")])
     writeTextFile(markdown_file, markdown_text)
     # Save html
     html_file = os.path.join(storagePath, "conversation.html")
@@ -147,10 +157,11 @@ def write_user_config():
     configurations = f"""agent_mode={config.agent_mode}
 prompt_engineering={config.prompt_engineering}
 max_steps={config.max_steps}
-tool_selection_lite={config.tool_selection_lite}
+lite={config.lite}
 hide_tools_order={config.hide_tools_order}
 default_bible="{config.default_bible}"
 max_semantic_matches={config.max_semantic_matches}
+max_log_lines={config.max_log_lines}
 disabled_tools={pprint.pformat(config.disabled_tools)}"""
     writeTextFile(config_file, configurations)
 
@@ -246,7 +257,8 @@ async def main_async():
                 ".tools": "list available tools",
                 ".plans": "list available plans",
                 #".resources": "list available resources", # TODO explore relevant usage for this project
-                ".promptengineering": "toggle auto prompt engineering",
+                ".promptengineer": "toggle auto prompt engineering",
+                ".lite": "toggle lite context",
                 ".steps": "configure the maximum number of steps",
                 ".matches": "configure the maximum number of semantic matches",
                 ".backup": "backup conversation",
@@ -349,11 +361,17 @@ async def main_async():
                         write_user_config()
                         console.print("Maximum number of semantic matches set to", config.max_semantic_matches, justify="center")
                     console.rule()
-                elif user_request == ".promptengineering":
+                elif user_request == ".promptengineer":
                     config.prompt_engineering = not config.prompt_engineering
                     write_user_config()
                     console.rule()
                     console.print("Prompt Engineering Enabled" if config.prompt_engineering else "Prompt Engineering Disabled", justify="center")
+                    console.rule()
+                elif user_request == ".lite":
+                    config.lite = not config.lite
+                    write_user_config()
+                    console.rule()
+                    console.print("Lite Context Enabled" if config.lite else "Lite Context Disabled", justify="center")
                     console.rule()
                 elif user_request == ".mode":
                     default_ai_mode = "chat" if config.agent_mode is None else "agent" if config.agent_mode else "partner"
@@ -473,7 +491,8 @@ async def main_async():
                         tool_properties = tool_schema["parameters"]["properties"]
                         if len(tool_properties) == 1 and "request" in tool_properties: # AgentMake MCP Servers or alike
                             if "items" in tool_properties["request"]: # requires a dictionary instead of a string
-                                request_dict = [{"role": "system", "content": DEFAULT_SYSTEM}]+messages[len(messages)-2:]+[{"role": "user", "content": tool_instruction}]
+                                request_dict = [{"role": "system", "content": DEFAULT_SYSTEM}]+messages[len(messages)-2:] if config.lite else messages
+                                request_dict += [{"role": "user", "content": tool_instruction}]
                                 tool_result = await client.call_tool(tool, {"request": request_dict})
                             else:
                                 tool_result = await client.call_tool(tool, {"request": tool_instruction})

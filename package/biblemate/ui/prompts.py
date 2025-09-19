@@ -2,6 +2,7 @@ from agentmake.main import AGENTMAKE_USER_DIR
 from agentmake.utils.system import getCliOutput
 from prompt_toolkit.validation import Validator, ValidationError
 from biblemate import config
+from pathlib import Path
 import os, shutil, re
 
 
@@ -98,11 +99,8 @@ async def getInput(prompt:str="> ", input_suggestions:list=None, number_validato
         buffer = event.app.current_buffer
         buffer.cursor_position = buffer.cursor_position + buffer.document.get_end_of_line_position()
 
-    history_dir = os.path.join(AGENTMAKE_USER_DIR, "history")
-    if not os.path.isdir(history_dir):
-        from pathlib import Path
-        Path(history_dir).mkdir(parents=True, exist_ok=True)
-    session = PromptSession(history=FileHistory(os.path.join(history_dir, "biblemate_history")))
+    log_file = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "logs", "requests")
+    session = PromptSession(history=FileHistory(log_file))
     completer = FuzzyCompleter(WordCompleter(input_suggestions, ignore_case=True)) if input_suggestions else None
     instruction = await session.prompt_async(
         prompt,
