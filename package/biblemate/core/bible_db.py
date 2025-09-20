@@ -1,6 +1,7 @@
 import numpy as np
 import sqlite3, apsw
-import json, os, re
+import json, os, re, requests
+from agentmake.utils.online import get_local_ip
 from agentmake import OllamaAI, AGENTMAKE_USER_DIR, agentmake, getDictionaryOutput
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 from prompt_toolkit.shortcuts import ProgressBar
@@ -8,6 +9,24 @@ from biblemate import config, OLLAMA_NOT_FOUND
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 
 
+# api
+def run_uba_api(command: str):
+    UBA_API_LOCAL_PORT = int(os.getenv("UBA_API_LOCAL_PORT")) if os.getenv("UBA_API_LOCAL_PORT") else 8080
+    UBA_API_ENDPOINT = os.getenv("UBA_API_ENDPOINT") if os.getenv("UBA_API_ENDPOINT") else f"http://{get_local_ip()}:{UBA_API_LOCAL_PORT}/plain" # use dynamic local ip if endpoint is not specified
+    UBA_API_TIMEOUT = int(os.getenv("UBA_API_TIMEOUT")) if os.getenv("UBA_API_TIMEOUT") else 10
+    UBA_API_PRIVATE_KEY = os.getenv("UBA_API_PRIVATE_KEY") if os.getenv("UBA_API_PRIVATE_KEY") else ""
+
+    endpoint = UBA_API_ENDPOINT
+    private = f"private={UBA_API_PRIVATE_KEY}&" if UBA_API_PRIVATE_KEY else ""
+    url = f"""{endpoint}?{private}cmd={command}"""
+    try:
+        response = requests.get(url, timeout=UBA_API_TIMEOUT)
+        response.encoding = "utf-8"
+        print(response.text.strip())
+    except Exception as err:
+        print(f"An error occurred: {err}")
+
+# local
 def search_bible(request:str, book:int=0) -> str:
     bible_file = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "data", "bibles", f"{config.default_bible}.bible")
     if os.path.isfile(bible_file):
