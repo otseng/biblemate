@@ -10,7 +10,7 @@ from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 
 
 # api
-def run_uba_api(command: str):
+def run_uba_api(command: str) -> str:
     UBA_API_LOCAL_PORT = int(os.getenv("UBA_API_LOCAL_PORT")) if os.getenv("UBA_API_LOCAL_PORT") else 8080
     UBA_API_ENDPOINT = os.getenv("UBA_API_ENDPOINT") if os.getenv("UBA_API_ENDPOINT") else f"http://{get_local_ip()}:{UBA_API_LOCAL_PORT}/plain" # use dynamic local ip if endpoint is not specified
     UBA_API_TIMEOUT = int(os.getenv("UBA_API_TIMEOUT")) if os.getenv("UBA_API_TIMEOUT") else 10
@@ -22,9 +22,9 @@ def run_uba_api(command: str):
     try:
         response = requests.get(url, timeout=UBA_API_TIMEOUT)
         response.encoding = "utf-8"
-        print(response.text.strip())
+        return response.text.strip()
     except Exception as err:
-        print(f"An error occurred: {err}")
+        return f"An error occurred: {err}"
 
 # local
 def search_bible(request:str, book:int=0) -> str:
