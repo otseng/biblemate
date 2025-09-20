@@ -103,6 +103,22 @@ export PATH=$PATH:$HOME/biblemate/bin
 biblemate
 ```
 
+### Support Using Vertex AI
+
+Run:
+
+> pip install --upgrade "biblemate[genai]"
+
+### Upgrade
+
+Run again:
+
+> pip install --upgrade biblemate
+
+### Install Ollama [Optional]
+
+BibleMate AI uses `Ollama` to generate embeddings for semantic searches. You may install it from https://ollama.com/ so that you can perform semantic searches of the Bible with BibleMate AI."
+
 ## ⚙️ Configure AI Backend
 
 After BibleMate AI is launched, enter:
@@ -247,6 +263,12 @@ BibleMate AI is highly customizable. Advanced users can modify existing tools, c
 
 Custom files are placed in the `biblemate` sub-directory within the AgentMake user directory (typically `~/.agentmake/biblemate` on Linux/macOS or `%USERPROFILE%\.agentmake\biblemate` on Windows).
 
+### Override system prompts
+
+The agent's core logic is guided by system prompts, which are markdown files. You can override them by placing your own versions in `~/.agentmake/systems/biblemate/`.
+
+The customizable system prompt files are: `supervisor.md`, `tool_instruction.md`, and `tool_selection.md`. You can copy them from the `biblemate/systems` directory in the package installation folder to your user directory and modify them as needed.
+
 ### Add or Modify Tools & Plans
 
 You can add your own tools and built-in plans (prompts) by creating a custom `bible_study_mcp.py` file.
@@ -255,15 +277,39 @@ You can add your own tools and built-in plans (prompts) by creating a custom `bi
 2.  Copy this file to your user customization directory at `~/.agentmake/biblemate/bible_study_mcp.py`.
 3.  Now you can edit this file to add or modify tools and prompts using the `fastmcp` syntax. BibleMate AI will automatically load your custom file instead of the built-in one.
 
-### Override system prompts
+### Use http as transport instead of stdio
 
-The agent's core logic is guided by system prompts, which are markdown files. You can override them by placing your own versions in `~/.agentmake/systems/biblemate/`.
+BibleMate use `stdio` as the default transport for interacting with BibleMate MCP server.  You may use `http` instead.
 
-The customizable system prompt files are: `supervisor.md`, `tool_instruction.md`, and `tool_selection.md`. You can copy them from the `biblemate/systems` directory in the package installation folder to your user directory and modify them as needed.
+Run in a thread:
+
+> biblematemcp
+
+Run in another thread:
+
+> biblemate -mcp biblemate
 
 ### Use Local Bible Data
 
-Read https://github.com/eliranwong/biblemate/issues/15#issuecomment-3314130281 for more details.
+Read [HERE](https://github.com/eliranwong/biblemate/issues/15#issuecomment-3314130281) for more details.
+
+### Use Custom MCP Server
+
+You may use a custom MCP server via CLI option `mcp`, e.g.:
+
+> biblemate -mcp http://127.0.0.1:33333/mcp
+
+### Host or Run a BibleMate MCP Server
+
+Use default port `33333`:
+
+> biblematemcp
+
+The default port can be edited in the configuration file `config.py`.
+
+To override the default port temporaily, e.g.:
+
+> biblematemcp -p 33334
 
 ## 📖 Tutorials
 

@@ -6,4 +6,5 @@ hide_tools_order=True
 default_bible="NET"
 max_semantic_matches=15
 max_log_lines=2000
+mcp_port=33333
 disabled_tools=[]

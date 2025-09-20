@@ -50,15 +50,17 @@ def search_bible(request:str, book:int=0) -> str:
             semantic_matches = [f"({abbr[str(b)][0]} {c}:{v}) {content.strip()}" for b, c, v, content in db.search_meaning(search_string, top_k=config.max_semantic_matches, book=book)]
         else:
             semantic_matches = []
-        output = f"""# Search for `{search_string}`
+        exact_matches_content = "\n- ".join(exact_matches)
+        semantic_matches_content = "\n- ".join(semantic_matches)
+        output = f'''# Search for `{search_string}`
 
 ## Exact Matches [{len(exact_matches)} verse(s)]
 
-{"- " if exact_matches else ""}{"\n- ".join(exact_matches)}
+{"- " if exact_matches else ""}{exact_matches_content}
 
 ## Semantic Matches [{len(semantic_matches)} verse(s)]
 
-{"- " if semantic_matches else ""}{"\n- ".join(semantic_matches)}"""
+{"- " if semantic_matches else ""}{semantic_matches_content}'''
         if not os.path.getsize(bible_file) > 380000000:
             output += f"[{OLLAMA_NOT_FOUND}]"
         return output
@@ -816,7 +818,7 @@ def simple_bible_study(request:str) -> PromptMessage:
     prompt_text = f"""You are a bible study agent. You check the user request, under the `User Request` section, and resolve it with the following steps in order:
 1. Call tool 'retrieve_english_bible_verses' for Bible text, 
 2. Call tool 'retrieve_bible_cross_references' for Bible cross-references, 
-3. Call tool 'study_old_testament_themes' for study old testament themes or 'study_new_testament_themes' for study old testament themes, and 
+3. Call tool 'study_old_testament_themes' for studying old testament themes or 'study_new_testament_themes' for studying new testament themes, and 
 4. Call tool 'write_bible_theology' to explain its theology.
 
 # User Request

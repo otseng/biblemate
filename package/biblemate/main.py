@@ -9,7 +9,7 @@ import asyncio, re, os, subprocess, click, shutil, pprint, argparse
 from copy import deepcopy
 from alive_progress import alive_bar
 from fastmcp import Client
-from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_configurations, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND
+from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_configurations, readTextFile, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND
 from agentmake.utils.handle_text import set_log_file_max_lines
 from rich.console import Console
 from rich.markdown import Markdown
@@ -47,6 +47,8 @@ if os.path.isfile(user_bible) and os.path.getsize(user_bible) < 380000000:
 # AI backend
 parser = argparse.ArgumentParser(description = """BibleMate AI CLI options""")
 parser.add_argument("-b", "--backend", action="store", dest="backend", help="AI backend; overrides the default backend temporarily.")
+parser.add_argument("-mcp", "--mcp", action="store", dest="mcp", help=f"specify a custom MCP server to use, e.g. 'http://127.0.0.1:{config.mcp_port}/mcp/'; applicable to command `biblemate` only")
+parser.add_argument("-p", "--port", action="store", dest="port", help=f"specify a port for the MCP server to use, e.g. {config.mcp_port}; applicable to command `biblematemcp` only")
 args = parser.parse_args()
 # write to the `config.py` file temporarily for the MCP server to pick it up
 if args.backend:
@@ -59,10 +61,12 @@ else:
     config.backend = DEFAULT_AI_BACKEND
 AGENTMAKE_CONFIG["backend"] = config.backend
 
-# The client that interacts with the Bible Study MCP server
-builtin_mcp_server = os.path.join(os.path.dirname(os.path.realpath(__file__)), "bible_study_mcp.py")
-user_mcp_server = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "bible_study_mcp.py") # The user path has the same basename as the built-in one; users may copy the built-in server settings to this location for customization. 
-client = Client(user_mcp_server if os.path.isfile(user_mcp_server) else builtin_mcp_server)
+def mcp():
+    builtin_mcp_server = os.path.join(os.path.dirname(os.path.realpath(__file__)), "bible_study_mcp.py")
+    user_mcp_server = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "bible_study_mcp.py") # The user path has the same basename as the built-in one; users may copy the built-in server settings to this location for customization. 
+    mcp_script = readTextFile(user_mcp_server if os.path.isfile(user_mcp_server) else builtin_mcp_server)
+    mcp_script = mcp_script.replace("mcp.run(show_banner=False)", f'''mcp.run(show_banner=False, transport="http", port={args.port if args.port else config.mcp_port})''')
+    exec(mcp_script)
 
 def main():
     asyncio.run(main_async())
@@ -162,10 +166,20 @@ hide_tools_order={config.hide_tools_order}
 default_bible="{config.default_bible}"
 max_semantic_matches={config.max_semantic_matches}
 max_log_lines={config.max_log_lines}
+mcp_port={config.mcp_port}
 disabled_tools={pprint.pformat(config.disabled_tools)}"""
     writeTextFile(config_file, configurations)
 
 async def main_async():
+
+    # The client that interacts with the Bible Study MCP server
+    if args.mcp:
+        mcp_server = f"http://127.0.0.1:{config.mcp_port}/mcp/" if args.mcp == "biblemate" else args.mcp
+        client = Client(mcp_server)
+    else:
+        builtin_mcp_server = os.path.join(os.path.dirname(os.path.realpath(__file__)), "bible_study_mcp.py")
+        user_mcp_server = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "bible_study_mcp.py") # The user path has the same basename as the built-in one; users may copy the built-in server settings to this location for customization. 
+        client = Client(user_mcp_server if os.path.isfile(user_mcp_server) else builtin_mcp_server)
 
     APP_START = True
     DEFAULT_SYSTEM = "You are BibleMate AI, an autonomous agent designed to assist users with their Bible study."
@@ -294,9 +308,8 @@ async def main_async():
             elif user_request.startswith(".load") and re.search('''.py['" ]*?$''', user_request) and os.path.isfile(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:])):
                 try:
                     file_path = re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:])
-                    backup_conversation(console, messages, master_plan) 
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        messages = eval(f.read())
+                    backup_conversation(console, messages, master_plan)
+                    messages = eval(readTextFile(file_path))
                     user_request = ""
                     master_plan = ""
                     console.clear()
