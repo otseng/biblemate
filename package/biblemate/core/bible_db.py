@@ -1,10 +1,60 @@
 import numpy as np
 import sqlite3, apsw
-import json, os
-from agentmake import OllamaAI
+import json, os, re
+from agentmake import OllamaAI, AGENTMAKE_USER_DIR, agentmake, getDictionaryOutput
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 from prompt_toolkit.shortcuts import ProgressBar
-from biblemate import config
+from biblemate import config, OLLAMA_NOT_FOUND
+from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
+
+
+def search_bible(request:str, book:int=0) -> str:
+    bible_file = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "data", "bibles", f"{config.default_bible}.bible")
+    if os.path.isfile(bible_file):
+        # extract the search string
+        try:
+            schema = {
+                "name": "search_bible",
+                "description": "search the bible; search string must be given",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "search_string": {
+                            "type": "string",
+                            "description": "search string for searching the bible",
+                        },
+                    },
+                    "required": ["search_string"],
+                },
+            }
+            search_string = getDictionaryOutput(request, schema=schema, backend=config.backend)["search_string"]
+        except:
+            search_string = agentmake(request, system="biblemate/identify_search_string")[-1].get("content", "").strip()
+            search_string = re.sub(r"^.*?(```search_string|```)(.+?)```.*?$", r"\2", search_string, flags=re.DOTALL).strip()
+        search_string = re.sub('''^['"]*(.+?)['"]*$''', r"\1", search_string).strip()
+        # perform the searches
+        abbr = BibleBooks.abbrev["eng"]
+        db = BibleVectorDatabase(bible_file)
+        exact_matches = [f"({abbr[str(b)][0]} {c}:{v}) {content.strip()}" for b, c, v, content in db.search_verses_partial([search_string], book=book)]
+        if os.path.getsize(bible_file) > 380000000:
+            semantic_matches = [f"({abbr[str(b)][0]} {c}:{v}) {content.strip()}" for b, c, v, content in db.search_meaning(search_string, top_k=config.max_semantic_matches, book=book)]
+        else:
+            semantic_matches = []
+        exact_matches_content = "\n- ".join(exact_matches)
+        semantic_matches_content = "\n- ".join(semantic_matches)
+        output = f'''# Search for `{search_string}`
+
+## Exact Matches [{len(exact_matches)} verse(s)]
+
+{"- " if exact_matches else ""}{exact_matches_content}
+
+## Semantic Matches [{len(semantic_matches)} verse(s)]
+
+{"- " if semantic_matches else ""}{semantic_matches_content}'''
+        if not os.path.getsize(bible_file) > 380000000:
+            output += f"[{OLLAMA_NOT_FOUND}]"
+        return output
+    return ""
 
 
 class BibleVectorDatabase:
