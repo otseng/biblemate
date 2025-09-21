@@ -301,15 +301,18 @@ async def main_async():
             # system command
             if user_request == ".open":
                 user_request = f".open {os.getcwd()}"
-            if user_request.startswith(".open ") and os.path.exists(user_request[6:]):
-                cmd = f'''{getOpenCommand()} "{user_request[6:]}"'''
+            if user_request.startswith(".open ") and os.path.exists(os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))):
+                file_path = os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))
+                cmd = f'''{getOpenCommand()} "{file_path}"'''
                 subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 continue
-            elif user_request.startswith(".load") and re.search('''.py['" ]*?$''', user_request) and os.path.isfile(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:])):
+            elif user_request.startswith(".load") and re.search('''.py['" ]*?$''', user_request) and os.path.isfile(os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))):
                 try:
-                    file_path = re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:])
+                    file_path = os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))
                     backup_conversation(console, messages, master_plan)
-                    messages = eval(readTextFile(file_path))
+                    messages = [{"role": i["role"], "content": i["content"]} for i in eval(readTextFile(file_path)) if i.get("role", "") in ("user", "assistant")]
+                    if messages:
+                        messages.insert(0, {"role": "system", "content": DEFAULT_SYSTEM})
                     user_request = ""
                     master_plan = ""
                     console.clear()
