@@ -24,6 +24,12 @@ Developer: Eliran Wong
 - ChromeOS
 - Android (via Piexel Terminal / Termux)
 
+### Supported Python versions
+
+- 3.10
+- 3.11
+- 3.12
+
 ## 🧠 Supported AI Backends
 
 Powered by AgentMake AI, BibleMate AI offers users the flexibility to use various AI backends. Read more at https://github.com/eliranwong/agentmake#supported-backends
