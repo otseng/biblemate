@@ -235,6 +235,7 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | `.mode`              | Change AI mode                     |
 | `.tools`             | List available tools               |
 | `.plans`             | List available plans               |
+| `.resources`         | List available resources           |
 | `.backup`            | Backup conversation                |
 | `.load`              | Load a saved conversation          |
 | `.open`              | Open a file or directory           |

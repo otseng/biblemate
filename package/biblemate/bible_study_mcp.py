@@ -1,9 +1,9 @@
-import logging, os
+import logging, json
 from fastmcp import FastMCP
 from fastmcp.prompts.prompt import PromptMessage, TextContent
 from agentmake import agentmake
 from biblemate import AGENTMAKE_CONFIG, config
-from biblemate.core.bible_db import search_bible
+from biblemate.core.bible_db import run_uba_api, search_bible
 from typing import List, Dict, Any
 
 # configure backend
@@ -16,6 +16,96 @@ mcp = FastMCP(name="BibleMate AI")
 
 def getResponse(messages:list) -> str:
     return messages[-1].get("content") if messages and "content" in messages[-1] else "Error!"
+
+@mcp.resource("resource://audio")
+def audio() -> str:
+    """UBA Bible Audio"""
+    resources = json.loads(run_uba_api(".resources"))
+    return "\n".join([f"- `{r}`" for r in resources["bibleAudioModules"]])
+
+@mcp.resource("resource://bibles")
+def bibles() -> dict:
+    """UBA Bibles; UBA command example: `BIBLE:::KJV:::John 3:16`"""
+    resources = json.loads(run_uba_api(".resources"))
+    return dict(zip(resources["bibleListAbb"], resources["bibleList"]))
+
+@mcp.resource("resource://commentaries")
+def commentaries() -> dict:
+    """UBA Commentaries; UBA command example: `COMMENTARY:::CBSC:::John 3:16`"""
+    resources = json.loads(run_uba_api(".resources"))
+    return dict(zip(resources["commentaryListAbb"], resources["commentaryList"]))
+
+@mcp.resource("resource://data")
+def data() -> str:
+    """UBA Data; UBA command example: `DATA:::Bible Chronology`"""
+    resources = json.loads(run_uba_api(".resources"))
+    return "\n".join([f"- `{r}`" for r in resources["dataList"]])
+
+@mcp.resource("resource://dictionaries")
+def dictionaries() -> dict:
+    """UBA Dictionaries"""
+    resources = json.loads(run_uba_api(".resources"))
+    return dict(zip(resources["dictionaryListAbb"], resources["dictionaryList"]))
+
+@mcp.resource("resource://docs")
+def docs() -> str:
+    """UBA Documents"""
+    resources = json.loads(run_uba_api(".resources"))
+    return "\n".join([f"- `{r}`" for r in resources["docxList"]])
+
+@mcp.resource("resource://encyclopedias")
+def encyclopedias() -> dict:
+    """UBA Encyclopedias"""
+    resources = json.loads(run_uba_api(".resources"))
+    return dict(zip(resources["encyclopediaListAbb"], resources["encyclopediaList"]))
+
+@mcp.resource("resource://epubs")
+def epubs() -> str:
+    """UBA EPUBs"""
+    resources = json.loads(run_uba_api(".resources"))
+    return "\n".join([f"- `{r}`" for r in resources["epubList"]])
+
+@mcp.resource("resource://lexicons")
+def lexicons() -> str:
+    """UBA Lexicons; UBA command example: `LEXICON:::G25` or `LEXICON:::H3478`"""
+    resources = json.loads(run_uba_api(".resources"))
+    return "\n".join([f"- `{r}`" for r in resources["lexiconList"]])
+
+@mcp.resource("resource://references")
+def references() -> str:
+    """UBA Reference Books"""
+    resources = json.loads(run_uba_api(".resources"))
+    return "\n".join([f"- `{r}`" for r in resources["referenceBookList"]])
+
+@mcp.resource("resource://pdfs")
+def pdfs() -> str:
+    """UBA PDFs"""
+    resources = json.loads(run_uba_api(".resources"))
+    return "\n".join([f"- `{r}`" for r in resources["pdfList"]])
+
+@mcp.resource("resource://searchtools")
+def searchtools() -> str:
+    """UBA Search Tools"""
+    resources = json.loads(run_uba_api(".resources"))
+    return "\n".join([f"- `{r}`" for r in resources["searchToolList"]])
+
+@mcp.resource("resource://strongs")
+def strongs() -> str:
+    """UBA Strong's Bibles; UBA command example: `BIBLE:::KJVx:::John 3:16`"""
+    resources = json.loads(run_uba_api(".resources"))
+    return "\n".join([f"- `{r}`" for r in resources["strongBibleListAbb"]])
+
+@mcp.resource("resource://thirddicts")
+def thirddicts() -> str:
+    """UBA Third-Party Dictionaries; UBA command examples: `SEARCHTHIRDDICTIONARY:::faith`, `SEARCHTHIRDDICTIONARY:::webster:::faith`"""
+    resources = json.loads(run_uba_api(".resources"))
+    return "\n".join([f"- `{r}`" for r in resources["thirdPartyDictionaryList"]])
+
+@mcp.resource("resource://topics")
+def topics() -> dict:
+    """UBA Topical Collections"""
+    resources = json.loads(run_uba_api(".resources"))
+    return dict(zip(resources["topicListAbb"], resources["topicList"]))
 
 @mcp.tool
 def search_the_whole_bible(request:str) -> str:
@@ -760,6 +850,13 @@ def write_bible_sermon(request:List[Dict[str, Any]]) -> str:
     """Write a bible sermon based on a bible passage; bible book / chapter / passage / reference(s) must be given"""
     global agentmake, getResponse
     messages = agentmake(request, **{'instruction': 'bible/sermon', 'system': 'auto'}, **AGENTMAKE_CONFIG)
+    return getResponse(messages)
+
+@mcp.tool
+def uba(request:str) -> str:
+    """Execute an UBA command; a valid UBA command must be given; do not use this tool if you are not sure what you are doing"""
+    global agentmake, getResponse
+    messages = agentmake(request, **{'tool': 'uba/cmd'}, **AGENTMAKE_CONFIG)
     return getResponse(messages)
 
 @mcp.prompt

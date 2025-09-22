@@ -5,7 +5,7 @@ from biblemate.ui.selection_dialog import TerminalModeDialogs
 from biblemate import config, AGENTMAKE_CONFIG, OLLAMA_NOT_FOUND, fix_string
 from biblemate.core.bible_db import BibleVectorDatabase
 from pathlib import Path
-import asyncio, re, os, subprocess, click, shutil, pprint, argparse
+import asyncio, re, os, subprocess, click, shutil, pprint, argparse, json
 from copy import deepcopy
 from alive_progress import alive_bar
 from fastmcp import Client
@@ -131,7 +131,10 @@ Get a static text-based response directly from a text-based AI model without usi
         }
         prompts_schema[p.name] = schema
     
-    return tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema
+    resources_raw = await client.list_resources()
+    resources = {r.name: r.description for r in resources_raw}
+    
+    return tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources
 
 def backup_conversation(console, messages, master_plan):
     """Backs up the current conversation to the user's directory."""
@@ -191,7 +194,7 @@ async def main_async():
     dialogs = TerminalModeDialogs(None)
 
     async with client:
-        tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema = await initialize_app(client)
+        tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources = await initialize_app(client)
         write_user_config() # remove the temporary `config.backend`
         
         available_tools_pattern = "|".join(available_tools)
@@ -270,7 +273,7 @@ async def main_async():
                 ".mode": "change AI mode",
                 ".tools": "list available tools",
                 ".plans": "list available plans",
-                #".resources": "list available resources", # TODO explore relevant usage for this project
+                ".resources": "list available resources",
                 ".promptengineer": "toggle auto prompt engineering",
                 ".lite": "toggle lite context",
                 ".steps": "configure the maximum number of steps",
@@ -280,7 +283,7 @@ async def main_async():
                 ".open": "open a file or directory",
                 ".help": "help page",
             }
-            input_suggestions = list(action_list.keys())+[f"@{t} " for t in available_tools]+prompt_list
+            input_suggestions = list(action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+prompt_list+[f"//{r}" for r in resources.keys()] # "" is for generating ideas
             user_request = await getInput("> ", input_suggestions)
             while not user_request.strip():
                 # Generate ideas for `prompts to try`
@@ -298,6 +301,23 @@ async def main_async():
                 # Get input agin
                 user_request = await getInput("> ", input_suggestions)
 
+            # display resources
+            if user_request.startswith("//") and user_request[2:] in resources:
+                resource = user_request[2:]
+                resource_content = await client.read_resource(f"resource://{resource}")
+                if hasattr(resource_content[0], 'text'):
+                    console.rule()
+                    resource_text = resource_content[0].text
+                    if resource_text.startswith("{"):
+                        resource_dict = json.loads(resource_text)
+                        display_content = "\n".join([f"- `{k}`: {v}" for k, v in resource_dict.items()])
+                    else:
+                        display_content = resource_text
+                    resource_description = resources.get(resource, "")
+                    console.print(Markdown(f"## Resource: `{resource.capitalize()}`\n\n{resource_description}\n\n{display_content}"))
+                    console.rule()
+                continue
+            
             # system command
             if user_request == ".open":
                 user_request = f".open {os.getcwd()}"
@@ -343,15 +363,21 @@ async def main_async():
                     )
                     if enabled_tools is not None:
                         available_tools = enabled_tools
+                        available_tools_pattern = "|".join(available_tools) # reset available tools pattern
                         config.disabled_tools = [i for i in master_available_tools if not i in available_tools]
                         write_user_config()
                     console.rule()
                     tools_descriptions = [f"- `{name}`: {description}" for name, description in tools.items()]
                     console.print(Markdown("## Available Tools\n\n"+"\n".join(tools_descriptions)))
                     console.rule()
+                elif user_request == ".resources":
+                    console.rule()
+                    resources_descriptions = [f"- `//{name}`: {description}" for name, description in resources.items()]
+                    console.print(Markdown("## Available Resources\n\n"+"\n".join(resources_descriptions)))
+                    console.rule()
                 elif user_request == ".plans":
                     console.rule()
-                    prompts_descriptions = [f"- `{name}`: {description}" for name, description in prompts.items()]
+                    prompts_descriptions = [f"- `/{name}`: {description}" for name, description in prompts.items()]
                     console.print(Markdown("## Available Plans\n\n"+"\n".join(prompts_descriptions)))
                     console.rule()
                 elif user_request == ".backend":
