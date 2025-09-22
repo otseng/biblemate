@@ -133,8 +133,13 @@ Get a static text-based response directly from a text-based AI model without usi
     
     resources_raw = await client.list_resources()
     resources = {r.name: r.description for r in resources_raw}
+    resources = dict(sorted(resources.items()))
+
+    templates_raw = await client.list_resource_templates()
+    templates = {r.name: r.description for r in templates_raw}
+    templates = dict(sorted(templates.items()))
     
-    return tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources
+    return tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources, templates
 
 def backup_conversation(console, messages, master_plan):
     """Backs up the current conversation to the user's directory."""
@@ -194,13 +199,16 @@ async def main_async():
     dialogs = TerminalModeDialogs(None)
 
     async with client:
-        tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources = await initialize_app(client)
+        tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources, templates = await initialize_app(client)
         write_user_config() # remove the temporary `config.backend`
         
         available_tools_pattern = "|".join(available_tools)
         prompt_list = [f"/{p}" for p in prompts.keys()]
         prompt_pattern = "|".join(prompt_list)
         prompt_pattern = f"""^({prompt_pattern}) """
+        template_list = [f"//{t}/" for t in templates.keys()]
+        template_pattern = "|".join(template_list)
+        template_pattern = f"""^({template_pattern})"""
 
         user_request = ""
         master_plan = ""
@@ -283,7 +291,7 @@ async def main_async():
                 ".open": "open a file or directory",
                 ".help": "help page",
             }
-            input_suggestions = list(action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+prompt_list+[f"//{r}" for r in resources.keys()] # "" is for generating ideas
+            input_suggestions = list(action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+[f"{p} " for p in prompt_list]+[f"//{r}" for r in resources.keys()]+template_list # "" is for generating ideas
             user_request = await getInput("> ", input_suggestions)
             while not user_request.strip():
                 # Generate ideas for `prompts to try`
@@ -317,6 +325,25 @@ async def main_async():
                     console.print(Markdown(f"## Resource: `{resource.capitalize()}`\n\n{resource_description}\n\n{display_content}"))
                     console.rule()
                 continue
+
+            # run templates
+            if re.search(template_pattern, user_request):
+                try:
+                    uri = re.sub("^(.*?)/", r"\1://", user_request[2:])
+                    resource_content = await client.read_resource(uri)
+                    resource_content = resource_content[0].text
+                    if resource_content:
+                        messages += [
+                            {"role": "user", "content": f"Retrieve resource from:\n\n{uri}"},
+                            {"role": "assistant", "content": resource_content},
+                        ]
+                        console.rule()
+                        console.print(Markdown(resource_content))
+                        console.rule()
+                    continue
+                except Exception as e: # invalid uri
+                    print(f"Error: {e}\n")
+                    continue
             
             # system command
             if user_request == ".open":
@@ -501,7 +528,7 @@ async def main_async():
                 console.print(Markdown(f"# User Request\n\n{user_request}\n\n# Master plan\n\n{master_plan}"))
 
             # Prompt Engineering
-            if not specified_tool == "@@" and config.prompt_engineering:
+            if not specified_tool == "@@" and not specified_tool == "uba" and config.prompt_engineering:
                 async def run_prompt_engineering():
                     nonlocal user_request
                     try:

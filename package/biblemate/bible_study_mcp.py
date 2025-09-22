@@ -29,6 +29,11 @@ def bibles() -> dict:
     resources = json.loads(run_uba_api(".resources"))
     return dict(zip(resources["bibleListAbb"], resources["bibleList"]))
 
+@mcp.resource("bible://{version}/{reference}")
+def bible(version:str, reference:str) -> dict:
+    """UBA Bibles; usage example: `//bible/KJV/John 3:16`"""
+    return run_uba_api(f"BIBLE:::{version}::{reference}")
+
 @mcp.resource("resource://commentaries")
 def commentaries() -> dict:
     """UBA Commentaries; UBA command example: `COMMENTARY:::CBSC:::John 3:16`"""
