@@ -26,24 +26,24 @@ def audio() -> str:
 
 @mcp.resource("resource://bibles")
 def bibles() -> dict:
-    """UBA Bibles; UBA command example: `BIBLE:::KJV:::John 3:16`"""
+    """UBA Bibles; usage examples: `//bible/John 3:16-18`, `//bible/KJV/John 3:16-18; Deut 6:4`"""
     resources = json.loads(run_uba_api(".resources"))
     return dict(zip(resources["bibleListAbb"], resources["bibleList"]))
 
 @mcp.resource("bible://{module}/{reference}")
 def bible(module:str, reference:str) -> dict:
-    """UBA Bible; usage example: `//bible/KJV/John 3:16`"""
+    """UBA Bible; usage examples: `//bible/John 3:16-18`, `//bible/KJV/John 3:16-18; Deut 6:4`"""
     return run_uba_api(f"BIBLE:::{module}::{reference}")
 
 @mcp.resource("resource://commentaries")
 def commentaries() -> dict:
-    """UBA Commentaries; UBA command example: `COMMENTARY:::CBSC:::John 3:16`"""
+    """UBA Commentaries; usage examples: `//commentary/John 3:16`, `//commentary/CBSC/John 3:16`"""
     resources = json.loads(run_uba_api(".resources"))
     return dict(zip(resources["commentaryListAbb"], resources["commentaryList"]))
 
 @mcp.resource("commentary://{module}/{reference}")
 def commentary(module:str, reference:str) -> dict:
-    """UBA Commentary; usage example: `//commentary/CBSC/John 3:16`"""
+    """UBA Commentary; usage examples: `//commentary/John 3:16`, `//commentary/CBSC/John 3:16`"""
     return run_uba_api(f"COMMENTARY:::{module}::{reference}")
 
 @mcp.resource("resource://data")
@@ -54,7 +54,7 @@ def data() -> str:
 
 @mcp.resource("resource://dictionaries")
 def dictionaries() -> dict:
-    """UBA Dictionaries"""
+    """UBA Dictionaries; usage examples: `//dictionary/Jesus`, `//dictionary/Israel`"""
     resources = json.loads(run_uba_api(".resources"))
     return dict(zip(resources["dictionaryListAbb"], resources["dictionaryList"]))
 
@@ -62,7 +62,7 @@ dictionary_db = os.path.join(BIBLEMATEDATA, "data", "dictionary.data")
 if os.path.isfile(dictionary_db):
     @mcp.resource("dictionary://{query}")
     def dictionary(query:str) -> Union[str, list]:
-        """UBA Dictionary; usage example: `//dictionary/Israel`"""
+        """UBA Dictionary; usage examples: `//dictionary/Jesus`, `//dictionary/Israel`"""
         from biblemate.uba.search import UBASearches
         dictionary_db = os.path.join(BIBLEMATEDATA, "data", "dictionary.data")
         return UBASearches.search_data(
@@ -80,7 +80,7 @@ def docs() -> str:
 
 @mcp.resource("resource://encyclopedias")
 def encyclopedias() -> dict:
-    """UBA Encyclopedias"""
+    """UBA Encyclopedias; usage examples: `//encyclopedia/Jesus`, `//encyclopedia/ISB/Jesus`"""
     resources = json.loads(run_uba_api(".resources"))
     return dict(zip(resources["encyclopediaListAbb"], resources["encyclopediaList"]))
 
@@ -88,7 +88,7 @@ encyclopedia_db = os.path.join(BIBLEMATEDATA, "data", "encyclopedia.data")
 if os.path.exists(encyclopedia_db):
     @mcp.resource("encyclopedia://{module}/{query}")
     def encyclopedia(module: str, query:str) -> Union[str, list]:
-        """UBA Encyclopedia; usage example: `//encyclopedia/ISB/Israel`"""
+        """UBA Encyclopedia; usage examples: `//encyclopedia/Jesus`, `//encyclopedia/ISB/Jesus`"""
         from biblemate.uba.search import UBASearches
         encyclopedia_db = os.path.join(BIBLEMATEDATA, "data", "encyclopedia.data")
         return UBASearches.search_data(
