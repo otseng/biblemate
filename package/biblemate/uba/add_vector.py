@@ -27,7 +27,7 @@ def add_vector_data(db_file="dictionary.data", table="Dictionary"):
                         vector_str = json.dumps(vector.tolist())
                         cursor.execute(f"UPDATE {table} SET entry = ?, entry_vector = ? WHERE path = ?;", (entry, vector_str, path))
             cursor.execute(f"ALTER TABLE {table} DROP COLUMN content;")
-            cursor.execute(f"VACUUM;")
+            #cursor.execute(f"VACUUM;")
 
 def add_vector_encyclopedias():
     db_file = os.path.join(BIBLEMATEDATA, "data", "encyclopedia.data")
@@ -54,4 +54,4 @@ def add_vector_encyclopedias():
                             vector_str = json.dumps(vector.tolist())
                             cursor.execute(f"UPDATE {table} SET entry = ?, entry_vector = ? WHERE path = ?;", (entry, vector_str, path))
                 cursor.execute(f"ALTER TABLE {table} DROP COLUMN content;")
-            cursor.execute(f"VACUUM;")
+            #cursor.execute(f"VACUUM;")
