@@ -1,10 +1,11 @@
-import logging, json
+import logging, json, os
 from fastmcp import FastMCP
 from fastmcp.prompts.prompt import PromptMessage, TextContent
 from agentmake import agentmake
-from biblemate import AGENTMAKE_CONFIG, config
-from biblemate.core.bible_db import run_uba_api, search_bible
-from typing import List, Dict, Any
+from biblemate import BIBLEMATEDATA, AGENTMAKE_CONFIG, config
+from biblemate.uba.bible import search_bible
+from biblemate.uba.api import run_uba_api
+from typing import List, Dict, Any, Union
 
 # configure backend
 AGENTMAKE_CONFIG["backend"] = config.backend
@@ -29,16 +30,21 @@ def bibles() -> dict:
     resources = json.loads(run_uba_api(".resources"))
     return dict(zip(resources["bibleListAbb"], resources["bibleList"]))
 
-@mcp.resource("bible://{version}/{reference}")
-def bible(version:str, reference:str) -> dict:
-    """UBA Bibles; usage example: `//bible/KJV/John 3:16`"""
-    return run_uba_api(f"BIBLE:::{version}::{reference}")
+@mcp.resource("bible://{module}/{reference}")
+def bible(module:str, reference:str) -> dict:
+    """UBA Bible; usage example: `//bible/KJV/John 3:16`"""
+    return run_uba_api(f"BIBLE:::{module}::{reference}")
 
 @mcp.resource("resource://commentaries")
 def commentaries() -> dict:
     """UBA Commentaries; UBA command example: `COMMENTARY:::CBSC:::John 3:16`"""
     resources = json.loads(run_uba_api(".resources"))
     return dict(zip(resources["commentaryListAbb"], resources["commentaryList"]))
+
+@mcp.resource("commentary://{module}/{reference}")
+def commentary(module:str, reference:str) -> dict:
+    """UBA Commentary; usage example: `//commentary/CBSC/John 3:16`"""
+    return run_uba_api(f"COMMENTARY:::{module}::{reference}")
 
 @mcp.resource("resource://data")
 def data() -> str:
@@ -52,6 +58,20 @@ def dictionaries() -> dict:
     resources = json.loads(run_uba_api(".resources"))
     return dict(zip(resources["dictionaryListAbb"], resources["dictionaryList"]))
 
+dictionary_db = os.path.join(BIBLEMATEDATA, "data", "dictionary.data")
+if os.path.isfile(dictionary_db):
+    @mcp.resource("dictionary://{query}")
+    def dictionary(query:str) -> Union[str, list]:
+        """UBA Dictionary; usage example: `//dictionary/Israel`"""
+        from biblemate.uba.search import UBASearches
+        dictionary_db = os.path.join(BIBLEMATEDATA, "data", "dictionary.data")
+        return UBASearches.search_data(
+            db_file=dictionary_db,
+            sql_table="Dictionary",
+            query=query,
+            top_k=config.max_semantic_matches,
+        )
+
 @mcp.resource("resource://docs")
 def docs() -> str:
     """UBA Documents"""
@@ -63,6 +83,20 @@ def encyclopedias() -> dict:
     """UBA Encyclopedias"""
     resources = json.loads(run_uba_api(".resources"))
     return dict(zip(resources["encyclopediaListAbb"], resources["encyclopediaList"]))
+
+encyclopedia_db = os.path.join(BIBLEMATEDATA, "data", "encyclopedia.data")
+if os.path.exists(encyclopedia_db):
+    @mcp.resource("encyclopedia://{module}/{query}")
+    def encyclopedia(module: str, query:str) -> Union[str, list]:
+        """UBA Encyclopedia; usage example: `//encyclopedia/ISB/Israel`"""
+        from biblemate.uba.search import UBASearches
+        encyclopedia_db = os.path.join(BIBLEMATEDATA, "data", "encyclopedia.data")
+        return UBASearches.search_data(
+            db_file=encyclopedia_db,
+            sql_table=module,
+            query=query,
+            top_k=config.max_semantic_matches,
+        )
 
 @mcp.resource("resource://epubs")
 def epubs() -> str:

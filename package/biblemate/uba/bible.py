@@ -1,34 +1,17 @@
 import numpy as np
 import sqlite3, apsw
-import json, os, re, requests
-from agentmake.utils.online import get_local_ip
+import json, os, re
 from agentmake import OllamaAI, AGENTMAKE_USER_DIR, agentmake, getDictionaryOutput
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 from prompt_toolkit.shortcuts import ProgressBar
-from biblemate import config, OLLAMA_NOT_FOUND
+from biblemate import config, OLLAMA_NOT_FOUND, BIBLEMATEDATA
+from biblemate.uba.api import run_uba_api
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 
 
-# api
-def run_uba_api(command: str) -> str:
-    UBA_API_LOCAL_PORT = int(os.getenv("UBA_API_LOCAL_PORT")) if os.getenv("UBA_API_LOCAL_PORT") else 8080
-    UBA_API_ENDPOINT = os.getenv("UBA_API_ENDPOINT") if os.getenv("UBA_API_ENDPOINT") else f"http://{get_local_ip()}:{UBA_API_LOCAL_PORT}/plain" # use dynamic local ip if endpoint is not specified
-    UBA_API_TIMEOUT = int(os.getenv("UBA_API_TIMEOUT")) if os.getenv("UBA_API_TIMEOUT") else 10
-    UBA_API_PRIVATE_KEY = os.getenv("UBA_API_PRIVATE_KEY") if os.getenv("UBA_API_PRIVATE_KEY") else ""
-
-    endpoint = UBA_API_ENDPOINT
-    private = f"private={UBA_API_PRIVATE_KEY}&" if UBA_API_PRIVATE_KEY else ""
-    url = f"""{endpoint}?{private}cmd={command}"""
-    try:
-        response = requests.get(url, timeout=UBA_API_TIMEOUT)
-        response.encoding = "utf-8"
-        return response.text.strip()
-    except Exception as err:
-        return f"An error occurred: {err}"
-
 # local
 def search_bible(request:str, book:int=0) -> str:
-    bible_file = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "data", "bibles", f"{config.default_bible}.bible")
+    bible_file = os.path.join(BIBLEMATEDATA, "bibles", "NET.bible")
     if os.path.isfile(bible_file):
         # extract the search string
         try:
@@ -49,23 +32,27 @@ def search_bible(request:str, book:int=0) -> str:
             search_string = getDictionaryOutput(request, schema=schema, backend=config.backend)["search_string"]
         except:
             search_string = agentmake(request, system="biblemate/identify_search_string")[-1].get("content", "").strip()
-            search_string = re.sub(r"^.*?(```search_string|```)(.+?)```.*?$", r"\2", search_string, flags=re.DOTALL).strip()
+            search_string = re.sub(r"^.*?```(.+?)```.*?$", r"\1", search_string.replace("```search_string", ""), flags=re.DOTALL).replace("```", "").strip()
         search_string = re.sub('''^['"]*(.+?)['"]*$''', r"\1", search_string).strip()
         # perform the searches
         abbr = BibleBooks.abbrev["eng"]
+        # exact matches
+        exact_matches_content = run_uba_api(f"{abbr[str(book)][0]}:::{config.default_bible}:::{search_string}" if book else f"SEARCH:::{config.default_bible}:::{search_string}")
+        exact_matches_content = re.sub(r"\n\(", "\n- (", exact_matches_content)
+        # semantic matches
         db = BibleVectorDatabase(bible_file)
-        exact_matches = [f"({abbr[str(b)][0]} {c}:{v}) {content.strip()}" for b, c, v, content in db.search_verses_partial([search_string], book=book)]
         if os.path.getsize(bible_file) > 380000000:
-            semantic_matches = [f"({abbr[str(b)][0]} {c}:{v}) {content.strip()}" for b, c, v, content in db.search_meaning(search_string, top_k=config.max_semantic_matches, book=book)]
+            semantic_matches = [f"{abbr[str(b)][0]} {c}:{v}" for b, c, v, _ in db.search_meaning(search_string, top_k=config.max_semantic_matches, book=book)]
         else:
             semantic_matches = []
-        exact_matches_content = "\n- ".join(exact_matches)
-        semantic_matches_content = "\n- ".join(semantic_matches)
+        semantic_matches_content = run_uba_api(f"BIBLE:::{config.default_bible}:::"+";".join(semantic_matches)) if semantic_matches else ""
+        if semantic_matches_content:
+            semantic_matches_content = re.sub(r"\n\(", "\n- (", semantic_matches_content)
         output = f'''# Search for `{search_string}`
 
-## Exact Matches [{len(exact_matches)} verse(s)]
+## Exact Matches
 
-{"- " if exact_matches else ""}{exact_matches_content}
+{exact_matches_content}
 
 ## Semantic Matches [{len(semantic_matches)} verse(s)]
 
@@ -84,7 +71,7 @@ class BibleVectorDatabase:
     Requirement: Install `Ollama` separately
 
     ```usage
-    from biblemate.core.bible_db import BibleVectorDatabase
+    from biblemate.uba.bible import BibleVectorDatabase
     db = BibleVectorDatabase('my_bible.bible') # edit 'my_bible.bible' to your bible file path
     db.add_vectors() # add vectors to the database
     results = db.search_meaning("Jesus love", 10)
@@ -93,12 +80,11 @@ class BibleVectorDatabase:
 
     def __init__(self, uba_bible_path: str=None):
         if not uba_bible_path:
-            uba_bible_path = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "data", "bibles", f"{config.default_bible}.bible")
+            uba_bible_path = os.path.join(BIBLEMATEDATA, "bibles", f"{config.default_bible}.bible")
         # check if file exists
         if os.path.isfile(uba_bible_path) and uba_bible_path.endswith(".bible"):
             # Download embedding model
-            self.embedding_model = "paraphrase-multilingual"
-            OllamaAI.downloadModel(self.embedding_model) # requires installing Ollama
+            OllamaAI.downloadModel(config.embedding_model) # requires installing Ollama
             # init
             self.conn = apsw.Connection(uba_bible_path)
             self.cursor = self.conn.cursor()
@@ -136,7 +122,7 @@ class BibleVectorDatabase:
 
         with ProgressBar() as pb:
             for book, chapter, verse, scripture in pb(allVerses):
-                vector = get_embeddings([scripture], self.embedding_model)
+                vector = get_embeddings([scripture], config.embedding_model)
                 self.add_vector(book, chapter, verse, scripture, vector)
         self.clean_up()
 
@@ -161,7 +147,7 @@ class BibleVectorDatabase:
         if not rows:
             return []
         
-        texts, vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in rows])
+        texts, vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in rows if row[0] and row[1]])
         document_matrix = np.vstack(vectors)
         
         similarities = cosine_similarity_matrix(query_vector, document_matrix)
@@ -170,7 +156,7 @@ class BibleVectorDatabase:
         return [texts[i] for i in top_indices]
 
     def search_meaning(self, query, top_k=3, book=0):
-        queries = self.search_vector(get_embeddings([query], self.embedding_model)[0], top_k=top_k, book=book)
+        queries = self.search_vector(get_embeddings([query], config.embedding_model)[0], top_k=top_k, book=book)
         return self.search_verses(queries)
 
     def search_verses(self, queries: list, book: int=0):

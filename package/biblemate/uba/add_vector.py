@@ -1,11 +1,11 @@
 import apsw, re, os, json
 from agentmake.utils.rag import get_embeddings
 from prompt_toolkit.shortcuts import ProgressBar
+from biblemate import config, BIBLEMATEDATA
 
-embedding_model = "paraphrase-multilingual"
 
 def add_vector_dictionaries():
-    db_file = os.path.join(os.path.expanduser("~"), "UniqueBible", "marvelData", "data", "dictionary.data")
+    db_file = os.path.join(BIBLEMATEDATA, "data", "dictionary.data")
     if os.path.isfile(db_file):
         with apsw.Connection(db_file) as connection:
             cursor = connection.cursor()
@@ -23,17 +23,19 @@ def add_vector_dictionaries():
                     search = re.search(">([^<>]+?)</ref>", content)
                     if search:
                         entry = search.group(1)
-                        vector = get_embeddings([entry], embedding_model)
+                        vector = get_embeddings([entry], config.embedding_model)
                         vector_str = json.dumps(vector.tolist())
                         cursor.execute("UPDATE Dictionary SET entry = ?, entry_vector = ? WHERE path = ?;", (entry, vector_str, path))
+            cursor.execute(f"ALTER TABLE Dictionary DROP COLUMN content;")
+            cursor.execute(f"VACUU;")
 
 def add_vector_encyclopedias():
-    db_file = os.path.join(os.path.expanduser("~"), "UniqueBible", "marvelData", "data", "encyclopedia.data")
+    db_file = os.path.join(BIBLEMATEDATA, "data", "encyclopedia.data")
     if os.path.isfile(db_file):
         with apsw.Connection(db_file) as connection:
+            cursor = connection.cursor()
             for table in ("DAC", "DCG", "HAS", "ISB", "KIT", "MSC"):
                 print(f"Working on table `{table}` ...")
-                cursor = connection.cursor()
                 # Check if 'entry' column already exists
                 cursor.execute(f"PRAGMA table_info({table});")
                 columns = cursor.fetchall()
@@ -48,6 +50,8 @@ def add_vector_encyclopedias():
                         search = re.search(">([^<>]+?)</ref>", content)
                         if search:
                             entry = search.group(1)
-                            vector = get_embeddings([entry], embedding_model)
+                            vector = get_embeddings([entry], config.embedding_model)
                             vector_str = json.dumps(vector.tolist())
                             cursor.execute(f"UPDATE {table} SET entry = ?, entry_vector = ? WHERE path = ?;", (entry, vector_str, path))
+                cursor.execute(f"ALTER TABLE {table} DROP COLUMN content;")
+            cursor.execute(f"VACUU;")

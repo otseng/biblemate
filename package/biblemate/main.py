@@ -2,8 +2,8 @@ from biblemate.core.systems import *
 from biblemate.ui.prompts import getInput
 from biblemate.ui.info import get_banner
 from biblemate.ui.selection_dialog import TerminalModeDialogs
-from biblemate import config, AGENTMAKE_CONFIG, OLLAMA_NOT_FOUND, fix_string
-from biblemate.core.bible_db import BibleVectorDatabase
+from biblemate import config, AGENTMAKE_CONFIG, OLLAMA_NOT_FOUND, fix_string, BIBLEMATEDATA
+from biblemate.uba.bible import BibleVectorDatabase
 from pathlib import Path
 import asyncio, re, os, subprocess, click, shutil, pprint, argparse, json
 from copy import deepcopy
@@ -27,13 +27,13 @@ set_log_file_max_lines(log_file, config.max_log_lines)
 
 # bible data
 builtin_bible_data = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "bibles")
-user_bible_data = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "data", "bibles")
+user_bible_data = os.path.join(BIBLEMATEDATA, "bibles")
 if not os.path.isdir(user_bible_data):
     Path(user_bible_data).mkdir(parents=True, exist_ok=True)
-user_bible = os.path.join(user_bible_data, f"{config.default_bible}.bible")
+user_bible = os.path.join(user_bible_data, "NET.bible")
 if not os.path.isfile(user_bible):
     print("# Copying bible data ...")
-    shutil.copyfile(os.path.join(builtin_bible_data, f"{config.default_bible}.bible"), user_bible)
+    shutil.copyfile(os.path.join(builtin_bible_data, "NET.bible"), user_bible)
 if os.path.isfile(user_bible) and os.path.getsize(user_bible) < 380000000:
     if shutil.which("ollama"):
         print("# Setting up a bible vector database to support semantic search with BibleMate AI. please kindly wait until it is finished ...")
@@ -172,9 +172,12 @@ max_steps={config.max_steps}
 lite={config.lite}
 hide_tools_order={config.hide_tools_order}
 default_bible="{config.default_bible}"
+default_commentary="{config.default_commentary}"
+default_encyclopedia="{config.default_encyclopedia}"
 max_semantic_matches={config.max_semantic_matches}
 max_log_lines={config.max_log_lines}
 mcp_port={config.mcp_port}
+embedding_model="{config.embedding_model}"
 disabled_tools={pprint.pformat(config.disabled_tools)}"""
     writeTextFile(config_file, configurations)
 
@@ -328,18 +331,38 @@ async def main_async():
 
             # run templates
             if re.search(template_pattern, user_request):
+                if user_request[2:].count("/") == 1:
+                    keywords = {
+                        "bible": config.default_bible,
+                        "commentary": config.default_commentary,
+                        "encyclopedia": config.default_encyclopedia,
+                    }
+                    keyword, entry = user_request[2:].split("/")
+                    if module := keywords.get(keyword, ""):
+                        user_request = f"//{keyword}/{module}/{entry}"
                 try:
                     uri = re.sub("^(.*?)/", r"\1://", user_request[2:])
                     resource_content = await client.read_resource(uri)
                     resource_content = resource_content[0].text
+                    while resource_content.startswith("[") and resource_content.endswith("]"):
+                        options = json.loads(resource_content)
+                        select = await dialogs.getValidOptions(
+                            options=options,
+                            title="Multiple Matches",
+                            text="Select one of them to continue:"
+                        )
+                        if select:
+                            resource_content = await client.read_resource(re.sub("^(.*?/)[^/]*?$", r"\1", uri)+select)
+                            resource_content = resource_content[0].text
+                        else:
+                            resource_content = "Cancelled by user."
                     if resource_content:
                         messages += [
-                            {"role": "user", "content": f"Retrieve resource from:\n\n{uri}"},
+                            {"role": "user", "content": f"Retrieve content from:\n\n{uri}"},
                             {"role": "assistant", "content": resource_content},
                         ]
                         console.rule()
                         console.print(Markdown(resource_content))
-                        console.rule()
                     continue
                 except Exception as e: # invalid uri
                     print(f"Error: {e}\n")
