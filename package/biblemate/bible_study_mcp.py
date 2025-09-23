@@ -18,11 +18,11 @@ mcp = FastMCP(name="BibleMate AI")
 def getResponse(messages:list) -> str:
     return messages[-1].get("content") if messages and "content" in messages[-1] else "Error!"
 
-@mcp.resource("resource://audio")
+'''@mcp.resource("resource://audio")
 def audio() -> str:
     """UBA Bible Audio"""
     resources = json.loads(run_uba_api(".resources"))
-    return "\n".join([f"- `{r}`" for r in resources["bibleAudioModules"]])
+    return "\n".join([f"- `{r}`" for r in resources["bibleAudioModules"]])'''
 
 @mcp.resource("resource://bibles")
 def bibles() -> dict:
@@ -72,11 +72,11 @@ if os.path.isfile(dictionary_db):
             top_k=config.max_semantic_matches,
         )
 
-@mcp.resource("resource://docs")
+'''@mcp.resource("resource://docs")
 def docs() -> str:
     """UBA Documents"""
     resources = json.loads(run_uba_api(".resources"))
-    return "\n".join([f"- `{r}`" for r in resources["docxList"]])
+    return "\n".join([f"- `{r}`" for r in resources["docxList"]])'''
 
 @mcp.resource("resource://encyclopedias")
 def encyclopedias() -> dict:
@@ -98,11 +98,11 @@ if os.path.exists(encyclopedia_db):
             top_k=config.max_semantic_matches,
         )
 
-@mcp.resource("resource://epubs")
+'''@mcp.resource("resource://epubs")
 def epubs() -> str:
     """UBA EPUBs"""
     resources = json.loads(run_uba_api(".resources"))
-    return "\n".join([f"- `{r}`" for r in resources["epubList"]])
+    return "\n".join([f"- `{r}`" for r in resources["epubList"]])'''
 
 @mcp.resource("resource://lexicons")
 def lexicons() -> str:
@@ -110,23 +110,23 @@ def lexicons() -> str:
     resources = json.loads(run_uba_api(".resources"))
     return "\n".join([f"- `{r}`" for r in resources["lexiconList"]])
 
-@mcp.resource("resource://references")
+'''@mcp.resource("resource://references")
 def references() -> str:
     """UBA Reference Books"""
     resources = json.loads(run_uba_api(".resources"))
-    return "\n".join([f"- `{r}`" for r in resources["referenceBookList"]])
+    return "\n".join([f"- `{r}`" for r in resources["referenceBookList"]])'''
 
-@mcp.resource("resource://pdfs")
+'''@mcp.resource("resource://pdfs")
 def pdfs() -> str:
     """UBA PDFs"""
     resources = json.loads(run_uba_api(".resources"))
-    return "\n".join([f"- `{r}`" for r in resources["pdfList"]])
+    return "\n".join([f"- `{r}`" for r in resources["pdfList"]])'''
 
-@mcp.resource("resource://searchtools")
+'''@mcp.resource("resource://searchtools")
 def searchtools() -> str:
     """UBA Search Tools"""
     resources = json.loads(run_uba_api(".resources"))
-    return "\n".join([f"- `{r}`" for r in resources["searchToolList"]])
+    return "\n".join([f"- `{r}`" for r in resources["searchToolList"]])'''
 
 @mcp.resource("resource://strongs")
 def strongs() -> str:
@@ -134,17 +134,53 @@ def strongs() -> str:
     resources = json.loads(run_uba_api(".resources"))
     return "\n".join([f"- `{r}`" for r in resources["strongBibleListAbb"]])
 
-@mcp.resource("resource://thirddicts")
+'''@mcp.resource("resource://thirddicts")
 def thirddicts() -> str:
     """UBA Third-Party Dictionaries; UBA command examples: `SEARCHTHIRDDICTIONARY:::faith`, `SEARCHTHIRDDICTIONARY:::webster:::faith`"""
     resources = json.loads(run_uba_api(".resources"))
-    return "\n".join([f"- `{r}`" for r in resources["thirdPartyDictionaryList"]])
+    return "\n".join([f"- `{r}`" for r in resources["thirdPartyDictionaryList"]])'''
 
 @mcp.resource("resource://topics")
 def topics() -> dict:
-    """UBA Topical Collections"""
+    """UBA Topical Collections; usage examples: `//topic/faith`, `//topic/hope`, `//topic/love`"""
     resources = json.loads(run_uba_api(".resources"))
     return dict(zip(resources["topicListAbb"], resources["topicList"]))
+
+topic_db = os.path.join(BIBLEMATEDATA, "data", "exlb3.data")
+if os.path.exists(topic_db):
+    @mcp.resource("topic://{query}")
+    def topic(query:str) -> Union[str, list]:
+        """UBA Topical Studies; usage examples: `//topic/faith`, `//topic/hope`, `//topic/love`"""
+        from biblemate.uba.search import UBASearches
+        topic_db = os.path.join(BIBLEMATEDATA, "data", "exlb3.data")
+        return UBASearches.search_data(
+            db_file=topic_db,
+            sql_table="exlbt",
+            query=query,
+            top_k=config.max_semantic_matches,
+        )
+    @mcp.resource("character://{query}")
+    def character(query:str) -> Union[str, list]:
+        """UBA Character Studies; usage examples: `//character/Jesus`, `//character/Samuel`, `//topic/John`"""
+        from biblemate.uba.search import UBASearches
+        topic_db = os.path.join(BIBLEMATEDATA, "data", "exlb3.data")
+        return UBASearches.search_data(
+            db_file=topic_db,
+            sql_table="exlbp",
+            query=query,
+            top_k=config.max_semantic_matches,
+        )
+    @mcp.resource("location://{query}")
+    def location(query:str) -> Union[str, list]:
+        """UBA Location Studies; usage examples: `//location/Jerusalem`, `//location/Bethel`, `//location/Bethlehem`"""
+        from biblemate.uba.search import UBASearches
+        topic_db = os.path.join(BIBLEMATEDATA, "data", "exlb3.data")
+        return UBASearches.search_data(
+            db_file=topic_db,
+            sql_table="exlbl",
+            query=query,
+            top_k=config.max_semantic_matches,
+        )
 
 @mcp.tool
 def search_the_whole_bible(request:str) -> str:

@@ -4,7 +4,7 @@ from prompt_toolkit.shortcuts import ProgressBar
 from biblemate import config, BIBLEMATEDATA
 
 
-def add_vector_data(db_file="dictionary.data", table="Dictionary"):
+def add_vector_data(db_file="dictionary.data", table="Dictionary", h2=False):
     db_file = os.path.join(BIBLEMATEDATA, "data", db_file)
     if os.path.isfile(db_file):
         with apsw.Connection(db_file) as connection:
@@ -20,7 +20,7 @@ def add_vector_data(db_file="dictionary.data", table="Dictionary"):
             cursor.execute(f"SELECT path, content FROM {table};")
             with ProgressBar() as pb:
                 for path, content in pb(cursor.fetchall()):
-                    search = re.search(">([^<>]+?)</ref>", content)
+                    search = re.search(f">([^<>]+?)</{'h2' if h2 else 'ref'}>", content)
                     if search:
                         entry = search.group(1)
                         vector = get_embeddings([entry], config.embedding_model)

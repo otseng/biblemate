@@ -16,6 +16,7 @@ class UBASearches:
         keywords = {
             "dictionary.data": "DICTIONARY:::",
             "encyclopedia.data": f"ENCYCLOPEDIA:::{sql_table}:::",
+            "exlb3.data": f"EXLB:::{sql_table}:::",
         }
 
         with apsw.Connection(db_file) as connection:
