@@ -14,9 +14,10 @@ class UBASearches:
             return "Invalid database file."
 
         keywords = {
-            "dictionary.data": "DICTIONARY:::",
-            "encyclopedia.data": f"ENCYCLOPEDIA:::{sql_table}:::",
-            "exlb3.data": f"EXLB:::{sql_table}:::",
+            "dictionary.db": "DICTIONARY:::",
+            "encyclopedia.db": f"ENCYCLOPEDIA:::{sql_table}:::",
+            "exlb.db": f"EXLB:::{sql_table}:::",
+            "collection.db": f"{'_promise' if sql_table == 'PROMISES' else '_harmony'}:::{config.default_bible}:::",
         }
 
         with apsw.Connection(db_file) as connection:

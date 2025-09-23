@@ -3,7 +3,6 @@ from biblemate.ui.prompts import getInput
 from biblemate.ui.info import get_banner
 from biblemate.ui.selection_dialog import TerminalModeDialogs
 from biblemate import config, AGENTMAKE_CONFIG, OLLAMA_NOT_FOUND, fix_string, BIBLEMATEDATA
-from biblemate.uba.bible import BibleVectorDatabase
 from pathlib import Path
 import asyncio, re, os, subprocess, click, shutil, pprint, argparse, json
 from copy import deepcopy
@@ -24,25 +23,6 @@ if not os.path.isdir(log_path):
     Path(log_path).mkdir(parents=True, exist_ok=True)
 log_file = os.path.join(log_path, "requests")
 set_log_file_max_lines(log_file, config.max_log_lines)
-
-# bible data
-builtin_bible_data = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "bibles")
-user_bible_data = os.path.join(BIBLEMATEDATA, "bibles")
-if not os.path.isdir(user_bible_data):
-    Path(user_bible_data).mkdir(parents=True, exist_ok=True)
-user_bible = os.path.join(user_bible_data, "NET.bible")
-if not os.path.isfile(user_bible):
-    print("# Copying bible data ...")
-    shutil.copyfile(os.path.join(builtin_bible_data, "NET.bible"), user_bible)
-if os.path.isfile(user_bible) and os.path.getsize(user_bible) < 380000000:
-    if shutil.which("ollama"):
-        print("# Setting up a bible vector database to support semantic search with BibleMate AI. please kindly wait until it is finished ...")
-        db = BibleVectorDatabase(user_bible)
-        db.add_vectors()
-        db.clean_up()
-        del db
-    else:
-        print(OLLAMA_NOT_FOUND)
 
 # AI backend
 parser = argparse.ArgumentParser(description = """BibleMate AI CLI options""")

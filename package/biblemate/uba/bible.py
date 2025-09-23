@@ -11,7 +11,7 @@ from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 
 # local
 def search_bible(request:str, book:int=0) -> str:
-    bible_file = os.path.join(BIBLEMATEDATA, "bibles", "NET.bible")
+    bible_file = os.path.join(BIBLEMATEDATA, "bible.db")
     if os.path.isfile(bible_file):
         # extract the search string
         try:
@@ -40,11 +40,8 @@ def search_bible(request:str, book:int=0) -> str:
         exact_matches_content = run_uba_api(f"{abbr[str(book)][0]}:::{config.default_bible}:::{search_string}" if book else f"SEARCH:::{config.default_bible}:::{search_string}")
         exact_matches_content = re.sub(r"\n\(", "\n- (", exact_matches_content)
         # semantic matches
-        db = BibleVectorDatabase(bible_file)
-        if os.path.getsize(bible_file) > 380000000:
-            semantic_matches = [f"{abbr[str(b)][0]} {c}:{v}" for b, c, v, _ in db.search_meaning(search_string, top_k=config.max_semantic_matches, book=book)]
-        else:
-            semantic_matches = []
+        db = BibleVectorDatabase()
+        semantic_matches = [f"{abbr[str(b)][0]} {c}:{v}" for b, c, v, _ in db.search_meaning(search_string, top_k=config.max_semantic_matches, book=book)]
         semantic_matches_content = run_uba_api(f"BIBLE:::{config.default_bible}:::"+";".join(semantic_matches)) if semantic_matches else ""
         if semantic_matches_content:
             semantic_matches_content = re.sub(r"\n\(", "\n- (", semantic_matches_content)
@@ -60,7 +57,7 @@ def search_bible(request:str, book:int=0) -> str:
         if not os.path.getsize(bible_file) > 380000000:
             output += f"[{OLLAMA_NOT_FOUND}]"
         return output
-    return ""
+    return "[Bible data not found! Download it first!]"
 
 
 class BibleVectorDatabase:
@@ -80,7 +77,7 @@ class BibleVectorDatabase:
 
     def __init__(self, uba_bible_path: str=None):
         if not uba_bible_path:
-            uba_bible_path = os.path.join(BIBLEMATEDATA, "bibles", f"{config.default_bible}.bible")
+            uba_bible_path = os.path.join(BIBLEMATEDATA, "bible.db")
         # check if file exists
         if os.path.isfile(uba_bible_path) and uba_bible_path.endswith(".bible"):
             # Download embedding model

@@ -251,11 +251,19 @@ Remarks:
 * To use `.load`, you need to specify a python file that contains a saved conversation.  Conversation is saved into a file each time when a backup is executed. Check the message `Conversation backup saved to ...` or locate the backups in `~/agentmake/xomate`.
 * To use `.open`, you need to specify a file or a directory that is to be opened.
 
-## More UniqueBible App Data
+## Semantic Searches [Optional]
 
-You may access more UniqueBible App Data via resources built-in with BibleMate AI:
+To enable semantic searches, download the following files and place them into directory `~/agentmake/biblemate/data` where `~` is the user's home directory:
 
-Enter `.resources` for more information.
+[bible.zip](https://drive.google.com/file/d/1E6pDKfjUMhmMWjjazrg5ZcpH1RBD8qgW/view?usp=sharing)
+
+[collection.zip](https://drive.google.com/file/d/1FtahDAlmexE6ez2cGbSCj0KH7snzJfPI/view?usp=sharing)
+
+[dictionary.zip](https://drive.google.com/file/d/1UxDKGEQa7UEIJ6Ggknx13Yt8XNvo3Ld3/view?usp=sharing)
+
+[encyclopedia.zip](https://drive.google.com/file/d/1NLUBepvFd9UDxoGQyQ-IohmySjjeis2-/view?usp=sharing)
+
+[exlb.zip](https://drive.google.com/file/d/1QKxbqsCtXCPp6RLDqNRssu4AcLOu9Ew8/view?usp=sharing)
 
 ## ⌨️ Keyboard Shortcuts
 

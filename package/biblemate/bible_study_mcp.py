@@ -58,13 +58,13 @@ def dictionaries() -> dict:
     resources = json.loads(run_uba_api(".resources"))
     return dict(zip(resources["dictionaryListAbb"], resources["dictionaryList"]))
 
-dictionary_db = os.path.join(BIBLEMATEDATA, "data", "dictionary.data")
+dictionary_db = os.path.join(BIBLEMATEDATA, "dictionary.db")
 if os.path.isfile(dictionary_db):
     @mcp.resource("dictionary://{query}")
     def dictionary(query:str) -> Union[str, list]:
         """UBA Dictionary; usage examples: `//dictionary/Jesus`, `//dictionary/Israel`"""
         from biblemate.uba.search import UBASearches
-        dictionary_db = os.path.join(BIBLEMATEDATA, "data", "dictionary.data")
+        dictionary_db = os.path.join(BIBLEMATEDATA, "dictionary.db")
         return UBASearches.search_data(
             db_file=dictionary_db,
             sql_table="Dictionary",
@@ -84,13 +84,13 @@ def encyclopedias() -> dict:
     resources = json.loads(run_uba_api(".resources"))
     return dict(zip(resources["encyclopediaListAbb"], resources["encyclopediaList"]))
 
-encyclopedia_db = os.path.join(BIBLEMATEDATA, "data", "encyclopedia.data")
+encyclopedia_db = os.path.join(BIBLEMATEDATA, "encyclopedia.db")
 if os.path.exists(encyclopedia_db):
     @mcp.resource("encyclopedia://{module}/{query}")
     def encyclopedia(module: str, query:str) -> Union[str, list]:
         """UBA Encyclopedia; usage examples: `//encyclopedia/Jesus`, `//encyclopedia/ISB/Jesus`"""
         from biblemate.uba.search import UBASearches
-        encyclopedia_db = os.path.join(BIBLEMATEDATA, "data", "encyclopedia.data")
+        encyclopedia_db = os.path.join(BIBLEMATEDATA, "encyclopedia.db")
         return UBASearches.search_data(
             db_file=encyclopedia_db,
             sql_table=module,
@@ -146,13 +146,38 @@ def topics() -> dict:
     resources = json.loads(run_uba_api(".resources"))
     return dict(zip(resources["topicListAbb"], resources["topicList"]))
 
-topic_db = os.path.join(BIBLEMATEDATA, "data", "exlb3.data")
+collection_db = os.path.join(BIBLEMATEDATA, "collection.db")
+if os.path.exists(collection_db):
+    @mcp.resource("parallel://{query}")
+    def parallel(query:str) -> Union[str, list]:
+        """UBA Bible Parallels; usage examples: `//parallel/baptism`, `//parallel/light`, `//parallel/sermon`"""
+        from biblemate.uba.search import UBASearches
+        collection_db = os.path.join(BIBLEMATEDATA, "collection.db")
+        return UBASearches.search_data(
+            db_file=collection_db,
+            sql_table="PARALLEL",
+            query=query,
+            top_k=config.max_semantic_matches,
+        )
+    @mcp.resource("promise://{query}")
+    def promise(query:str) -> Union[str, list]:
+        """UBA Bible Promises; usage examples: `//promise/faith`, `//promise/hope`, `//promise/love`"""
+        from biblemate.uba.search import UBASearches
+        collection_db = os.path.join(BIBLEMATEDATA, "collection.db")
+        return UBASearches.search_data(
+            db_file=collection_db,
+            sql_table="PROMISES",
+            query=query,
+            top_k=config.max_semantic_matches,
+        )
+
+topic_db = os.path.join(BIBLEMATEDATA, "exlb.db")
 if os.path.exists(topic_db):
     @mcp.resource("topic://{query}")
     def topic(query:str) -> Union[str, list]:
         """UBA Topical Studies; usage examples: `//topic/faith`, `//topic/hope`, `//topic/love`"""
         from biblemate.uba.search import UBASearches
-        topic_db = os.path.join(BIBLEMATEDATA, "data", "exlb3.data")
+        topic_db = os.path.join(BIBLEMATEDATA, "exlb.db")
         return UBASearches.search_data(
             db_file=topic_db,
             sql_table="exlbt",
@@ -163,7 +188,7 @@ if os.path.exists(topic_db):
     def character(query:str) -> Union[str, list]:
         """UBA Character Studies; usage examples: `//character/Jesus`, `//character/Samuel`, `//topic/John`"""
         from biblemate.uba.search import UBASearches
-        topic_db = os.path.join(BIBLEMATEDATA, "data", "exlb3.data")
+        topic_db = os.path.join(BIBLEMATEDATA, "exlb.db")
         return UBASearches.search_data(
             db_file=topic_db,
             sql_table="exlbp",
@@ -174,7 +199,7 @@ if os.path.exists(topic_db):
     def location(query:str) -> Union[str, list]:
         """UBA Location Studies; usage examples: `//location/Jerusalem`, `//location/Bethel`, `//location/Bethlehem`"""
         from biblemate.uba.search import UBASearches
-        topic_db = os.path.join(BIBLEMATEDATA, "data", "exlb3.data")
+        topic_db = os.path.join(BIBLEMATEDATA, "exlb.db")
         return UBASearches.search_data(
             db_file=topic_db,
             sql_table="exlbl",
