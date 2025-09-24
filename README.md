@@ -255,13 +255,25 @@ Remarks:
 
 We bring the best of both worlds together in BibleMate AI to enhance your Bible studies. In addition to dynamic AI tools, we have integrated direct access to most [UniqueBible resources](https://github.com/eliranwong/UniqueBible) via BibleMate AI prompts. At any point during a conversation with the AI agent, you can incorporate UniqueBible App data directly into the discussion to enrich the study flow and content.
 
-Type `.resources` in the BibleMate AI prompt to view the available resources.
+Type `.resources` in the BibleMate AI prompt to view the available resources. The number of available UniqueBible resources depends on which [UniqueBible web server](https://github.com/eliranwong/UniqueBible) you configured in the backend settings. By default, BibleMate AI uses the UniqueBible web server running at https://bible.gospelchurch.uk. The UniqueBible server is highly customizable; you may set up a local server with your custom resources to use with BibleMate AI.
+
+To connect BibleMate AI with your local server, enter `.backend` in the BibleMate AI prompt, locate the session below, and fill in your local server details:
+
+```
+# Tool: UBA API
+UBA_API_LOCAL_PORT=8080
+UBA_API_ENDPOINT="http://127.0.0.1:8080/plain"
+UBA_API_TIMEOUT=10
+UBA_API_PRIVATE_KEY=
+```
 
 Tips: Start your prompt with `//` to view available resources from the input suggestions.
 
 ## 🔎 Semantic Searches [Optional]
 
-To enable semantic searches, download the following files, unzip them, and place them into directory `~/agentmake/biblemate/data` where `~` is the user's home directory:
+To enable semantic searches, you must first download a few data files. Type `.download` in the BibleMate AI prompt and follow the pop‑up dialog to download them.
+
+You can also download the files manually, unzip them, and place them in the directory `~/agentmake/biblemate/data`, where `~` represents the user's home directory:
 
 [bible.db](https://drive.google.com/file/d/1E6pDKfjUMhmMWjjazrg5ZcpH1RBD8qgW/view?usp=sharing)
 

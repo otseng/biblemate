@@ -1,6 +1,6 @@
 import numpy as np
 import sqlite3, apsw
-import json, os, re
+import json, os, re, shutil
 from agentmake import OllamaAI, AGENTMAKE_USER_DIR, agentmake, getDictionaryOutput
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 from prompt_toolkit.shortcuts import ProgressBar
@@ -44,11 +44,16 @@ def search_bible(request:str, book:int=0, module=config.default_bible, search_re
     
     # semantic matches
     bible_file = os.path.join(BIBLEMATEDATA, "bible.db")
-    if os.path.isfile(bible_file):
+    if not shutil.which("ollama"):
+        print(OLLAMA_NOT_FOUND)
+        semantic_matches = []
+        semantic_matches_content = ""
+    elif os.path.isfile(bible_file):
         db = BibleVectorDatabase()
         semantic_matches = [f"{abbr[str(b)][0]} {c}:{v}" for b, c, v, _ in db.search_meaning(search_string, top_k=config.max_semantic_matches, book=book)]
         semantic_matches_content = run_uba_api(f"BIBLE:::{module}:::"+";".join(semantic_matches)) if semantic_matches else ""
     else:
+        print("Download the data file `bible.db` via the `.download` command to enable semantic search.")
         semantic_matches = []
         semantic_matches_content = ""
     

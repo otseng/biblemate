@@ -4,3 +4,4 @@ fastmcp[cli]
 rich
 alive-progress
 click
+gdown

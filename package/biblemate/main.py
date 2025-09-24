@@ -2,11 +2,11 @@ from biblemate.core.systems import *
 from biblemate.ui.prompts import getInput
 from biblemate.ui.info import get_banner
 from biblemate.ui.selection_dialog import TerminalModeDialogs
-from biblemate import config, AGENTMAKE_CONFIG, OLLAMA_NOT_FOUND, fix_string, BIBLEMATEDATA
+from biblemate import config, AGENTMAKE_CONFIG, fix_string, BIBLEMATEDATA
 from biblemate.uba.api import run_uba_api
 from pathlib import Path
 import urllib.parse
-import asyncio, re, os, subprocess, click, shutil, pprint, argparse, json
+import asyncio, re, os, subprocess, click, gdown, pprint, argparse, json, zipfile
 from copy import deepcopy
 from alive_progress import alive_bar
 from fastmcp import Client
@@ -274,7 +274,7 @@ async def main_async():
                 ".mode": "change AI mode",
                 ".tools": "list available tools",
                 ".plans": "list available plans",
-                ".resources": "list available resources",
+                ".resources": "list UniqueBible resources",
                 ".promptengineer": "toggle auto prompt engineering",
                 ".lite": "toggle lite context",
                 ".steps": "configure the maximum number of steps",
@@ -282,6 +282,7 @@ async def main_async():
                 ".backup": "backup conversation",
                 ".load": "load a saved conversation",
                 ".open": "open a file or directory",
+                ".download": "download data files",
                 ".help": "help page",
             }
             input_suggestions = list(action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+[f"{p} " for p in prompt_list]+[f"//{r}" for r in resources.keys()]+template_list+resource_suggestions # "" is for generating ideas
@@ -533,12 +534,36 @@ async def main_async():
                     console.rule()
                     console.print("Lite Context Enabled" if config.lite else "Lite Context Disabled", justify="center")
                     console.rule()
+                elif user_request == ".download":
+                    file_ids ={
+                        "bible.db": "1E6pDKfjUMhmMWjjazrg5ZcpH1RBD8qgW",
+                        "collection.db": "1y4txzRzXTBty0aYfFgkWfz5qlHERrA17",
+                        "dictionary.db": "1UxDKGEQa7UEIJ6Ggknx13Yt8XNvo3Ld3",
+                        "encyclopedia.db": "1NLUBepvFd9UDxoGQyQ-IohmySjjeis2-",
+                        "exlb.db": "1Hpo6iLSh5KzgR6IZ-c7KuML--A3nmP1-",
+                    }
+                    file_id = await dialogs.getValidOptions(
+                        options=file_ids.keys(),
+                        title="BibleMate Data Files",
+                        text="Select a file:"
+                    )
+                    if file_id:
+                        output = os.path.join(BIBLEMATEDATA, file_id+".zip")
+                        if os.path.isfile(output):
+                            os.remove(output)
+                        if os.path.isfile(output[:-4]):
+                            os.remove(output[:-4])
+                        gdown.download(id=file_ids[file_id], output=output)
+                        with zipfile.ZipFile(output, 'r') as zip_ref:
+                            zip_ref.extractall(BIBLEMATEDATA)
+                        if os.path.isfile(output):
+                            os.remove(output)
                 elif user_request == ".mode":
                     default_ai_mode = "chat" if config.agent_mode is None else "agent" if config.agent_mode else "partner"
                     ai_mode = await dialogs.getValidOptions(
                         default=default_ai_mode,
                         options=["agent", "partner", "chat"],
-                        descriptions=["Fully automated", "Semi-automated, with review and edit prompts", "Direct text responses"],
+                        descriptions=["AGENT - Fully automated", "PARTNER - Semi-automated, with review and edit prompts", "CHAT - Direct text responses"],
                         title="AI Modes",
                         text="Select an AI mode:"
                     )
