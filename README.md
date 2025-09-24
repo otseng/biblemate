@@ -151,7 +151,7 @@ You can select between three AI modes to suit your preferences:
 
 To switch between modes, use the `.mode` command in the BibleMate AI prompt. This will open a selection dialog where you can choose your preferred mode.
 
-<img width="657" height="272" alt="Image" src="https://github.com/user-attachments/assets/aedcf30b-4120-403c-861b-d8ef77715582" />
+<img width="714" height="271" alt="Image" src="https://github.com/user-attachments/assets/f836a0ad-ae77-4b07-bb74-f9af5bce26c6" />
 
 ## 📚 Built-in Tools & Plans
 
@@ -272,6 +272,8 @@ Tips: Start your prompt with `//` to view available resources from the input sug
 ## 🔎 Semantic Searches [Optional]
 
 To enable semantic searches, you must first download a few data files. Type `.download` in the BibleMate AI prompt and follow the pop‑up dialog to download them.
+
+<img width="510" height="326" alt="Image" src="https://github.com/user-attachments/assets/ee05517f-1d48-47d1-85e8-5c134a646e03" />
 
 You can also download the files manually, unzip them, and place them in the directory `~/agentmake/biblemate/data`, where `~` represents the user's home directory:
 
