@@ -243,6 +243,7 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | `.lite`              | Toggle lite context                |
 | `.steps`             | Set max number of steps            |
 | `.matches`           | Set max number of semantic matches |
+| `.download`          | Download data files                |
 | `.help`              | Show help page                     |
 
 Remarks:
@@ -283,7 +284,7 @@ Examples:
 
 > @search_the_whole_bible God create
 
-> @search_john_only Jesus love
+> //john/KJV/Jesus love
 
 [collection.db](https://drive.google.com/file/d/1y4txzRzXTBty0aYfFgkWfz5qlHERrA17/view?usp=sharing)
 
