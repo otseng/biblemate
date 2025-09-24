@@ -3,12 +3,14 @@ from biblemate.ui.prompts import getInput
 from biblemate.ui.info import get_banner
 from biblemate.ui.selection_dialog import TerminalModeDialogs
 from biblemate import config, AGENTMAKE_CONFIG, OLLAMA_NOT_FOUND, fix_string, BIBLEMATEDATA
+from biblemate.uba.api import run_uba_api
 from pathlib import Path
 import urllib.parse
 import asyncio, re, os, subprocess, click, shutil, pprint, argparse, json
 from copy import deepcopy
 from alive_progress import alive_bar
 from fastmcp import Client
+from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_configurations, readTextFile, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND
 from agentmake.utils.handle_text import set_log_file_max_lines
 from rich.console import Console
@@ -156,6 +158,7 @@ hide_tools_order={config.hide_tools_order}
 default_bible="{config.default_bible}"
 default_commentary="{config.default_commentary}"
 default_encyclopedia="{config.default_encyclopedia}"
+default_lexicon="{config.default_lexicon}"
 max_semantic_matches={config.max_semantic_matches}
 max_log_lines={config.max_log_lines}
 mcp_port={config.mcp_port}
@@ -185,6 +188,11 @@ async def main_async():
 
     async with client:
         tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources, templates = await initialize_app(client)
+        resource_suggestions = json.loads(run_uba_api(".resources"))
+        resource_suggestions = resource_suggestions["bibleListAbb"]+resource_suggestions["commentaryListAbb"]+resource_suggestions["encyclopediaListAbb"]+resource_suggestions["lexiconList"]
+        abbr = BibleBooks.abbrev["eng"]
+        resource_suggestions += [abbr[str(book)][0] for book in range(1,67)]
+
         write_user_config() # remove the temporary `config.backend`
         
         available_tools_pattern = "|".join(available_tools)
@@ -276,7 +284,7 @@ async def main_async():
                 ".open": "open a file or directory",
                 ".help": "help page",
             }
-            input_suggestions = list(action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+[f"{p} " for p in prompt_list]+[f"//{r}" for r in resources.keys()]+template_list # "" is for generating ideas
+            input_suggestions = list(action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+[f"{p} " for p in prompt_list]+[f"//{r}" for r in resources.keys()]+template_list+resource_suggestions # "" is for generating ideas
             user_request = await getInput("> ", input_suggestions)
             while not user_request.strip():
                 # Generate ideas for `prompts to try`
@@ -317,16 +325,85 @@ async def main_async():
                 if user_request[2:].count("/") == 1:
                     keywords = {
                         "bible": config.default_bible,
+                        "chapter": config.default_bible,
+                        "search": config.default_bible,
+                        "genesis": config.default_bible,
+                        "exodus": config.default_bible,
+                        "leviticus": config.default_bible,
+                        "numbers": config.default_bible,
+                        "deuteronomy": config.default_bible,
+                        "joshua": config.default_bible,
+                        "judges": config.default_bible,
+                        "ruth": config.default_bible,
+                        "samuel1": config.default_bible,
+                        "samuel2": config.default_bible,
+                        "kings1": config.default_bible,
+                        "kings2": config.default_bible,
+                        "chronicles1": config.default_bible,
+                        "chronicles2": config.default_bible,
+                        "ezra": config.default_bible,
+                        "nehemiah": config.default_bible,
+                        "esther": config.default_bible,
+                        "job": config.default_bible,
+                        "psalms": config.default_bible,
+                        "proverbs": config.default_bible,
+                        "ecclesiastes": config.default_bible,
+                        "songs": config.default_bible,
+                        "isaiah": config.default_bible,
+                        "jeremiah": config.default_bible,
+                        "lamentations": config.default_bible,
+                        "ezekiel": config.default_bible,
+                        "daniel": config.default_bible,
+                        "hosea": config.default_bible,
+                        "joel": config.default_bible,
+                        "amos": config.default_bible,
+                        "obadiah": config.default_bible,
+                        "jonah": config.default_bible,
+                        "micah": config.default_bible,
+                        "nahum": config.default_bible,
+                        "habakkuk": config.default_bible,
+                        "zephaniah": config.default_bible,
+                        "haggai": config.default_bible,
+                        "zechariah": config.default_bible,
+                        "malachi": config.default_bible,
+                        "matthew": config.default_bible,
+                        "mark": config.default_bible,
+                        "luke": config.default_bible,
+                        "john": config.default_bible,
+                        "acts": config.default_bible,
+                        "romans": config.default_bible,
+                        "corinthians1": config.default_bible,
+                        "corinthians2": config.default_bible,
+                        "galatians": config.default_bible,
+                        "ephesians": config.default_bible,
+                        "philippians": config.default_bible,
+                        "colossians": config.default_bible,
+                        "thessalonians1": config.default_bible,
+                        "thessalonians2": config.default_bible,
+                        "timothy1": config.default_bible,
+                        "timothy2": config.default_bible,
+                        "titus": config.default_bible,
+                        "philemon": config.default_bible,
+                        "hebrews": config.default_bible,
+                        "james": config.default_bible,
+                        "peter1": config.default_bible,
+                        "peter2": config.default_bible,
+                        "john1": config.default_bible,
+                        "john2": config.default_bible,
+                        "john3": config.default_bible,
+                        "jude": config.default_bible,
+                        "revelation": config.default_bible,
                         "commentary": config.default_commentary,
                         "encyclopedia": config.default_encyclopedia,
+                        "lexicon": config.default_lexicon,
                     }
                     keyword, entry = user_request[2:].split("/")
                     if module := keywords.get(keyword, ""):
                         user_request = f"//{keyword}/{module}/{entry}"
                         if user_request.count("/") > 4:
-                            user_request = re.sub("^(//.*?/.*?/)(.*?)$", r"\1"+r"\2".replace("/", "~~~"), user_request)
+                            user_request = re.sub("^(//.*?/.*?/)(.*?)$", r"\1"+r"\2".replace("/", "「」"), user_request)
                     elif user_request.count("/") > 3:
-                        user_request = re.sub("^(//.*?/)(.*?)$", r"\1"+r"\2".replace("/", "~~~"), user_request)
+                        user_request = re.sub("^(//.*?/)(.*?)$", r"\1"+r"\2".replace("/", "「」"), user_request)
                 try:
                     uri = re.sub("^(.*?)/", r"\1://", user_request[2:])
                     resource_content = await client.read_resource(uri)
@@ -339,8 +416,11 @@ async def main_async():
                             text="Select one of them to continue:"
                         )
                         if select:
-                            resource_content = await client.read_resource(re.sub("^(.*?/)[^/]*?$", r"\1", uri)+urllib.parse.quote(select.replace("/", "~~~")))
-                            resource_content = resource_content[0].text
+                            if keyword == "name":
+                                resource_content = select
+                            else:
+                                resource_content = await client.read_resource(re.sub("^(.*?/)[^/]*?$", r"\1", uri)+urllib.parse.quote(select.replace("/", "「」")))
+                                resource_content = resource_content[0].text
                         else:
                             resource_content = "Cancelled by user."
                     if resource_content:
@@ -539,7 +619,7 @@ async def main_async():
                 console.print(Markdown(f"# User Request\n\n{user_request}\n\n# Master plan\n\n{master_plan}"))
 
             # Prompt Engineering
-            if not specified_tool == "@@" and not specified_tool == "uba" and config.prompt_engineering:
+            if not specified_tool == "@@" and config.prompt_engineering:
                 async def run_prompt_engineering():
                     nonlocal user_request
                     try:

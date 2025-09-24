@@ -15,7 +15,7 @@ class UBASearches:
         if not os.path.isfile(db_file):
             return "Invalid database file."
 
-        query = urllib.parse.unquote(query).replace("~~~", "/")
+        query = urllib.parse.unquote(query).replace("「」", "/")
 
         keywords = {
             "dictionary.db": "DICTIONARY:::",

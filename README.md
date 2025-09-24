@@ -251,6 +251,14 @@ Remarks:
 * To use `.load`, you need to specify a python file that contains a saved conversation.  Conversation is saved into a file each time when a backup is executed. Check the message `Conversation backup saved to ...` or locate the backups in `~/agentmake/xomate`.
 * To use `.open`, you need to specify a file or a directory that is to be opened.
 
+## ✝️ UniqueBible Resources
+
+We bring the best of both worlds together in BibleMate AI to enhance your Bible studies. In addition to dynamic AI tools, we have integrated direct access to most [UniqueBible resources](https://github.com/eliranwong/UniqueBible) via BibleMate AI prompts. At any point during a conversation with the AI agent, you can incorporate UniqueBible App data directly into the discussion to enrich the study flow and content.
+
+Type `.resources` in the BibleMate AI prompt to view the available resources.
+
+Tips: Start your prompt with `//` to view available resources from the input suggestions.
+
 ## 🔎 Semantic Searches [Optional]
 
 To enable semantic searches, download the following files, unzip them, and place them into directory `~/agentmake/biblemate/data` where `~` is the user's home directory:
@@ -263,7 +271,7 @@ Examples:
 
 > @search_john_only Jesus love
 
-[collection.db](https://drive.google.com/file/d/1FtahDAlmexE6ez2cGbSCj0KH7snzJfPI/view?usp=sharing)
+[collection.db](https://drive.google.com/file/d/1y4txzRzXTBty0aYfFgkWfz5qlHERrA17/view?usp=sharing)
 
 Examples:
 
@@ -285,11 +293,13 @@ Examples:
 
 > //encyclopedia/ISB/Jesus
 
-[exlb.db](https://drive.google.com/file/d/1QKxbqsCtXCPp6RLDqNRssu4AcLOu9Ew8/view?usp=sharing)
+[exlb.db](https://drive.google.com/file/d/1Hpo6iLSh5KzgR6IZ-c7KuML--A3nmP1-/view?usp=sharing)
 
 Examples:
 
 > //topic/hope
+
+> //name/Bethleham
 
 > //character/Samuel
 

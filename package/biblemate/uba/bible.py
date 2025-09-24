@@ -10,10 +10,12 @@ from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 
 
 # local
-def search_bible(request:str, book:int=0) -> str:
-    bible_file = os.path.join(BIBLEMATEDATA, "bible.db")
-    if os.path.isfile(bible_file):
-        # extract the search string
+def search_bible(request:str, book:int=0, module=config.default_bible, search_request=False) -> str:
+    
+    # extract the search string
+    if search_request:
+        search_string = request
+    else:
         try:
             schema = {
                 "name": "search_bible",
@@ -34,27 +36,33 @@ def search_bible(request:str, book:int=0) -> str:
             search_string = agentmake(request, system="biblemate/identify_search_string")[-1].get("content", "").strip()
             search_string = re.sub(r"^.*?```(.+?)```.*?$", r"\1", search_string.replace("```search_string", ""), flags=re.DOTALL).replace("```", "").strip()
         search_string = re.sub('''^['"]*(.+?)['"]*$''', r"\1", search_string).strip()
-        # perform the searches
-        abbr = BibleBooks.abbrev["eng"]
-        # exact matches
-        exact_matches_content = run_uba_api(f"{abbr[str(book)][0]}:::{config.default_bible}:::{search_string}" if book else f"SEARCH:::{config.default_bible}:::{search_string}")
-        # semantic matches
+    
+    # perform the searches
+    abbr = BibleBooks.abbrev["eng"]
+    # exact matches
+    exact_matches_content = run_uba_api(f"{abbr[str(book)][0]}:::{module}:::{search_string}" if book else f"SEARCH:::{module}:::{search_string}")
+    
+    # semantic matches
+    bible_file = os.path.join(BIBLEMATEDATA, "bible.db")
+    if os.path.isfile(bible_file):
         db = BibleVectorDatabase()
         semantic_matches = [f"{abbr[str(b)][0]} {c}:{v}" for b, c, v, _ in db.search_meaning(search_string, top_k=config.max_semantic_matches, book=book)]
-        semantic_matches_content = run_uba_api(f"BIBLE:::{config.default_bible}:::"+";".join(semantic_matches)) if semantic_matches else ""
-        output = f'''# Search for `{search_string}`
+        semantic_matches_content = run_uba_api(f"BIBLE:::{module}:::"+";".join(semantic_matches)) if semantic_matches else ""
+    else:
+        semantic_matches = []
+        semantic_matches_content = ""
+    
+    output = f'''# Search for `{search_string}`
 
 ## Exact Matches
 
 {exact_matches_content}
 
-## Semantic Matches [{len(semantic_matches)} verse(s)]
+## Similar Matches [{len(semantic_matches)} verse(s)]
 
-{"- " if semantic_matches else ""}{semantic_matches_content}'''
-        if not os.path.getsize(bible_file) > 380000000:
-            output += f"[{OLLAMA_NOT_FOUND}]"
-        return output
-    return "[Bible data not found! Download it first!]"
+{semantic_matches_content}'''
+
+    return output
 
 
 class BibleVectorDatabase:
