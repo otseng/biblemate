@@ -123,10 +123,6 @@ Run again:
 
 > pip install --upgrade biblemate
 
-### Install Ollama [Optional]
-
-BibleMate AI uses `Ollama` to generate embeddings for semantic searches. You may install it from https://ollama.com/ so that you can perform semantic searches of the Bible with BibleMate AI."
-
 ## ⚙️ Configure AI Backend
 
 After BibleMate AI is launched, enter:
@@ -272,7 +268,10 @@ Tips: Start your prompt with `//` to view available resources from the input sug
 
 ## 🔎 Semantic Searches [Optional]
 
-To enable semantic searches, you must first download a few data files. Type `.download` in the BibleMate AI prompt and follow the pop‑up dialog to download them.
+To enable semantic searches, you need two things:
+
+1. Install Ollama - BibleMate AI uses `Ollama` to generate embeddings for semantic searches. You may find instruction at https://ollama.com/.
+2. Download a few data files. Type `.download` in the BibleMate AI prompt and follow the pop‑up dialog to download them.
 
 <img width="510" height="326" alt="Image" src="https://github.com/user-attachments/assets/ee05517f-1d48-47d1-85e8-5c134a646e03" />
 

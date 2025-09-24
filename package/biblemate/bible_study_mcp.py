@@ -46,6 +46,7 @@ def bibles() -> dict:
 @mcp.resource("bible://{module}/{reference}")
 def bible(module:str, reference:str) -> str:
     """Bible; prompt examples: `//bible/John 3:16-18`, `//bible/KJV/John 3:16-18; Deut 6:4`"""
+    from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
     reference = BibleVerseParser(False).extractAllReferencesReadable(reference)
     if not reference:
         return "Please provide a valid Bible reference to complete your request."
