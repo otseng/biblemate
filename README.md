@@ -251,19 +251,49 @@ Remarks:
 * To use `.load`, you need to specify a python file that contains a saved conversation.  Conversation is saved into a file each time when a backup is executed. Check the message `Conversation backup saved to ...` or locate the backups in `~/agentmake/xomate`.
 * To use `.open`, you need to specify a file or a directory that is to be opened.
 
-## Semantic Searches [Optional]
+## 🔎 Semantic Searches [Optional]
 
-To enable semantic searches, download the following files and place them into directory `~/agentmake/biblemate/data` where `~` is the user's home directory:
+To enable semantic searches, download the following files, unzip them, and place them into directory `~/agentmake/biblemate/data` where `~` is the user's home directory:
 
-[bible.zip](https://drive.google.com/file/d/1E6pDKfjUMhmMWjjazrg5ZcpH1RBD8qgW/view?usp=sharing)
+[bible.db](https://drive.google.com/file/d/1E6pDKfjUMhmMWjjazrg5ZcpH1RBD8qgW/view?usp=sharing)
 
-[collection.zip](https://drive.google.com/file/d/1FtahDAlmexE6ez2cGbSCj0KH7snzJfPI/view?usp=sharing)
+Examples:
 
-[dictionary.zip](https://drive.google.com/file/d/1UxDKGEQa7UEIJ6Ggknx13Yt8XNvo3Ld3/view?usp=sharing)
+> @search_the_whole_bible God create
 
-[encyclopedia.zip](https://drive.google.com/file/d/1NLUBepvFd9UDxoGQyQ-IohmySjjeis2-/view?usp=sharing)
+> @search_john_only Jesus love
 
-[exlb.zip](https://drive.google.com/file/d/1QKxbqsCtXCPp6RLDqNRssu4AcLOu9Ew8/view?usp=sharing)
+[collection.db](https://drive.google.com/file/d/1FtahDAlmexE6ez2cGbSCj0KH7snzJfPI/view?usp=sharing)
+
+Examples:
+
+> //promise/hope
+
+> //parallel/baptism
+
+[dictionary.db](https://drive.google.com/file/d/1UxDKGEQa7UEIJ6Ggknx13Yt8XNvo3Ld3/view?usp=sharing)
+
+Example:
+
+> //dictionary/Israel
+
+[encyclopedia.db](https://drive.google.com/file/d/1NLUBepvFd9UDxoGQyQ-IohmySjjeis2-/view?usp=sharing)
+
+Examples:
+
+> //encyclopedia/Jesus
+
+> //encyclopedia/ISB/Jesus
+
+[exlb.db](https://drive.google.com/file/d/1QKxbqsCtXCPp6RLDqNRssu4AcLOu9Ew8/view?usp=sharing)
+
+Examples:
+
+> //topic/hope
+
+> //character/Samuel
+
+> //location/Jerusalem
 
 ## ⌨️ Keyboard Shortcuts
 

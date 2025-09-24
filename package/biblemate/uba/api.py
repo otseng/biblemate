@@ -1,5 +1,5 @@
 from agentmake.utils.online import get_local_ip
-import requests, os
+import requests, os, re
 
 # api
 def run_uba_api(command: str) -> str:
@@ -14,6 +14,7 @@ def run_uba_api(command: str) -> str:
     try:
         response = requests.get(url, timeout=UBA_API_TIMEOUT)
         response.encoding = "utf-8"
-        return response.text.strip()
+        content = re.sub(r"\n\(", "\n- (", response.text.strip())
+        return re.sub(r"^\(", "- (", content)
     except Exception as err:
         return f"An error occurred: {err}"

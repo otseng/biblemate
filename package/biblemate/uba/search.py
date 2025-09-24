@@ -1,9 +1,11 @@
 from biblemate import config
 from biblemate.uba.api import run_uba_api
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
+from typing import Union
 import os, apsw, json
 import numpy as np
-from typing import Union
+import urllib.parse
+
 
 class UBASearches:
     
@@ -12,6 +14,8 @@ class UBASearches:
         """search `dictionary.db` or `encyclopedia.db` for a query"""
         if not os.path.isfile(db_file):
             return "Invalid database file."
+
+        query = urllib.parse.unquote(query).replace("~~~", "/")
 
         keywords = {
             "dictionary.db": "DICTIONARY:::",
@@ -49,6 +53,11 @@ class UBASearches:
             elif len(rows) == 1: # single exact match
                 cmd_prefix = keywords.get(os.path.basename(db_file))
                 path = rows[0][0]
-                return run_uba_api(f"{cmd_prefix}{path}")
+                content = run_uba_api(f"{cmd_prefix}{path}")
+                if sql_table == "exlbl" and "Click HERE for a Live Google Map" in content:
+                    cursor.execute(f"SELECT lat, lng FROM {sql_table}i WHERE path = ?;", (path,))
+                    lat, lng = cursor.fetchone()
+                    content = content.replace("Click HERE for a Live Google Map", f"https://maps.google.com/?q={lat},{lng}&ll={lat},{lng}&z=9")
+                return content
             else:
                 return [f"{path}+{entry}" for path, entry, _ in rows]

@@ -2,6 +2,10 @@ from setuptools import setup
 from setuptools.command.install import install
 import os, shutil, platform, sys
 
+version = "0.0.84"
+with open(os.path.join("biblemate", "version.txt"), "w", encoding="utf-8") as fileObj:
+    fileObj.write(version)
+
 # package name
 package_name_0 = "package_name.txt"
 with open(package_name_0, "r", encoding="utf-8") as fileObj:
@@ -27,7 +31,7 @@ with open(os.path.join(package, "requirements.txt"), "r") as fileObj:
 # https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/
 setup(
     name=package,
-    version="0.0.82",
+    version=version,
     python_requires=">=3.10, <3.13",
     description=f"BibleMate AI - Automate Your Bible Study",
     long_description=long_description,

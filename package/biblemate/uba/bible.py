@@ -38,13 +38,10 @@ def search_bible(request:str, book:int=0) -> str:
         abbr = BibleBooks.abbrev["eng"]
         # exact matches
         exact_matches_content = run_uba_api(f"{abbr[str(book)][0]}:::{config.default_bible}:::{search_string}" if book else f"SEARCH:::{config.default_bible}:::{search_string}")
-        exact_matches_content = re.sub(r"\n\(", "\n- (", exact_matches_content)
         # semantic matches
         db = BibleVectorDatabase()
         semantic_matches = [f"{abbr[str(b)][0]} {c}:{v}" for b, c, v, _ in db.search_meaning(search_string, top_k=config.max_semantic_matches, book=book)]
         semantic_matches_content = run_uba_api(f"BIBLE:::{config.default_bible}:::"+";".join(semantic_matches)) if semantic_matches else ""
-        if semantic_matches_content:
-            semantic_matches_content = re.sub(r"\n\(", "\n- (", semantic_matches_content)
         output = f'''# Search for `{search_string}`
 
 ## Exact Matches
@@ -79,7 +76,7 @@ class BibleVectorDatabase:
         if not uba_bible_path:
             uba_bible_path = os.path.join(BIBLEMATEDATA, "bible.db")
         # check if file exists
-        if os.path.isfile(uba_bible_path) and uba_bible_path.endswith(".bible"):
+        if os.path.isfile(uba_bible_path):
             # Download embedding model
             OllamaAI.downloadModel(config.embedding_model) # requires installing Ollama
             # init

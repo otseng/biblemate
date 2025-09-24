@@ -1,7 +1,7 @@
 import logging, json, os
 from fastmcp import FastMCP
 from fastmcp.prompts.prompt import PromptMessage, TextContent
-from agentmake import agentmake
+from agentmake import agentmake, DEVELOPER_MODE, readTextFile
 from biblemate import BIBLEMATEDATA, AGENTMAKE_CONFIG, config
 from biblemate.uba.bible import search_bible
 from biblemate.uba.api import run_uba_api
@@ -18,11 +18,19 @@ mcp = FastMCP(name="BibleMate AI")
 def getResponse(messages:list) -> str:
     return messages[-1].get("content") if messages and "content" in messages[-1] else "Error!"
 
-'''@mcp.resource("resource://audio")
-def audio() -> str:
-    """UBA Bible Audio"""
-    resources = json.loads(run_uba_api(".resources"))
-    return "\n".join([f"- `{r}`" for r in resources["bibleAudioModules"]])'''
+@mcp.resource("resource://info")
+def info() -> str:
+    """Display BibleMate AI information"""
+    info = "BibleMate AI " + readTextFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), "version.txt"))
+    info += "\n\nSource: https://github.com/eliranwong/biblemate\nDeveloper: Eliran Wong"
+    return info
+
+if DEVELOPER_MODE:
+    @mcp.resource("resource://audio")
+    def audio() -> str:
+        """UBA Bible Audio"""
+        resources = json.loads(run_uba_api(".resources"))
+        return "\n".join([f"- `{r}`" for r in resources["bibleAudioModules"]])
 
 @mcp.resource("resource://bibles")
 def bibles() -> dict:
@@ -72,11 +80,12 @@ if os.path.isfile(dictionary_db):
             top_k=config.max_semantic_matches,
         )
 
-'''@mcp.resource("resource://docs")
-def docs() -> str:
-    """UBA Documents"""
-    resources = json.loads(run_uba_api(".resources"))
-    return "\n".join([f"- `{r}`" for r in resources["docxList"]])'''
+if DEVELOPER_MODE:
+    @mcp.resource("resource://docs")
+    def docs() -> str:
+        """UBA Documents"""
+        resources = json.loads(run_uba_api(".resources"))
+        return "\n".join([f"- `{r}`" for r in resources["docxList"]])
 
 @mcp.resource("resource://encyclopedias")
 def encyclopedias() -> dict:
@@ -98,11 +107,12 @@ if os.path.exists(encyclopedia_db):
             top_k=config.max_semantic_matches,
         )
 
-'''@mcp.resource("resource://epubs")
-def epubs() -> str:
-    """UBA EPUBs"""
-    resources = json.loads(run_uba_api(".resources"))
-    return "\n".join([f"- `{r}`" for r in resources["epubList"]])'''
+if DEVELOPER_MODE:
+    @mcp.resource("resource://epubs")
+    def epubs() -> str:
+        """UBA EPUBs"""
+        resources = json.loads(run_uba_api(".resources"))
+        return "\n".join([f"- `{r}`" for r in resources["epubList"]])
 
 @mcp.resource("resource://lexicons")
 def lexicons() -> str:
@@ -110,23 +120,24 @@ def lexicons() -> str:
     resources = json.loads(run_uba_api(".resources"))
     return "\n".join([f"- `{r}`" for r in resources["lexiconList"]])
 
-'''@mcp.resource("resource://references")
-def references() -> str:
-    """UBA Reference Books"""
-    resources = json.loads(run_uba_api(".resources"))
-    return "\n".join([f"- `{r}`" for r in resources["referenceBookList"]])'''
+if DEVELOPER_MODE:
+    @mcp.resource("resource://references")
+    def references() -> str:
+        """UBA Reference Books"""
+        resources = json.loads(run_uba_api(".resources"))
+        return "\n".join([f"- `{r}`" for r in resources["referenceBookList"]])
 
-'''@mcp.resource("resource://pdfs")
-def pdfs() -> str:
-    """UBA PDFs"""
-    resources = json.loads(run_uba_api(".resources"))
-    return "\n".join([f"- `{r}`" for r in resources["pdfList"]])'''
+    @mcp.resource("resource://pdfs")
+    def pdfs() -> str:
+        """UBA PDFs"""
+        resources = json.loads(run_uba_api(".resources"))
+        return "\n".join([f"- `{r}`" for r in resources["pdfList"]])
 
-'''@mcp.resource("resource://searchtools")
-def searchtools() -> str:
-    """UBA Search Tools"""
-    resources = json.loads(run_uba_api(".resources"))
-    return "\n".join([f"- `{r}`" for r in resources["searchToolList"]])'''
+    @mcp.resource("resource://searchtools")
+    def searchtools() -> str:
+        """UBA Search Tools"""
+        resources = json.loads(run_uba_api(".resources"))
+        return "\n".join([f"- `{r}`" for r in resources["searchToolList"]])
 
 @mcp.resource("resource://strongs")
 def strongs() -> str:
@@ -134,11 +145,12 @@ def strongs() -> str:
     resources = json.loads(run_uba_api(".resources"))
     return "\n".join([f"- `{r}`" for r in resources["strongBibleListAbb"]])
 
-'''@mcp.resource("resource://thirddicts")
-def thirddicts() -> str:
-    """UBA Third-Party Dictionaries; UBA command examples: `SEARCHTHIRDDICTIONARY:::faith`, `SEARCHTHIRDDICTIONARY:::webster:::faith`"""
-    resources = json.loads(run_uba_api(".resources"))
-    return "\n".join([f"- `{r}`" for r in resources["thirdPartyDictionaryList"]])'''
+if DEVELOPER_MODE:
+    @mcp.resource("resource://thirddicts")
+    def thirddicts() -> str:
+        """UBA Third-Party Dictionaries; UBA command examples: `SEARCHTHIRDDICTIONARY:::faith`, `SEARCHTHIRDDICTIONARY:::webster:::faith`"""
+        resources = json.loads(run_uba_api(".resources"))
+        return "\n".join([f"- `{r}`" for r in resources["thirdPartyDictionaryList"]])
 
 @mcp.resource("resource://topics")
 def topics() -> dict:
@@ -645,32 +657,24 @@ def retrieve_hebrew_or_greek_bible_verses(request:str) -> str:
     return getResponse(messages)
 
 @mcp.tool
-def retrieve_english_bible_verses(request:str) -> str:
-    """retrieve English Bible verses; bible verse reference(s) must be given, e.g. John 3:16-17; single or multiple references accepted, e.g. Deut 6:4; Gen 1:26-27"""
-    global agentmake, getResponse
-    messages = agentmake(request, **{'tool': 'uba/net'}, **AGENTMAKE_CONFIG)
-    return getResponse(messages)
+def retrieve_bible_verses(request:str) -> str:
+    """retrieve Bible verses; bible verse reference(s) must be given, e.g. John 3:16-17; single or multiple references accepted, e.g. Deut 6:4; Gen 1:26-27"""
+    from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
+    command = BibleVerseParser(False).extractAllReferencesReadable(request)
+    if not command:
+        return "Please provide a valid Bible reference to complete your request."
+    return run_uba_api(f"BIBLE:::{config.default_bible}:::{command}")
 
 @mcp.tool
-def retrieve_english_bible_chapter(request:str) -> str:
-    """retrieve a whole English Bible chapter; bible chapter reference must be given, e.g. John 3"""
-    global agentmake, getResponse
-    messages = agentmake(request, **{'tool': 'uba/net_chapter'}, **AGENTMAKE_CONFIG)
-    return getResponse(messages)
-
-@mcp.tool
-def retrieve_chinese_bible_verses(request:str) -> str:
-    """retrieve Chinese Bible verses; bible verse reference(s) must be given, e.g. John 3:16-17; single or multiple references accepted, e.g. Deut 6:4; Gen 1:26-27"""
-    global agentmake, getResponse
-    messages = agentmake(request, **{'tool': 'uba/cuv'}, **AGENTMAKE_CONFIG)
-    return getResponse(messages)
-
-@mcp.tool
-def retrieve_chinese_bible_chapter(request:str) -> str:
-    """retrieve a whole Chinese Bible chapter; bible chapter reference must be given, e.g. John 3"""
-    global agentmake, getResponse
-    messages = agentmake(request, **{'tool': 'uba/cuv_chapter'}, **AGENTMAKE_CONFIG)
-    return getResponse(messages)
+def retrieve_bible_chapter(request:str) -> str:
+    """retrieve a whole Bible chapter; bible chapter reference must be given, e.g. John 3"""
+    from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
+    import re
+    command = re.sub("[Cc]hapter ([0-9])", r"\1", request)
+    command = BibleVerseParser(False).extractAllReferencesReadable(command)
+    if not command:
+        return "Please provide a valid Bible reference to complete your request."
+    return run_uba_api(f"CHAPTER:::{config.default_bible}:::{command}")
 
 @mcp.tool
 def read_bible_commentary(request:str) -> str:
@@ -952,12 +956,13 @@ def write_bible_sermon(request:List[Dict[str, Any]]) -> str:
     messages = agentmake(request, **{'instruction': 'bible/sermon', 'system': 'auto'}, **AGENTMAKE_CONFIG)
     return getResponse(messages)
 
-@mcp.tool
-def uba(request:str) -> str:
-    """Execute an UBA command; a valid UBA command must be given; do not use this tool if you are not sure what you are doing"""
-    global agentmake, getResponse
-    messages = agentmake(request, **{'tool': 'uba/cmd'}, **AGENTMAKE_CONFIG)
-    return getResponse(messages)
+if DEVELOPER_MODE:
+    @mcp.tool
+    def uba(request:str) -> str:
+        """Execute an UBA command; a valid UBA command must be given; do not use this tool if you are not sure what you are doing"""
+        global agentmake, getResponse
+        messages = agentmake(request, **{'tool': 'uba/cmd'}, **AGENTMAKE_CONFIG)
+        return getResponse(messages)
 
 @mcp.prompt
 def simple_bible_study(request:str) -> PromptMessage:

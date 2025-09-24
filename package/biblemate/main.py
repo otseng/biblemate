@@ -4,6 +4,7 @@ from biblemate.ui.info import get_banner
 from biblemate.ui.selection_dialog import TerminalModeDialogs
 from biblemate import config, AGENTMAKE_CONFIG, OLLAMA_NOT_FOUND, fix_string, BIBLEMATEDATA
 from pathlib import Path
+import urllib.parse
 import asyncio, re, os, subprocess, click, shutil, pprint, argparse, json
 from copy import deepcopy
 from alive_progress import alive_bar
@@ -25,7 +26,8 @@ log_file = os.path.join(log_path, "requests")
 set_log_file_max_lines(log_file, config.max_log_lines)
 
 # AI backend
-parser = argparse.ArgumentParser(description = """BibleMate AI CLI options""")
+version = readTextFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), "version.txt"))
+parser = argparse.ArgumentParser(description = f"""BibleMate AI {version} CLI options""")
 parser.add_argument("-b", "--backend", action="store", dest="backend", help="AI backend; overrides the default backend temporarily.")
 parser.add_argument("-mcp", "--mcp", action="store", dest="mcp", help=f"specify a custom MCP server to use, e.g. 'http://127.0.0.1:{config.mcp_port}/mcp/'; applicable to command `biblemate` only")
 parser.add_argument("-p", "--port", action="store", dest="port", help=f"specify a port for the MCP server to use, e.g. {config.mcp_port}; applicable to command `biblematemcp` only")
@@ -305,12 +307,13 @@ async def main_async():
                     else:
                         display_content = resource_text
                     resource_description = resources.get(resource, "")
-                    console.print(Markdown(f"## Resource: `{resource.capitalize()}`\n\n{resource_description}\n\n{display_content}"))
+                    console.print(Markdown(f"## Information about `{resource}`: `{resource.capitalize()}`\n\n{resource_description}\n\n{display_content}"))
                     console.rule()
                 continue
 
             # run templates
             if re.search(template_pattern, user_request):
+                user_request = urllib.parse.quote(user_request)
                 if user_request[2:].count("/") == 1:
                     keywords = {
                         "bible": config.default_bible,
@@ -320,6 +323,10 @@ async def main_async():
                     keyword, entry = user_request[2:].split("/")
                     if module := keywords.get(keyword, ""):
                         user_request = f"//{keyword}/{module}/{entry}"
+                        if user_request.count("/") > 4:
+                            user_request = re.sub("^(//.*?/.*?/)(.*?)$", r"\1"+r"\2".replace("/", "~~~"), user_request)
+                    elif user_request.count("/") > 3:
+                        user_request = re.sub("^(//.*?/)(.*?)$", r"\1"+r"\2".replace("/", "~~~"), user_request)
                 try:
                     uri = re.sub("^(.*?)/", r"\1://", user_request[2:])
                     resource_content = await client.read_resource(uri)
@@ -332,7 +339,7 @@ async def main_async():
                             text="Select one of them to continue:"
                         )
                         if select:
-                            resource_content = await client.read_resource(re.sub("^(.*?/)[^/]*?$", r"\1", uri)+select)
+                            resource_content = await client.read_resource(re.sub("^(.*?/)[^/]*?$", r"\1", uri)+urllib.parse.quote(select.replace("/", "~~~")))
                             resource_content = resource_content[0].text
                         else:
                             resource_content = "Cancelled by user."
@@ -403,7 +410,8 @@ async def main_async():
                 elif user_request == ".resources":
                     console.rule()
                     resources_descriptions = [f"- `//{name}`: {description}" for name, description in resources.items()]
-                    console.print(Markdown("## Available Resources\n\n"+"\n".join(resources_descriptions)))
+                    templates_descriptions = [f"- `//{name}/...`: {description}" for name, description in templates.items()]
+                    console.print(Markdown("## Available Information\n\n"+"\n".join(resources_descriptions)+"\n\n## Available Resources\n\n"+"\n".join(templates_descriptions)))
                     console.rule()
                 elif user_request == ".plans":
                     console.rule()
