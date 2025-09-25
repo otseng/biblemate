@@ -232,6 +232,7 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | `.tools`             | List available tools               |
 | `.plans`             | List available plans               |
 | `.resources`         | List available resources           |
+| `.edit`              | Edit the current conversation      |
 | `.backup`            | Backup conversation                |
 | `.load`              | Load a saved conversation          |
 | `.open`              | Open a file or directory           |
@@ -242,11 +243,12 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | `.download`          | Download data files                |
 | `.help`              | Show help page                     |
 
-Remarks:
+### Remarks:
 
 * Use `.lite` to enable or disable lite context. When lite context is enabled, BibleMate runs faster, with a slight trade‑off in tool response quality.
-* To use `.load`, you need to specify a python file that contains a saved conversation.  Conversation is saved into a file each time when a backup is executed. Check the message `Conversation backup saved to ...` or locate the backups in `~/agentmake/xomate`.
+* To use `.load`, you need to specify a python file that contains a saved conversation.  Conversation is saved into a file each time when a backup is executed. Check the message `Conversation backup saved to ...` or locate the backups in `~/agentmake/xomate`. Instead of loading a mere conversation, you can load both a conversation and its master plan. To do so, specify a backup directory path that contains both `conversation.py` and `master_plan.md`.
 * To use `.open`, you need to specify a file or a directory that is to be opened.
+* `.edit` command allows you to edit the current conversation with our built-in text editor.  You may customize to use your favorite text editor. Enter `.backend` and change the value of `DEFAULT_TEXT_EDITOR` with a command that calls your favorite text editor.
 
 ## ✝️ UniqueBible Resources
 

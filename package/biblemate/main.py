@@ -2,8 +2,8 @@ from biblemate.core.systems import *
 from biblemate.ui.prompts import getInput
 from biblemate.ui.info import get_banner
 from biblemate.ui.selection_dialog import TerminalModeDialogs
-from biblemate import config, AGENTMAKE_CONFIG, fix_string, BIBLEMATEDATA
-from biblemate.uba.api import run_uba_api
+from biblemate import config, AGENTMAKE_CONFIG, BIBLEMATEDATA, fix_string, write_user_config
+from biblemate.uba.api import run_uba_api, DEFAULT_MODULES
 from pathlib import Path
 import urllib.parse
 import asyncio, re, os, subprocess, click, gdown, pprint, argparse, json, zipfile
@@ -11,7 +11,7 @@ from copy import deepcopy
 from alive_progress import alive_bar
 from fastmcp import Client
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
-from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_configurations, readTextFile, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND
+from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_file, edit_configurations, readTextFile, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND
 from agentmake.utils.handle_text import set_log_file_max_lines
 from rich.console import Console
 from rich.markdown import Markdown
@@ -125,10 +125,15 @@ Get a static text-based response directly from a text-based AI model without usi
     
     return tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources, templates
 
-def backup_conversation(console, messages, master_plan):
+def backup_conversation(messages, master_plan, console=None):
     """Backs up the current conversation to the user's directory."""
-    timestamp = getCurrentDateTime()
-    storagePath = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "chats", timestamp)
+    # determine storage path
+    if console:
+        timestamp = getCurrentDateTime()
+        storagePath = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "chats", timestamp)
+    else:
+        storagePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "temp")
+    # create directory if not exists
     if not os.path.isdir(storagePath):
         Path(storagePath).mkdir(parents=True, exist_ok=True)
     # Save full conversation
@@ -141,30 +146,13 @@ def backup_conversation(console, messages, master_plan):
     markdown_text = "\n\n".join(["```"+i["role"]+"\n"+i["content"]+"\n```" for i in messages if i.get("role", "") in ("user", "assistant")])
     writeTextFile(markdown_file, markdown_text)
     # Save html
-    html_file = os.path.join(storagePath, "conversation.html")
-    console.save_html(html_file, inline_styles=True, theme=MONOKAI)
+    if console:
+        html_file = os.path.join(storagePath, "conversation.html")
+        console.save_html(html_file, inline_styles=True, theme=MONOKAI)
     # Inform users of the backup location
-    print(f"Conversation backup saved to {storagePath}")
-    print(f"Report saved to {html_file}\n")
-
-def write_user_config():
-    """Writes the current configuration to the user's config file."""
-    config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py")
-    configurations = f"""agent_mode={config.agent_mode}
-prompt_engineering={config.prompt_engineering}
-max_steps={config.max_steps}
-lite={config.lite}
-hide_tools_order={config.hide_tools_order}
-default_bible="{config.default_bible}"
-default_commentary="{config.default_commentary}"
-default_encyclopedia="{config.default_encyclopedia}"
-default_lexicon="{config.default_lexicon}"
-max_semantic_matches={config.max_semantic_matches}
-max_log_lines={config.max_log_lines}
-mcp_port={config.mcp_port}
-embedding_model="{config.embedding_model}"
-disabled_tools={pprint.pformat(config.disabled_tools)}"""
-    writeTextFile(config_file, configurations)
+    if console:
+        print(f"Conversation backup saved to {storagePath}")
+        print(f"Report saved to {html_file}\n")
 
 async def main_async():
 
@@ -251,19 +239,17 @@ async def main_async():
             elif APP_START:
                 print()
                 APP_START = False
-                while True:
-                    try:
-                        agentmake("Hello!", system=DEFAULT_SYSTEM)
-                        break
-                    except Exception as e:
-                        print("Connection failed! Please ensure that you have a stable internet connection and that my AI backend and model are properly configured.")
-                        print("Viist https://github.com/eliranwong/agentmake#supported-backends for help about the backend configuration.\n")
-                        if click.confirm("Do you want to configure my AI backend and model now?", default=True):
-                            edit_configurations()
-                            console.rule()
-                            console.print("Restart to make the changes in the backend effective!", justify="center")
-                            console.rule()
-                            exit()
+                try:
+                    agentmake("Hello!", system=DEFAULT_SYSTEM)
+                except Exception as e:
+                    print("Connection failed! Please ensure that you have a stable internet connection and that my AI backend and model are properly configured.")
+                    print("Viist https://github.com/eliranwong/agentmake#supported-backends for help about the backend configuration.\n")
+                    if click.confirm("Do you want to configure my AI backend and model now?", default=True):
+                        edit_configurations()
+                        console.rule()
+                        console.print("Restart to make the changes in the backend effective!", justify="center")
+                        console.rule()
+                        exit()
             # Original user request
             # note: `python3 -m rich.emoji` for checking emoji
             console.print("Enter your request :smiley: :" if len(messages) == len(DEFAULT_MESSAGES) else "Enter a follow-up request :flexed_biceps: :")
@@ -279,6 +265,7 @@ async def main_async():
                 ".lite": "toggle lite context",
                 ".steps": "configure the maximum number of steps",
                 ".matches": "configure the maximum number of semantic matches",
+                ".edit": "load the current conversation",
                 ".backup": "backup conversation",
                 ".load": "load a saved conversation",
                 ".open": "open a file or directory",
@@ -324,80 +311,7 @@ async def main_async():
             if re.search(template_pattern, user_request):
                 user_request = urllib.parse.quote(user_request)
                 if user_request[2:].count("/") == 1:
-                    keywords = {
-                        "bible": config.default_bible,
-                        "chapter": config.default_bible,
-                        "search": config.default_bible,
-                        "genesis": config.default_bible,
-                        "exodus": config.default_bible,
-                        "leviticus": config.default_bible,
-                        "numbers": config.default_bible,
-                        "deuteronomy": config.default_bible,
-                        "joshua": config.default_bible,
-                        "judges": config.default_bible,
-                        "ruth": config.default_bible,
-                        "samuel1": config.default_bible,
-                        "samuel2": config.default_bible,
-                        "kings1": config.default_bible,
-                        "kings2": config.default_bible,
-                        "chronicles1": config.default_bible,
-                        "chronicles2": config.default_bible,
-                        "ezra": config.default_bible,
-                        "nehemiah": config.default_bible,
-                        "esther": config.default_bible,
-                        "job": config.default_bible,
-                        "psalms": config.default_bible,
-                        "proverbs": config.default_bible,
-                        "ecclesiastes": config.default_bible,
-                        "songs": config.default_bible,
-                        "isaiah": config.default_bible,
-                        "jeremiah": config.default_bible,
-                        "lamentations": config.default_bible,
-                        "ezekiel": config.default_bible,
-                        "daniel": config.default_bible,
-                        "hosea": config.default_bible,
-                        "joel": config.default_bible,
-                        "amos": config.default_bible,
-                        "obadiah": config.default_bible,
-                        "jonah": config.default_bible,
-                        "micah": config.default_bible,
-                        "nahum": config.default_bible,
-                        "habakkuk": config.default_bible,
-                        "zephaniah": config.default_bible,
-                        "haggai": config.default_bible,
-                        "zechariah": config.default_bible,
-                        "malachi": config.default_bible,
-                        "matthew": config.default_bible,
-                        "mark": config.default_bible,
-                        "luke": config.default_bible,
-                        "john": config.default_bible,
-                        "acts": config.default_bible,
-                        "romans": config.default_bible,
-                        "corinthians1": config.default_bible,
-                        "corinthians2": config.default_bible,
-                        "galatians": config.default_bible,
-                        "ephesians": config.default_bible,
-                        "philippians": config.default_bible,
-                        "colossians": config.default_bible,
-                        "thessalonians1": config.default_bible,
-                        "thessalonians2": config.default_bible,
-                        "timothy1": config.default_bible,
-                        "timothy2": config.default_bible,
-                        "titus": config.default_bible,
-                        "philemon": config.default_bible,
-                        "hebrews": config.default_bible,
-                        "james": config.default_bible,
-                        "peter1": config.default_bible,
-                        "peter2": config.default_bible,
-                        "john1": config.default_bible,
-                        "john2": config.default_bible,
-                        "john3": config.default_bible,
-                        "jude": config.default_bible,
-                        "revelation": config.default_bible,
-                        "commentary": config.default_commentary,
-                        "encyclopedia": config.default_encyclopedia,
-                        "lexicon": config.default_lexicon,
-                    }
+                    keywords = DEFAULT_MODULES
                     keyword, entry = user_request[2:].split("/")
                     if module := keywords.get(keyword, ""):
                         user_request = f"//{keyword}/{module}/{entry}"
@@ -444,15 +358,30 @@ async def main_async():
                 cmd = f'''{getOpenCommand()} "{file_path}"'''
                 subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 continue
-            elif user_request.startswith(".load") and re.search('''.py['" ]*?$''', user_request) and os.path.isfile(os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))):
+            elif user_request.startswith(".load") and os.path.exists(os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))):
+                load_path = os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))
                 try:
-                    file_path = os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))
-                    backup_conversation(console, messages, master_plan)
+                    # load conversation
+                    if os.path.isfile(load_path):
+                        file_path = load_path
+                    elif os.path.isdir(load_path) and os.path.isfile(os.path.join(load_path, "conversation.py")) and os.isfile(os.path.join(load_path, "master_plan.md")):
+                        file_path = os.path.join(load_path, "conversation.py")
+                    else:
+                        print("Expected a file or a directory containing `conversation.py` and `master_plan.md`.")
+                        continue
+                    backup_conversation(messages, master_plan, console)
                     messages = [{"role": i["role"], "content": i["content"]} for i in eval(readTextFile(file_path)) if i.get("role", "") in ("user", "assistant")]
                     if messages:
                         messages.insert(0, {"role": "system", "content": DEFAULT_SYSTEM})
-                    user_request = ""
-                    master_plan = ""
+                    if messages[-1].get("role", "") == "user":
+                        messages = messages[:-1]
+                    # load master plan
+                    if os.path.isdir(load_path):
+                        master_plan = readTextFile(os.path.join(load_path, "master_plan.md"))
+                        user_request = "[CONTINUE]"
+                    else:
+                        master_plan = ""
+                        user_request = ""
                     console.clear()
                     console.print(get_banner())
                     if messages:
@@ -460,14 +389,17 @@ async def main_async():
                             if i.get("role", "") in ("user", "assistant"):
                                 console.rule()
                                 console.print(Markdown(f"# {i['role']}\n\n{i['content']}"))
-                    continue
+                    if os.path.isfile(load_path) or config.agent_mode is None:
+                        # next user request
+                        continue
                 except Exception as e:
-                    pass
+                    print(f"Error: {e}\n")
+                    continue
 
             # predefined operations with `.` commands
             if user_request in action_list:
                 if user_request == ".backup":
-                    backup_conversation(console, messages, master_plan)
+                    backup_conversation(messages, master_plan, console)
                 elif user_request == ".help":
                     console.rule()
                     console.print(Markdown("Viist https://github.com/eliranwong/biblemate for help."))
@@ -499,6 +431,27 @@ async def main_async():
                     prompts_descriptions = [f"- `/{name}`: {description}" for name, description in prompts.items()]
                     console.print(Markdown("## Available Plans\n\n"+"\n".join(prompts_descriptions)))
                     console.rule()
+                elif user_request == ".edit":
+                    options = [str(i) for i in range(0, len(messages))]
+                    index_to_edit = await dialogs.getValidOptions(
+                        default=str(len(messages)-1),
+                        options=options,
+                        descriptions=[f"{messages[int(i)]['role']}: {messages[int(i)]['content'][:50]+'...' if len(messages[int(i)]['content'])>50 else messages[int(i)]['content']}" for i in options],
+                        title="Edit Conversation",
+                        text="Select an entry to edit:"
+                    )
+                    if index_to_edit:
+                        index_to_edit = int(index_to_edit)
+                        temp_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "temp", "edit.md")
+                        writeTextFile(temp_file, messages[index_to_edit]["content"])
+                        edit_file(temp_file)
+                        edited_content = readTextFile(temp_file).strip()
+                        if edited_content:
+                            messages[index_to_edit]["content"] = edited_content
+                            backup_conversation(messages, master_plan) # backup
+                            console.rule()
+                            console.print("Changes saved!", justify="center")
+                            console.rule()
                 elif user_request == ".backend":
                     edit_configurations()
                     console.rule()
@@ -579,7 +532,7 @@ async def main_async():
                         console.print(f"`{ai_mode.capitalize()}` Mode Enabled", justify="center")
                         console.rule()
                 elif user_request in (".new", ".quit"):
-                    backup_conversation(console, messages, master_plan) # backup
+                    backup_conversation(messages, master_plan, console) # backup
                 # reset
                 if user_request == ".new":
                     user_request = ""
@@ -644,7 +597,7 @@ async def main_async():
                 console.print(Markdown(f"# User Request\n\n{user_request}\n\n# Master plan\n\n{master_plan}"))
 
             # Prompt Engineering
-            if not specified_tool == "@@" and config.prompt_engineering:
+            if not specified_tool == "@@" and config.prompt_engineering and not user_request == "[CONTINUE]":
                 async def run_prompt_engineering():
                     nonlocal user_request
                     try:
@@ -656,12 +609,8 @@ async def main_async():
                         user_request = re.sub(r"^.*?(```improved_prompt|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
                 await thinking(run_prompt_engineering, "Prompt Engineering ...")
 
-            if not messages:
-                messages = [
-                    {"role": "system", "content": DEFAULT_SYSTEM},
-                    {"role": "user", "content": user_request},
-                ]
-            else:
+            # Add user request to messages
+            if not user_request == "[CONTINUE]":
                 messages.append({"role": "user", "content": user_request})
 
             async def run_tool(tool, tool_instruction):
@@ -774,9 +723,9 @@ Available tools are: {available_tools}.
             system_make_suggestion = get_system_make_suggestion(master_plan=master_plan)
 
             # Get the first suggestion
-            next_suggestion = "START"
+            next_suggestion = "CONTINUE" if user_request == "[CONTINUE]" else "START"
 
-            step = 1
+            step = int(((len(messages)-len(DEFAULT_MESSAGES)-2)/2+1)) if user_request == "[CONTINUE]" else 1
             while not ("STOP" in next_suggestion or re.sub("^[^A-Za-z]*?([A-Za-z]+?)[^A-Za-z]*?$", r"\1", next_suggestion).upper() == "STOP"):
 
                 async def make_next_suggestion():
@@ -851,6 +800,8 @@ Available tools are: {available_tools}.
 
                 await process_tool(next_tool, next_step, step_number=step)
                 console.print(Markdown(f"\n## Output [{step}]\n\n{messages[-1]['content']}"))
+                # temporaily save after each step
+                backup_conversation(messages, master_plan)
 
                 # iteration count
                 step += 1
@@ -860,7 +811,7 @@ Available tools are: {available_tools}.
                     console.rule()
                     break
 
-                # Get the next suggestion
+                # Check the progress
                 async def get_next_suggestion():
                     nonlocal next_suggestion, messages, system_progress
                     next_suggestion = agentmake([{"role": "system", "content": system_progress}]+messages[len(DEFAULT_MESSAGES):], system=system_progress, follow_up_prompt="Please decide either to `CONTINUE` or `STOP` the process.", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
@@ -888,7 +839,7 @@ Please provide me with the final answer to my original request based on the work
 
             # Backup
             print()
-            backup_conversation(console, messages, master_plan)
+            backup_conversation(messages, master_plan, console)
 
 if __name__ == "__main__":
     asyncio.run(main())

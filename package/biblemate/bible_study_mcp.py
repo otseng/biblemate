@@ -1187,10 +1187,20 @@ def retrieve_bible_chapter(request:str) -> str:
 
 @mcp.tool
 def read_bible_commentary(request:str) -> str:
-    """read bible commentary; bible verse reference(s) must be given"""
+    """read bible commentary on individual bible verses; bible verse reference(s) must be given, like , like John 3:16 or John 3:16-18"""
+    from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
     global agentmake, getResponse
-    messages = agentmake(request, **{'tool': 'uba/ai_comment'}, **AGENTMAKE_CONFIG)
-    return getResponse(messages)
+    refs = BibleVerseParser(False).extractExhaustiveReferencesReadable(request)
+    if not refs:
+        return "Please provide a valid Bible reference to complete your request."
+    output = []
+    for ref in refs.split("; "):
+        default_verse = run_uba_api(f"BIBLE:::{config.default_bible}:::{ref}")
+        interlinear_verse = run_uba_api(f"BIBLE:::OHGBi:::{ref}")
+        prompt = f"""# Write a detailed commentary on the following Bible verse:\n\n## {ref}\n{default_verse}\n\n##Interlinear (Hebrew/Greek with literal translation):\n{interlinear_verse}\n\nCommentary:"""
+        messages = agentmake(prompt, system="biblemate/commentary", **AGENTMAKE_CONFIG)
+        output.append(getResponse(messages))
+    return f"# Commentary - {ref}\n\n"+"\n\n".join(output)
 
 @mcp.tool
 def refine_bible_translation(request:List[Dict[str, Any]]) -> str:
