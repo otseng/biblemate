@@ -162,14 +162,16 @@ def backup_conversation(messages, master_plan, console=None):
 
 async def main_async():
 
+    BIBLEMATE_MCP_PRIVATE_KEY=os.getenv("BIBLEMATE_MCP_PRIVATE_KEY")
+
     # The client that interacts with the Bible Study MCP server
     if args.mcp:
         mcp_server = f"http://127.0.0.1:{config.mcp_port}/mcp/" if args.mcp == "biblemate" else args.mcp
-        client = Client(mcp_server)
+        client = Client(mcp_server, auth=BIBLEMATE_MCP_PRIVATE_KEY if BIBLEMATE_MCP_PRIVATE_KEY else None)
     else:
         builtin_mcp_server = os.path.join(os.path.dirname(os.path.realpath(__file__)), "bible_study_mcp.py")
         user_mcp_server = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "bible_study_mcp.py") # The user path has the same basename as the built-in one; users may copy the built-in server settings to this location for customization. 
-        client = Client(user_mcp_server if os.path.isfile(user_mcp_server) else builtin_mcp_server)
+        client = Client(user_mcp_server if os.path.isfile(user_mcp_server) else builtin_mcp_server) # no auth for local server
 
     APP_START = True
     DEFAULT_SYSTEM = "You are BibleMate AI, an autonomous agent designed to assist users with their Bible study."

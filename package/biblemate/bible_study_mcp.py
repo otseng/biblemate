@@ -1,4 +1,5 @@
 import logging, json, os
+from fastmcp.server.auth.providers.jwt import JWTVerifier
 from fastmcp import FastMCP
 from fastmcp.prompts.prompt import PromptMessage, TextContent
 from agentmake import agentmake, DEVELOPER_MODE, readTextFile
@@ -13,7 +14,12 @@ AGENTMAKE_CONFIG["backend"] = config.backend
 # Configure logging before creating the FastMCP server
 logging.basicConfig(format="[%(levelname)s]: %(message)s", level=logging.ERROR)
 
-mcp = FastMCP(name="BibleMate AI")
+verifier = JWTVerifier(
+    public_key=os.getenv("BIBLEMATE_MCP_PUBLIC_KEY"),
+    issuer=os.getenv("BIBLEMATE_MCP_ISSUER"),
+    audience=os.getenv("BIBLEMATE_MCP_AUDIENCE")
+) if os.getenv("BIBLEMATE_MCP_PUBLIC_KEY") else None
+mcp = FastMCP(name="BibleMate AI", auth=verifier)
 
 def getResponse(messages:list) -> str:
     return messages[-1].get("content") if messages and "content" in messages[-1] else "Error!"
