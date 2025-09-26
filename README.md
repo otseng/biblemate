@@ -232,7 +232,8 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | `.tools`             | List available tools               |
 | `.plans`             | List available plans               |
 | `.resources`         | List available resources           |
-| `.edit`              | Edit the current conversation      |
+| `.edit`              | Edit current conversation      |
+| `.editprompt`        | Edit current prompt            |
 | `.backup`            | Backup conversation                |
 | `.load`              | Load a saved conversation          |
 | `.open`              | Open a file or directory           |
@@ -325,6 +326,7 @@ Examples:
 
 The following key bindings are supported in BibleMate AI prompt field:
 
+- `Ctrl+P` edit current prompt
 - `Ctrl+N` new conversation
 - `Ctrl+Q` quit
 - `Ctrl+C` copy selected prompt text
@@ -335,6 +337,22 @@ The following key bindings are supported in BibleMate AI prompt field:
 - `Esc+z` jump to the end of a prompt
 - `Esc+b` or `HOME` jump to the beginning of a line in a prompt
 - `Esc+e` or `END` jump to the end of a line in a prompt
+
+## ✒️ Built-in Text Editor
+
+<img width="866" height="629" alt="Image" src="https://github.com/user-attachments/assets/d62658d0-10df-4e56-8de3-58787600327f" />
+
+You can edit current prompt with our built-in text editor, by either enter `.editprompt` or pressing `Ctrl+P` in the BibleMate AI prompt field.
+
+You can also launch the built-in editor on its own by running `etextedit`.
+
+You can use plugins that built with BibleMate AI and AgentMake AI in our built-in text editor `etextedit`.
+
+Plugins `Extract Bible References` and `Insert Bible Text` are installed with BibleMate AI.
+
+You may also add you own `etextedit` plugins and place them into `~/etextedit/plugins`.
+
+Read more about `etextedit` at https://github.com/eliranwong/etextedit 
 
 ## 🛠️ Customization
 

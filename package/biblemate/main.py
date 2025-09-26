@@ -125,6 +125,12 @@ Get a static text-based response directly from a text-based AI model without usi
     
     return tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources, templates
 
+def edit_temp_file(initial_content: str) -> str:
+    temp_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "temp", "edit.md")
+    writeTextFile(temp_file, initial_content)
+    edit_file(temp_file)
+    return readTextFile(temp_file).strip()
+
 def backup_conversation(messages, master_plan, console=None):
     """Backs up the current conversation to the user's directory."""
     # determine storage path
@@ -274,6 +280,8 @@ async def main_async():
             }
             input_suggestions = list(action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+[f"{p} " for p in prompt_list]+[f"//{r}" for r in resources.keys()]+template_list+resource_suggestions # "" is for generating ideas
             user_request = await getInput("> ", input_suggestions)
+            if user_request == ".editprompt": # edit current prompt in editor
+                user_request = edit_temp_file(config.current_prompt)
             while not user_request.strip():
                 # Generate ideas for `prompts to try`
                 ideas = ""
@@ -287,8 +295,10 @@ async def main_async():
                 console.rule()
                 console.print(Markdown(f"## Ideas\n\n{ideas}\n\n"))
                 console.rule()
-                # Get input agin
+                # Get input again
                 user_request = await getInput("> ", input_suggestions)
+                if user_request == ".editprompt": # edit current prompt in editor
+                    user_request = edit_temp_file(config.current_prompt)
 
             # display resources
             if user_request.startswith("//") and user_request[2:] in resources:
@@ -705,6 +715,8 @@ Available tools are: {available_tools}.
                         console.print("Please review and confirm the master plan, or make any changes you need:", justify="center")
                         console.rule()
                         master_plan_edit = await getInput(default_entry=master_plan)
+                        if master_plan_edit == ".editprompt": # edit current prompt in editor
+                            master_plan_edit = edit_temp_file(config.current_prompt)
                         if not master_plan_edit or master_plan_edit == ".quit":
                             if messages and messages[-1].get("role", "") == "user":
                                 messages = messages[:-1]
@@ -785,6 +797,8 @@ Available tools are: {available_tools}.
                     console.print("Please review and confirm the next step, or make any changes you need:")
                     console.rule()
                     next_step_edit = await getInput(default_entry=next_step)
+                    if next_step_edit == ".editprompt": # edit current prompt in editor
+                        next_step_edit = edit_temp_file(config.current_prompt)
                     if not next_step_edit or next_step_edit == ".quit":
                         console.rule()
                         console.print("I've stopped processing for you.")

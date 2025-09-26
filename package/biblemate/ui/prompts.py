@@ -31,6 +31,13 @@ async def getInput(prompt:str="> ", input_suggestions:list=None, number_validato
     from prompt_toolkit.completion import WordCompleter, FuzzyCompleter
     from prompt_toolkit.key_binding import KeyBindings
     bindings = KeyBindings()
+    # launch editor
+    @bindings.add("c-p")
+    def _(event):
+        buffer = event.app.current_buffer
+        config.current_prompt = buffer.text
+        buffer.text = ".editprompt"
+        buffer.validate_and_handle()
     # new chat
     @bindings.add("c-n")
     def _(event):

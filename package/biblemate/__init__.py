@@ -2,7 +2,19 @@ from agentmake import AGENTMAKE_USER_DIR, writeTextFile
 from biblemate import config
 import pprint
 from pathlib import Path
-import os
+import os, shutil
+
+config.current_prompt = ""
+
+# copy etextedit plugins
+ETEXTEDIT_USER_PULGIN_DIR = os.path.join(os.path.expanduser("~"), "etextedit", "plugins")
+if not os.path.isdir(ETEXTEDIT_USER_PULGIN_DIR):
+    Path(ETEXTEDIT_USER_PULGIN_DIR).mkdir(parents=True, exist_ok=True)
+BIBLEMATE_ETEXTEDIT_PLUGINS = os.path.join(os.path.dirname(os.path.realpath(__file__)), "etextedit", "plugins")
+for file_name in os.listdir(BIBLEMATE_ETEXTEDIT_PLUGINS):
+    full_file_name = os.path.join(BIBLEMATE_ETEXTEDIT_PLUGINS, file_name)
+    if file_name.endswith(".py") and os.path.isfile(full_file_name) and not os.path.isfile(os.path.join(ETEXTEDIT_USER_PULGIN_DIR, file_name)):
+        shutil.copy(full_file_name, ETEXTEDIT_USER_PULGIN_DIR)
 
 AGENTMAKE_CONFIG = {
     "print_on_terminal": False,
