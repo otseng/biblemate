@@ -30,7 +30,15 @@ set_log_file_max_lines(log_file, config.max_log_lines)
 # AI backend
 version = readTextFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), "version.txt"))
 parser = argparse.ArgumentParser(description = f"""BibleMate AI {version} CLI options""")
+# global options
+parser.add_argument("default", nargs="*", default=None, help="initial prompt")
 parser.add_argument("-b", "--backend", action="store", dest="backend", help="AI backend; overrides the default backend temporarily.")
+parser.add_argument("-l", "--lite", action="store", dest="lite", choices=["true", "false"], help="Enable / disable lite context. Must be one of: true, false.")
+parser.add_argument("-m", "--mode", action="store", dest="mode", choices=["agent", "partner", "chat"], help="Specify AI mode. Must be one of: agent, partner, chat.")
+parser.add_argument("-pe", "--promptengineer", action="store", dest="promptengineer", choices=["true", "false"], help="Enable / disable prompt engineering. Must be one of: true, false.")
+parser.add_argument("-s", "--steps", action="store", dest="steps", type=int, help="Specify the maximum number of steps allowed.")
+parser.add_argument("-e", "--exit", action="store_true", dest="exit", help="exit after the first response (for single-turn use cases).")
+# mcp options
 parser.add_argument("-mcp", "--mcp", action="store", dest="mcp", help=f"specify a custom MCP server to use, e.g. 'http://127.0.0.1:{config.mcp_port}/mcp/'; applicable to command `biblemate` only")
 parser.add_argument("-p", "--port", action="store", dest="port", help=f"specify a port for the MCP server to use, e.g. {config.mcp_port}; applicable to command `biblematemcp` only")
 args = parser.parse_args()
@@ -43,7 +51,28 @@ else:
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py"), "a", encoding="utf-8") as fileObj:
         fileObj.write(f'''\nbackend="{DEFAULT_AI_BACKEND}"''')
     config.backend = DEFAULT_AI_BACKEND
+
 AGENTMAKE_CONFIG["backend"] = config.backend
+DEFAULT_SYSTEM = "You are BibleMate AI, an autonomous agent designed to assist users with their Bible study."
+DEFAULT_MESSAGES = [{"role": "system", "content": DEFAULT_SYSTEM}, {"role": "user", "content": "Hello!"}, {"role": "assistant", "content": "Hello! I'm BibleMate AI, your personal assistant for Bible study. How can I help you today?"}] # set a tone for bible study; it is userful when auto system is used.
+
+# other temporary config changes
+if args.lite == "true":
+    config.lite = True
+elif args.lite == "false":
+    config.lite = False
+if args.mode == "agent":
+    config.agent_mode = True
+elif args.mode == "partner":
+    config.agent_mode = False
+elif args.mode == "chat":
+    config.agent_mode = None
+if args.promptengineer == "true":
+    config.prompt_engineering = True
+elif args.promptengineer == "false":
+    config.prompt_engineering = False
+if args.steps:
+    config.max_steps = args.steps
 
 def mcp():
     builtin_mcp_server = os.path.join(os.path.dirname(os.path.realpath(__file__)), "bible_study_mcp.py")
@@ -133,32 +162,33 @@ def edit_temp_file(initial_content: str) -> str:
 
 def backup_conversation(messages, master_plan, console=None):
     """Backs up the current conversation to the user's directory."""
-    # determine storage path
-    if console:
-        timestamp = getCurrentDateTime()
-        storagePath = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "chats", timestamp)
-    else:
-        storagePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "temp")
-    # create directory if not exists
-    if not os.path.isdir(storagePath):
-        Path(storagePath).mkdir(parents=True, exist_ok=True)
-    # Save full conversation
-    conversation_file = os.path.join(storagePath, "conversation.py")
-    writeTextFile(conversation_file, pprint.pformat(messages))
-    # Save master plan
-    writeTextFile(os.path.join(storagePath, "master_plan.md"), master_plan)
-    # Save markdown
-    markdown_file = os.path.join(storagePath, "conversation.md")
-    markdown_text = "\n\n".join(["```"+i["role"]+"\n"+i["content"]+"\n```" for i in messages if i.get("role", "") in ("user", "assistant")])
-    writeTextFile(markdown_file, markdown_text)
-    # Save html
-    if console:
-        html_file = os.path.join(storagePath, "conversation.html")
-        console.save_html(html_file, inline_styles=True, theme=MONOKAI)
-    # Inform users of the backup location
-    if console:
-        print(f"Conversation backup saved to {storagePath}")
-        print(f"Report saved to {html_file}\n")
+    if len(messages) > len(DEFAULT_MESSAGES):
+        # determine storage path
+        if console:
+            timestamp = getCurrentDateTime()
+            storagePath = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "chats", timestamp)
+        else:
+            storagePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "temp")
+        # create directory if not exists
+        if not os.path.isdir(storagePath):
+            Path(storagePath).mkdir(parents=True, exist_ok=True)
+        # Save full conversation
+        conversation_file = os.path.join(storagePath, "conversation.py")
+        writeTextFile(conversation_file, pprint.pformat(messages))
+        # Save master plan
+        writeTextFile(os.path.join(storagePath, "master_plan.md"), master_plan)
+        # Save markdown
+        markdown_file = os.path.join(storagePath, "conversation.md")
+        markdown_text = "\n\n".join(["```"+i["role"]+"\n"+i["content"]+"\n```" for i in messages if i.get("role", "") in ("user", "assistant")])
+        writeTextFile(markdown_file, markdown_text)
+        # Save html
+        if console:
+            html_file = os.path.join(storagePath, "conversation.html")
+            console.save_html(html_file, inline_styles=True, theme=MONOKAI)
+        # Inform users of the backup location
+        if console:
+            print(f"Conversation backup saved to {storagePath}")
+            print(f"Report saved to {html_file}\n")
 
 async def main_async():
 
@@ -281,7 +311,11 @@ async def main_async():
                 ".help": "help page",
             }
             input_suggestions = list(action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+[f"{p} " for p in prompt_list]+[f"//{r}" for r in resources.keys()]+template_list+resource_suggestions # "" is for generating ideas
-            user_request = await getInput("> ", input_suggestions)
+            if args.default:
+                user_request = " ".join(args.default)
+                args.default = None # reset to avoid repeated use
+            else:
+                user_request = await getInput("> ", input_suggestions)
             if user_request == ".editprompt": # edit current prompt in editor
                 user_request = edit_temp_file(config.current_prompt)
             while not user_request.strip():
@@ -855,6 +889,9 @@ Please provide me with the final answer to my original request based on the work
             # Backup
             print()
             backup_conversation(messages, master_plan, console)
+
+            if args.exit:
+                break
 
 if __name__ == "__main__":
     asyncio.run(main())
