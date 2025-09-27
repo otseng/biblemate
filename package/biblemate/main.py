@@ -376,7 +376,7 @@ async def main_async():
                     # load conversation
                     if os.path.isfile(load_path):
                         file_path = load_path
-                    elif os.path.isdir(load_path) and os.path.isfile(os.path.join(load_path, "conversation.py")) and os.isfile(os.path.join(load_path, "master_plan.md")):
+                    elif os.path.isdir(load_path) and os.path.isfile(os.path.join(load_path, "conversation.py")) and os.path.isfile(os.path.join(load_path, "master_plan.md")):
                         file_path = os.path.join(load_path, "conversation.py")
                     else:
                         print("Expected a file or a directory containing `conversation.py` and `master_plan.md`.")
@@ -637,8 +637,7 @@ async def main_async():
                         tool_properties = tool_schema["parameters"]["properties"]
                         if len(tool_properties) == 1 and "request" in tool_properties: # AgentMake MCP Servers or alike
                             if "items" in tool_properties["request"]: # requires a dictionary instead of a string
-                                request_dict = [{"role": "system", "content": DEFAULT_SYSTEM}]+messages[len(messages)-2:] if config.lite else messages
-                                request_dict += [{"role": "user", "content": tool_instruction}]
+                                request_dict = [{"role": "system", "content": DEFAULT_SYSTEM}]+messages[len(messages)-2:] if config.lite else deepcopy(messages)
                                 tool_result = await client.call_tool(tool, {"request": request_dict})
                             else:
                                 tool_result = await client.call_tool(tool, {"request": tool_instruction})
