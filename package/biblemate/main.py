@@ -40,6 +40,7 @@ parser.add_argument("-pe", "--promptengineer", action="store", dest="promptengin
 parser.add_argument("-s", "--steps", action="store", dest="steps", type=int, help="Specify the maximum number of steps allowed.")
 parser.add_argument("-e", "--exit", action="store_true", dest="exit", help="exit after the first response (for single-turn use cases).")
 # mcp options
+parser.add_argument("-t", "--token", action="store", dest="token", help="specify a static token to use for authentication with the MCP server; applicable to command `biblemate` only")
 parser.add_argument("-mcp", "--mcp", action="store", dest="mcp", help=f"specify a custom MCP server to use, e.g. 'http://127.0.0.1:{config.mcp_port}/mcp/'; applicable to command `biblemate` only")
 parser.add_argument("-p", "--port", action="store", dest="port", help=f"specify a port for the MCP server to use, e.g. {config.mcp_port}; applicable to command `biblematemcp` only")
 args = parser.parse_args()
@@ -193,7 +194,7 @@ def backup_conversation(messages, master_plan, console=None):
 
 async def main_async():
 
-    BIBLEMATE_STATIC_TOKEN = os.getenv("BIBLEMATE_STATIC_TOKEN")
+    BIBLEMATE_STATIC_TOKEN = args.token if args.token else os.getenv("BIBLEMATE_STATIC_TOKEN")
     BIBLEMATE_MCP_PRIVATE_KEY=os.getenv("BIBLEMATE_MCP_PRIVATE_KEY")
 
     # The client that interacts with the Bible Study MCP server
