@@ -10,6 +10,7 @@ import asyncio, re, os, subprocess, click, gdown, pprint, argparse, json, zipfil
 from copy import deepcopy
 from alive_progress import alive_bar
 from fastmcp import Client
+from fastmcp.client.transports import StreamableHttpTransport
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_file, edit_configurations, readTextFile, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND
 from agentmake.utils.handle_text import set_log_file_max_lines
@@ -78,7 +79,7 @@ def mcp():
     builtin_mcp_server = os.path.join(os.path.dirname(os.path.realpath(__file__)), "bible_study_mcp.py")
     user_mcp_server = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "bible_study_mcp.py") # The user path has the same basename as the built-in one; users may copy the built-in server settings to this location for customization. 
     mcp_script = readTextFile(user_mcp_server if os.path.isfile(user_mcp_server) else builtin_mcp_server)
-    mcp_script = mcp_script.replace("mcp.run(show_banner=False)", f'''mcp.run(show_banner=False, transport="http", port={args.port if args.port else config.mcp_port})''')
+    mcp_script = mcp_script.replace("mcp.run(show_banner=False)", f'''mcp.run(show_banner=False, transport="http", host="0.0.0.0", port={args.port if args.port else config.mcp_port})''')
     exec(mcp_script)
 
 def main():
@@ -192,16 +193,22 @@ def backup_conversation(messages, master_plan, console=None):
 
 async def main_async():
 
+    BIBLEMATE_STATIC_TOKEN = os.getenv("BIBLEMATE_STATIC_TOKEN")
     BIBLEMATE_MCP_PRIVATE_KEY=os.getenv("BIBLEMATE_MCP_PRIVATE_KEY")
 
     # The client that interacts with the Bible Study MCP server
     if args.mcp:
         mcp_server = f"http://127.0.0.1:{config.mcp_port}/mcp/" if args.mcp == "biblemate" else args.mcp
-        client = Client(mcp_server, auth=BIBLEMATE_MCP_PRIVATE_KEY if BIBLEMATE_MCP_PRIVATE_KEY else None)
+        transport = StreamableHttpTransport(
+            mcp_server,
+            auth=BIBLEMATE_STATIC_TOKEN if BIBLEMATE_STATIC_TOKEN else BIBLEMATE_MCP_PRIVATE_KEY if BIBLEMATE_MCP_PRIVATE_KEY else None,
+        )
+        client = Client(transport=transport)
     else:
         builtin_mcp_server = os.path.join(os.path.dirname(os.path.realpath(__file__)), "bible_study_mcp.py")
         user_mcp_server = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "bible_study_mcp.py") # The user path has the same basename as the built-in one; users may copy the built-in server settings to this location for customization. 
-        client = Client(user_mcp_server if os.path.isfile(user_mcp_server) else builtin_mcp_server) # no auth for local server
+        mcp_server = user_mcp_server if os.path.isfile(user_mcp_server) else builtin_mcp_server        
+        client = Client(mcp_server) # no auth for local server
 
     APP_START = True
     DEFAULT_SYSTEM = "You are BibleMate AI, an autonomous agent designed to assist users with their Bible study."
