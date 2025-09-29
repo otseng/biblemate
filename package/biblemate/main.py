@@ -14,6 +14,7 @@ from fastmcp.client.transports import StreamableHttpTransport
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_file, edit_configurations, readTextFile, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND
 from agentmake.utils.handle_text import set_log_file_max_lines
+from agentmake.utils.manage_package import getPackageLatestVersion
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -223,7 +224,7 @@ async def main_async():
     async with client:
         tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources, templates = await initialize_app(client)
         resource_suggestions = json.loads(run_uba_api(".resources"))
-        resource_suggestions = resource_suggestions["bibleListAbb"]+resource_suggestions["commentaryListAbb"]+resource_suggestions["encyclopediaListAbb"]+resource_suggestions["lexiconList"]
+        resource_suggestions = [f"//bible/{i}/" for i in resource_suggestions["bibleListAbb"]]+[f"//commentary/{i}/" for i in resource_suggestions["commentaryListAbb"]]+[f"//encyclopedia/{i}/" for i in resource_suggestions["encyclopediaListAbb"]]+[f"//lexicon/{i}/" for i in resource_suggestions["lexiconList"]]
         abbr = BibleBooks.abbrev["eng"]
         resource_suggestions += [abbr[str(book)][0] for book in range(1,67)]
 
@@ -296,6 +297,13 @@ async def main_async():
                         console.print("Restart to make the changes in the backend effective!", justify="center")
                         console.rule()
                         exit()
+                # check for updates
+                latest_version = getPackageLatestVersion("biblemate")
+                current_version = readTextFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), "version.txt")).strip()
+                if latest_version and str(latest_version).strip() != current_version:
+                    console.rule()
+                    console.print(Markdown(f"## A new version of BibleMate AI is available: {latest_version} (you are using {current_version}).\n\nPlease run `pip install --upgrade biblemate` to upgrade!"))
+                    console.rule()
             # Original user request
             # note: `python3 -m rich.emoji` for checking emoji
             console.print("Enter your request :smiley: :" if len(messages) == len(DEFAULT_MESSAGES) else "Enter a follow-up request :flexed_biceps: :")
