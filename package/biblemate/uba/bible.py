@@ -44,7 +44,8 @@ def search_bible(request:str, book:int=0, module=config.default_bible, search_re
     
     # semantic matches
     bible_file = os.path.join(BIBLEMATEDATA, "bible.db")
-    if not shutil.which("ollama"):
+    OLLAMA_ENDPOINT = os.getenv("OLLAMA_ENDPOINT")
+    if not shutil.which("ollama") and (OLLAMA_ENDPOINT.startswith("http://localhost") or OLLAMA_ENDPOINT.startswith("http://127.0.0.1") or OLLAMA_ENDPOINT.startswith("http://0.0.0.0") or not OLLAMA_ENDPOINT):
         print(OLLAMA_NOT_FOUND)
         semantic_matches = []
         semantic_matches_content = ""
