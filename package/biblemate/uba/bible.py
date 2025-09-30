@@ -1,13 +1,20 @@
 import numpy as np
 import sqlite3, apsw
-import json, os, re, shutil
+import json, os, re
 from agentmake import OllamaAI, AGENTMAKE_USER_DIR, agentmake, getDictionaryOutput
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 from prompt_toolkit.shortcuts import ProgressBar
 from biblemate import config, OLLAMA_NOT_FOUND, BIBLEMATEDATA
 from biblemate.uba.api import run_uba_api
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
+from agentmake.backends.ollama import OllamaAI
 
+# check if ollama is installed
+try:
+    OllamaAI.getClient().ps()
+    config.ollama_installed = True
+except:
+    config.ollama_installed = False
 
 # local
 def search_bible(request:str, book:int=0, module=config.default_bible, search_request=False) -> str:
@@ -44,11 +51,9 @@ def search_bible(request:str, book:int=0, module=config.default_bible, search_re
     
     # semantic matches
     bible_file = os.path.join(BIBLEMATEDATA, "bible.db")
-    OLLAMA_ENDPOINT = os.getenv("OLLAMA_ENDPOINT")
-    if not shutil.which("ollama") and (OLLAMA_ENDPOINT.startswith("http://localhost") or OLLAMA_ENDPOINT.startswith("http://127.0.0.1") or OLLAMA_ENDPOINT.startswith("http://0.0.0.0") or not OLLAMA_ENDPOINT):
-        print(OLLAMA_NOT_FOUND)
+    if not config.ollama_installed:
         semantic_matches = []
-        semantic_matches_content = ""
+        semantic_matches_content = f"[{OLLAMA_NOT_FOUND}]"
     elif os.path.isfile(bible_file):
         db = BibleVectorDatabase()
         semantic_matches = [f"{abbr[str(b)][0]} {c}:{v}" for b, c, v, _ in db.search_meaning(search_string, top_k=config.max_semantic_matches, book=book)]

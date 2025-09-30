@@ -331,12 +331,13 @@ The following key bindings are supported in BibleMate AI prompt field:
 - `Ctrl+Q` quit
 - `Ctrl+C` copy selected prompt text
 - `Ctrl+V` paste text in a prompt
-- `Ctrl+I` or `TAB` new line
+- `Ctrl+I` or `TAB` insert four spaces
 - `Ctrl+Z` clear prompt text
-- `Esc+a` jump to the beginning of a prompt
-- `Esc+z` jump to the end of a prompt
-- `Esc+b` or `HOME` jump to the beginning of a line in a prompt
-- `Esc+e` or `END` jump to the end of a line in a prompt
+- `Esc+ENTER` or `Alt+ENTER` insert a new line
+- `Esc+a` or `Alt+a` jump to the beginning of a prompt
+- `Esc+z` or `Alt+z` jump to the end of a prompt
+- `Esc+b` or `Alt+b` or `HOME` jump to the beginning of a line in a prompt
+- `Esc+e` or `Alt+e` or `END` jump to the end of a line in a prompt
 
 ## ✒️ Built-in Text Editor
 

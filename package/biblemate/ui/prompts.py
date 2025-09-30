@@ -77,9 +77,13 @@ async def getInput(prompt:str="> ", input_suggestions:list=None, number_validato
         except:
             pass
     # insert new line
-    @bindings.add("c-i")
+    @bindings.add("escape", "enter")
     def _(event):
         event.app.current_buffer.newline()
+    # insert four spaces
+    @bindings.add("c-i")
+    def _(event):
+        event.app.current_buffer.insert_text("    ")
     # reset buffer
     @bindings.add("c-z")
     def _(event):
@@ -111,7 +115,7 @@ async def getInput(prompt:str="> ", input_suggestions:list=None, number_validato
     completer = FuzzyCompleter(WordCompleter(input_suggestions, ignore_case=True)) if input_suggestions else None
     instruction = await session.prompt_async(
         prompt,
-        bottom_toolbar="[ENTER] submit [TAB] linebreak [Ctrl+N] new [Ctrl+Q] quit",
+        bottom_toolbar="[ENTER] submit [Alt+ENTER] linebreak [Ctrl+N] new [Ctrl+Q] quit",
         completer=completer,
         key_bindings=bindings,
         validator=NumberValidator() if number_validator else None,
