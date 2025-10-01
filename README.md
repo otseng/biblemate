@@ -96,7 +96,8 @@ graph TD
 
 Enter your request in the BibleMate AI prompt.
 
-Enter a blank entry to get some ideas for new requests or follow-up questions.
+- Press `Ctrl+S` to submit your request.
+- Press `Ctrl+Y` to display help information.
 
 ### Set up virtual environment
 
@@ -122,6 +123,10 @@ Run:
 Run again:
 
 > pip install --upgrade biblemate
+
+### For Developer
+
+> pip install -e .
 
 ## ⚙️ Configure AI Backend
 
@@ -226,17 +231,18 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | Command              | Description                        |
 |----------------------|------------------------------------|
 | `.new`               | New conversation                   |
-| `.quit`              | Quit BibleMate AI                  |
+| `.exit`              | Quit BibleMate AI                  |
 | `.backend`           | Change backend                     |
 | `.mode`              | Change AI mode                     |
 | `.tools`             | List available tools               |
 | `.plans`             | List available plans               |
 | `.resources`         | List available resources           |
-| `.edit`              | Edit current conversation      |
-| `.editprompt`        | Edit current prompt            |
+| `.edit`              | Edit current conversation          |
+| `.editprompt`        | Edit current prompt                |
 | `.backup`            | Backup conversation                |
 | `.load`              | Load a saved conversation          |
 | `.open`              | Open a file or directory           |
+| `.autosuggestions`   | Toggle auto input suggestions      |
 | `.promptengineer`    | Toggle auto prompt engineering     |
 | `.lite`              | Toggle lite context                |
 | `.steps`             | Set max number of steps            |
@@ -250,6 +256,7 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 * To use `.load`, you need to specify a python file that contains a saved conversation.  Conversation is saved into a file each time when a backup is executed. Check the message `Conversation backup saved to ...` or locate the backups in `~/agentmake/xomate`. Instead of loading a mere conversation, you can load both a conversation and its master plan. To do so, specify a backup directory path that contains both `conversation.py` and `master_plan.md`.
 * To use `.open`, you need to specify a file or a directory that is to be opened.
 * `.edit` command allows you to edit the current conversation with our built-in text editor.  You may customize to use your favorite text editor. Enter `.backend` and change the value of `DEFAULT_TEXT_EDITOR` with a command that calls your favorite text editor.
+* Use `.autosuggestions` to toggle auto input suggestions. If enabled, you can use `TAB` key to open input suggestions menu.
 
 ## ✝️ UniqueBible Resources
 
@@ -326,18 +333,28 @@ Examples:
 
 The following key bindings are supported in BibleMate AI prompt field:
 
-- `Ctrl+P` edit current prompt
-- `Ctrl+N` new conversation
-- `Ctrl+Q` quit
-- `Ctrl+C` copy selected prompt text
-- `Ctrl+V` paste text in a prompt
-- `Ctrl+I` or `TAB` insert four spaces
-- `Ctrl+Z` clear prompt text
-- `Esc+ENTER` or `Alt+ENTER` insert a new line
-- `Esc+a` or `Alt+a` jump to the beginning of a prompt
-- `Esc+z` or `Alt+z` jump to the end of a prompt
-- `Esc+b` or `Alt+b` or `HOME` jump to the beginning of a line in a prompt
-- `Esc+e` or `Alt+e` or `END` jump to the end of a line in a prompt
+- `Ctrl+Y`: help info
+- `Ctrl+N`: new conversation
+- `Ctrl+G`: get ideas for prompts to try
+- `Ctrl+P`: edit current prompt
+- `Ctrl+Q`: exit current prompt
+- `Ctrl+R`: reset current prompt
+- `Ctrl+S` or `Esc+ENTER` or `Alt+ENTER`: submit current prompt
+- `Ctrl+Z`: undo current prompt
+- `Ctrl+D`: delete
+- `Ctrl+H`: backspace
+- `Ctrl+W`: delete previous word
+- `Ctrl+U`: kill text until start of line
+- `Ctrl+K`: kill text until end of line
+- `Ctrl+A`: go to beginning of line
+- `Ctrl+E`: go to end of line
+- `Ctrl+LEFT`: go to one word left
+- `Ctrl+RIGHT`: go to one word right
+- `Ctrl+UP`: scroll up
+- `Ctrl+DOWN`: scroll down
+- `Shift+TAB`: insert four spaces
+- `TAB` or `Ctrl+I`: open input suggestion menu
+- `Esc`: close input suggestion menu
 
 ## ✒️ Built-in Text Editor
 

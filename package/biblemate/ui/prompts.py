@@ -21,7 +21,7 @@ class NumberValidator(Validator):
 
             raise ValidationError(message='This entry accepts numbers only!', cursor_position=i)
 
-async def getInput(prompt:str="> ", input_suggestions:list=None, number_validator:bool=False, default_entry=""):
+async def getInput(input_suggestions:list=None, number_validator:bool=False, default_entry=""):
     """
     Prompt for user input
     """
@@ -48,34 +48,8 @@ async def getInput(prompt:str="> ", input_suggestions:list=None, number_validato
     @bindings.add("c-q")
     def _(event):
         buffer = event.app.current_buffer
-        buffer.text = ".quit"
+        buffer.text = ".exit"
         buffer.validate_and_handle()
-    # copy text to clipboard
-    @bindings.add("c-c")
-    def _(event):
-        try:
-            buffer = event.app.current_buffer
-            data = buffer.copy_selection()
-            copyText = data.text
-            if shutil.which("termux-clipboard-set"):
-                from pydoc import pipepager
-                pipepager(copyText, cmd="termux-clipboard-set")
-            else:
-                import pyperclip
-                pyperclip.copy(copyText)
-        except:
-            pass
-    # paste clipboard text
-    @bindings.add("c-v")
-    def _(event):
-        try:
-            import pyperclip
-            buffer = event.app.current_buffer
-            buffer.cut_selection()
-            clipboardText = getCliOutput("termux-clipboard-get") if shutil.which("termux-clipboard-get") else pyperclip.paste()
-            buffer.insert_text(clipboardText)
-        except:
-            pass
     # insert new line
     @bindings.add("escape", "enter")
     def _(event):
@@ -84,8 +58,12 @@ async def getInput(prompt:str="> ", input_suggestions:list=None, number_validato
     @bindings.add("c-i")
     def _(event):
         event.app.current_buffer.insert_text("    ")
-    # reset buffer
+    # undo
     @bindings.add("c-z")
+    def _(event):
+        event.app.current_buffer.undo()
+    # reset buffer
+    @bindings.add("c-r")
     def _(event):
         event.app.current_buffer.reset()
     # go to the beginning of the text
@@ -114,7 +92,7 @@ async def getInput(prompt:str="> ", input_suggestions:list=None, number_validato
     session = PromptSession(history=FileHistory(log_file))
     completer = FuzzyCompleter(WordCompleter(input_suggestions, ignore_case=True)) if input_suggestions else None
     instruction = await session.prompt_async(
-        prompt,
+        "> ",
         bottom_toolbar="[ENTER] submit [Alt+ENTER] linebreak [Ctrl+N] new [Ctrl+Q] quit",
         completer=completer,
         key_bindings=bindings,

@@ -1,5 +1,6 @@
 agent_mode=False
 prompt_engineering=False
+auto_suggestions=False
 max_steps=50
 lite=False
 hide_tools_order=True

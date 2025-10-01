@@ -1,10 +1,12 @@
-from agentmake import AGENTMAKE_USER_DIR, writeTextFile
+from agentmake import AGENTMAKE_USER_DIR, readTextFile, writeTextFile
 from biblemate import config
 import pprint
 from pathlib import Path
 import os, shutil
 
 config.current_prompt = ""
+
+BIBLEMATE_VERSION = readTextFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), "version.txt"))
 
 # copy etextedit plugins
 ETEXTEDIT_USER_PULGIN_DIR = os.path.join(os.path.expanduser("~"), "etextedit", "plugins")
@@ -33,6 +35,7 @@ def write_user_config():
     config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py")
     configurations = f"""agent_mode={config.agent_mode}
 prompt_engineering={config.prompt_engineering}
+auto_suggestions={config.auto_suggestions}
 max_steps={config.max_steps}
 lite={config.lite}
 hide_tools_order={config.hide_tools_order}

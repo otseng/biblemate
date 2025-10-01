@@ -1,37 +1,39 @@
 from biblemate.core.systems import *
-from biblemate.ui.prompts import getInput
+from biblemate.ui.text_area import getTextArea
 from biblemate.ui.info import get_banner
 from biblemate.ui.selection_dialog import TerminalModeDialogs
-from biblemate import config, AGENTMAKE_CONFIG, BIBLEMATEDATA, fix_string, write_user_config
+from biblemate import config, BIBLEMATE_VERSION, AGENTMAKE_CONFIG, BIBLEMATEDATA, fix_string, write_user_config
 from biblemate.uba.api import run_uba_api, DEFAULT_MODULES
 from pathlib import Path
 import urllib.parse
-import asyncio, re, os, subprocess, click, gdown, pprint, argparse, json, zipfile
+import asyncio, re, os, subprocess, click, gdown, pprint, argparse, json, zipfile, warnings
 from copy import deepcopy
 from alive_progress import alive_bar
 from fastmcp import Client
 from fastmcp.client.transports import StreamableHttpTransport
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_file, edit_configurations, readTextFile, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND
-from agentmake.utils.handle_text import set_log_file_max_lines
+#from agentmake.utils.handle_text import set_log_file_max_lines
 from agentmake.utils.manage_package import getPackageLatestVersion
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.terminal_theme import MONOKAI
+from prompt_toolkit.shortcuts import set_title, clear_title
 if not USER_OS == "Windows":
     import readline  # for better input experience
 
-# trim long log file
+"""# trim long log file
 log_path = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "logs")
 if not os.path.isdir(log_path):
     Path(log_path).mkdir(parents=True, exist_ok=True)
 log_file = os.path.join(log_path, "requests")
-set_log_file_max_lines(log_file, config.max_log_lines)
+set_log_file_max_lines(log_file, config.max_log_lines)"""
 
-# AI backend
-version = readTextFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), "version.txt"))
-parser = argparse.ArgumentParser(description = f"""BibleMate AI {version} CLI options""")
+# set window title
+set_title(f"BibleMate AI [{BIBLEMATE_VERSION}]")
+
+parser = argparse.ArgumentParser(description = f"""BibleMate AI {BIBLEMATE_VERSION} CLI options""")
 # global options
 parser.add_argument("default", nargs="*", default=None, help="initial prompt")
 parser.add_argument("-b", "--backend", action="store", dest="backend", help="AI backend; overrides the default backend temporarily.")
@@ -157,12 +159,6 @@ Get a static text-based response directly from a text-based AI model without usi
     
     return tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources, templates
 
-def edit_temp_file(initial_content: str) -> str:
-    temp_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "temp", "edit.md")
-    writeTextFile(temp_file, initial_content)
-    edit_file(temp_file)
-    return readTextFile(temp_file).strip()
-
 def backup_conversation(messages, master_plan, console=None):
     """Backs up the current conversation to the user's directory."""
     if len(messages) > len(DEFAULT_MESSAGES):
@@ -242,7 +238,7 @@ async def main_async():
         master_plan = ""
         messages = deepcopy(DEFAULT_MESSAGES) # set the tone
 
-        while not user_request == ".quit":
+        while not user_request == ".exit":
 
             # spinner while thinking
             async def thinking(process, description=None):
@@ -310,16 +306,17 @@ async def main_async():
             console.print("Enter your request :smiley: :" if len(messages) == len(DEFAULT_MESSAGES) else "Enter a follow-up request :flexed_biceps: :")
             action_list = {
                 ".new": "new conversation",
-                ".quit": "quit",
-                ".backend": "change backend",
-                ".mode": "change AI mode",
+                ".exit": "exit current prompt",
+                ".backend": "configure backend",
+                ".mode": "configure AI mode",
+                ".steps": "configure the maximum number of steps allowed",
+                ".matches": "configure the maximum number of semantic matches",
                 ".tools": "list available tools",
                 ".plans": "list available plans",
                 ".resources": "list UniqueBible resources",
+                ".autosuggestions": "toggle auto input suggestions",
                 ".promptengineer": "toggle auto prompt engineering",
                 ".lite": "toggle lite context",
-                ".steps": "configure the maximum number of steps",
-                ".matches": "configure the maximum number of semantic matches",
                 ".edit": "load the current conversation",
                 ".backup": "backup conversation",
                 ".load": "load a saved conversation",
@@ -333,12 +330,8 @@ async def main_async():
                 user_request = " ".join(args.default)
                 args.default = None # reset to avoid repeated use
             else:
-                user_request = await getInput("> ", input_suggestions)
-            if not user_request.strip():
-                continue
-            elif user_request == ".editprompt": # edit current prompt in editor
-                user_request = edit_temp_file(config.current_prompt)
-            elif user_request == ".ideas" or user_request == ".suggest":
+                user_request = await getTextArea(input_suggestions=input_suggestions)
+            if user_request == ".ideas":
                 # Generate ideas for `prompts to try`
                 ideas = ""
                 async def generate_ideas():
@@ -352,9 +345,7 @@ async def main_async():
                 console.print(Markdown(f"## Ideas\n\n{ideas}\n\n"))
                 console.rule()
                 # Get input again
-                user_request = await getInput("> ", input_suggestions)
-                if user_request == ".editprompt": # edit current prompt in editor
-                    user_request = edit_temp_file(config.current_prompt)
+                user_request = await getTextArea(input_suggestions=input_suggestions)
 
             # display resources
             if user_request.startswith("//") and user_request[2:] in resources:
@@ -422,7 +413,9 @@ async def main_async():
             if user_request.startswith(".open ") and os.path.exists(os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))):
                 file_path = os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))
                 cmd = f'''{getOpenCommand()} "{file_path}"'''
-                subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=ResourceWarning)
+                    subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 continue
             elif user_request.startswith(".load") and os.path.exists(os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))):
                 load_path = os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))
@@ -467,8 +460,41 @@ async def main_async():
                 if user_request == ".backup":
                     backup_conversation(messages, master_plan, console)
                 elif user_request == ".help":
+                    actions = "\n".join([f"- `{k}`: {v}" for k, v in action_list.items()])
+                    help_info = f"""## Key Commands
+
+{actions}
+
+## Key Bindings
+
+- `Ctrl+Y`: help info
+- `Ctrl+N`: new conversation
+- `Ctrl+G`: get ideas for prompts to try
+- `Ctrl+P`: edit current prompt
+- `Ctrl+Q`: exit current prompt
+- `Ctrl+R`: reset current prompt
+- `Ctrl+S` or `Esc+ENTER` or `Alt+ENTER`: submit current prompt
+- `Ctrl+Z`: undo current prompt
+- `Ctrl+D`: delete
+- `Ctrl+H`: backspace
+- `Ctrl+W`: delete previous word
+- `Ctrl+U`: kill text until start of line
+- `Ctrl+K`: kill text until end of line
+- `Ctrl+A`: go to beginning of line
+- `Ctrl+E`: go to end of line
+- `Ctrl+LEFT`: go to one word left
+- `Ctrl+RIGHT`: go to one word right
+- `Ctrl+UP`: scroll up
+- `Ctrl+DOWN`: scroll down
+- `Shift+TAB`: insert four spaces
+- `TAB` or `Ctrl+I`: open input suggestion menu
+- `Esc`: close input suggestion menu
+
+## More
+                    
+Viist https://github.com/eliranwong/biblemate"""
                     console.rule()
-                    console.print(Markdown("Viist https://github.com/eliranwong/biblemate for help."))
+                    console.print(Markdown(help_info))
                     console.rule()
                 elif user_request == ".tools":
                     enabled_tools = await dialogs.getMultipleSelection(
@@ -526,26 +552,46 @@ async def main_async():
                 elif user_request == ".steps":
                     console.rule()
                     console.print("Enter below the maximum number of steps allowed:")
-                    max_steps = await getInput("> ", number_validator=True, default_entry=str(config.max_steps))
+                    max_steps = await getTextArea(default_entry=str(config.max_steps), title="Enter a positive integer:", multiline=False)
                     if max_steps:
-                        config.max_steps = int(max_steps)
-                        write_user_config()
-                        console.print("Maximum number of steps set to", config.max_steps, justify="center")
+                        try:
+                            max_steps = int(max_steps)
+                            if max_steps <= 0:
+                                console.print("Invalid input.", justify="center")
+                            else:
+                                config.max_steps = max_steps
+                                write_user_config()
+                                console.print("Maximum number of steps set to", config.max_steps, justify="center")
+                        except:
+                            console.print("Invalid input.", justify="center")
                     console.rule()
                 elif user_request == ".matches":
                     console.rule()
                     console.print("Enter below the maximum number of semantic matches allowed:")
-                    max_semantic_matches = await getInput("> ", number_validator=True, default_entry=str(config.max_semantic_matches))
+                    max_semantic_matches = await getTextArea(default_entry=str(config.max_semantic_matches), title="Enter a positive integer:", multiline=False)
                     if max_semantic_matches:
-                        config.max_semantic_matches = int(max_semantic_matches)
-                        write_user_config()
-                        console.print("Maximum number of semantic matches set to", config.max_semantic_matches, justify="center")
+                        try:
+                            max_semantic_matches = int(max_semantic_matches)
+                            if max_semantic_matches <= 0:
+                                console.print("Invalid input.", justify="center")
+                            else:
+                                config.max_semantic_matches = max_semantic_matches
+                                write_user_config()
+                                console.print("Maximum number of semantic matches set to", config.max_semantic_matches, justify="center")
+                        except:
+                            console.print("Invalid input.", justify="center")
                     console.rule()
                 elif user_request == ".promptengineer":
                     config.prompt_engineering = not config.prompt_engineering
                     write_user_config()
                     console.rule()
                     console.print("Prompt Engineering Enabled" if config.prompt_engineering else "Prompt Engineering Disabled", justify="center")
+                    console.rule()
+                elif user_request == ".autosuggestions":
+                    config.auto_suggestions = not config.auto_suggestions
+                    write_user_config()
+                    console.rule()
+                    console.print("Auto Input Suggestions Enabled" if config.auto_suggestions else "Auto Input Suggestions Disabled", justify="center")
                     console.rule()
                 elif user_request == ".lite":
                     config.lite = not config.lite
@@ -597,7 +643,7 @@ async def main_async():
                         console.rule()
                         console.print(f"`{ai_mode.capitalize()}` Mode Enabled", justify="center")
                         console.rule()
-                elif user_request in (".new", ".quit"):
+                elif user_request in (".new", ".exit"):
                     backup_conversation(messages, master_plan, console) # backup
                 # reset
                 if user_request == ".new":
@@ -769,10 +815,8 @@ Available tools are: {available_tools}.
                         console.print(Markdown("# Review & Confirm"))
                         console.print("Please review and confirm the master plan, or make any changes you need:", justify="center")
                         console.rule()
-                        master_plan_edit = await getInput(default_entry=master_plan)
-                        if master_plan_edit == ".editprompt": # edit current prompt in editor
-                            master_plan_edit = edit_temp_file(config.current_prompt)
-                        if not master_plan_edit or master_plan_edit == ".quit":
+                        master_plan_edit = await getTextArea(default_entry=master_plan, title="Review - Master Plan")
+                        if not master_plan_edit or master_plan_edit == ".exit":
                             if messages and messages[-1].get("role", "") == "user":
                                 messages = messages[:-1]
                             console.rule()
@@ -849,12 +893,10 @@ Available tools are: {available_tools}.
                 if config.agent_mode == False:
                     console.rule()
                     console.print(Markdown("# Review & Confirm"))
-                    console.print("Please review and confirm the next step, or make any changes you need:")
+                    console.print("Please review and confirm the next instruction, or make any changes you need:")
                     console.rule()
-                    next_step_edit = await getInput(default_entry=next_step)
-                    if next_step_edit == ".editprompt": # edit current prompt in editor
-                        next_step_edit = edit_temp_file(config.current_prompt)
-                    if not next_step_edit or next_step_edit == ".quit":
+                    next_step_edit = await getTextArea(default_entry=next_step, title="Review - Next Instruction")
+                    if not next_step_edit or next_step_edit == ".exit":
                         console.rule()
                         console.print("I've stopped processing for you.")
                         break
@@ -912,6 +954,9 @@ Please provide me with the final answer to my original request based on the work
 
             if args.exit:
                 break
+    
+    # reset terminal window title
+    clear_title()
 
 if __name__ == "__main__":
     asyncio.run(main())

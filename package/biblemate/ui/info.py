@@ -19,7 +19,7 @@ def get_banner():
         border_style="bright_blue",
         title="🚀 Praise the Lord!",
         title_align="left",
-        subtitle="Eliran Wong",
+        subtitle="Hallelujah! 🚀",
         subtitle_align="right",
         padding=(1, 4)
     )
