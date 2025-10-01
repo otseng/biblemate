@@ -372,6 +372,18 @@ You may also add you own `etextedit` plugins and place them into `~/etextedit/pl
 
 Read more about `etextedit` at https://github.com/eliranwong/etextedit 
 
+## Export to DOCX or PDF [Optional]
+
+`etextedit` offers options for exporting content into DOCX and PDF files.
+
+- `pandoc` is required to export content to DOCX format. To install, for example, on Debian/Ubuntu:
+
+> sudo apt install pandoc
+
+- `pdflatex` is required to export content to PDF format. To install, for example, on Debian/Ubuntu:
+
+> sudo apt install texlive-full
+
 ## 🛠️ Customization
 
 BibleMate AI is highly customizable. Advanced users can modify existing tools, create new ones, and even change the behavior of the AI agent by customizing system prompts.

@@ -14,18 +14,12 @@ from prompt_toolkit.styles import style_from_pygments_cls
 from pygments.styles import get_style_by_name
 from agentmake import DEFAULT_TEXT_EDITOR, edit_file, readTextFile, writeTextFile
 from agentmake.etextedit import launch_async
+from typing import Any, Optional
 import os
 
 
-async def getTextArea(input_suggestions:list=None, default_entry="", title="", multiline:bool=True):
+async def getTextArea(input_suggestions:list=None, default_entry="", title="", multiline:bool=True, completion:Optional[Any]=None, scrollbar:bool=True, read_only:bool=False):
     """Get text area input with a border frame"""
-    
-    def edit_temp_file(initial_content: str) -> str:
-        config.current_prompt = ""
-        temp_file = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "temp", "edit.md")
-        writeTextFile(temp_file, initial_content)
-        edit_file(temp_file)
-        return readTextFile(temp_file).strip()
 
     config.current_prompt = "" # reset config.current_prompt
     completer = FuzzyCompleter(WordCompleter(input_suggestions, ignore_case=True)) if input_suggestions else None
@@ -52,12 +46,76 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         style="class:textarea",
         lexer=PygmentsLexer(MarkdownLexer),
         multiline=multiline,
-        scrollbar=True,
+        scrollbar=scrollbar,
+        read_only=read_only,
         completer=completer,
         complete_while_typing=config.auto_suggestions,
         focus_on_click=True,
         wrap_lines=True,
     )
+
+    def unpack_text_chunks(_):
+        openai_style = True if config.backend in ("azure", "azure_any", "custom", "deepseek", "github", "github_any", "googleai", "groq", "llamacpp", "mistral", "openai", "xai") else False
+        first_event = True
+        chat_response = ""
+        for event in completion:
+            # RETRIEVE THE TEXT FROM THE RESPONSE
+            if event is None:
+                continue
+            elif openai_style:
+                # openai
+                # when open api key is invalid for some reasons, event response in string
+                if isinstance(event, str):
+                    answer = event
+                elif hasattr(event, "data") and hasattr(event.data, "choices"): # mistralai
+                    try:
+                        answer = event.data.choices[0].delta.content
+                    except:
+                        answer = None
+                elif hasattr(event, "choices") and not event.choices: # in case of the 1st event of azure's completion
+                    continue
+                else:
+                    answer = event.choices[0].delta.content or ""
+            elif hasattr(event, "type") and event.type == "content-delta" and hasattr(event, "delta"): # cohere
+                answer = event.delta.message.content.text
+            elif hasattr(event, "delta") and hasattr(event.delta, "text"): # anthropic
+                answer = event.delta.text
+            elif hasattr(event, "content_block") and hasattr(event.content_block, "text"):
+                answer = event.content_block.text
+            elif str(type(event)).startswith("<class 'anthropic.types"): # anthropic
+                continue
+            elif hasattr(event, "message"): # newer ollama python package
+                answer = event.message.content
+            elif isinstance(event, dict):
+                if "message" in event:
+                    # ollama chat
+                    answer = event["message"].get("content", "")
+                else:
+                    # llama.cpp chat
+                    answer = event["choices"][0]["delta"].get("content", "")
+            elif hasattr(event, "text"):
+                # vertex ai, genai
+                answer = event.text
+            else:
+                #print(event)
+                answer = None
+            # STREAM THE ANSWER
+            if answer is not None:
+                if first_event:
+                    first_event = False
+                    answer = answer.lstrip()
+                # update the chat response
+                chat_response += answer
+                # display the chunk in the text area
+                text_area.buffer.insert_text(answer)
+                text_area.buffer.cursor_position = len(text_area.text)
+
+    def edit_temp_file(initial_content: str) -> str:
+        config.current_prompt = ""
+        temp_file = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "temp", "edit.md")
+        writeTextFile(temp_file, initial_content)
+        edit_file(temp_file)
+        return readTextFile(temp_file).strip()
 
     # Layout: include a CompletionsMenu
     root_container = HSplit(
@@ -155,6 +213,7 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         #clipboard=PyperclipClipboard(), # not useful if mouse_support is not enabled
         #mouse_support=True, # If enabled; content outside the app becomes unscrollable
         full_screen=False,
+        after_render=unpack_text_chunks if completion is not None else None,
     )
     
     # Run the app
