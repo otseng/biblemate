@@ -325,17 +325,20 @@ async def main_async():
                 ".load": "load a saved conversation",
                 ".open": "open a file or directory",
                 ".download": "download data files",
+                ".ideas": "generate ideas for prompts to try",
                 ".help": "help page",
             }
-            input_suggestions = list(action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+[f"{p} " for p in prompt_list]+[f"//{r}" for r in resources.keys()]+template_list+resource_suggestions # "" is for generating ideas
+            input_suggestions = list(action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+[f"{p} " for p in prompt_list]+[f"//{r}" for r in resources.keys()]+template_list+resource_suggestions
             if args.default:
                 user_request = " ".join(args.default)
                 args.default = None # reset to avoid repeated use
             else:
                 user_request = await getInput("> ", input_suggestions)
-            if user_request == ".editprompt": # edit current prompt in editor
+            if not user_request.strip():
+                continue
+            elif user_request == ".editprompt": # edit current prompt in editor
                 user_request = edit_temp_file(config.current_prompt)
-            while not user_request.strip():
+            elif user_request == ".ideas" or user_request == ".suggest":
                 # Generate ideas for `prompts to try`
                 ideas = ""
                 async def generate_ideas():
