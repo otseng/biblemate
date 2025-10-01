@@ -1,0 +1,7 @@
+/.venv
+/build
+/package/build
+/package/biblemate.egg-info
+/package/biblemate/temp
+.python-version
+__pycache__
