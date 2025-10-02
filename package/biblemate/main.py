@@ -168,7 +168,7 @@ def display_info(console, info):
         Text(info, style="bold white on grey11", justify="center") if isinstance(info, str) else info,
         border_style="bright_blue",
         box=box.ROUNDED,
-        style="on grey11",
+        style="on grey11" if isinstance(info, str) else "",
         padding=(1, 1)
     )
     console.print(info_panel)
