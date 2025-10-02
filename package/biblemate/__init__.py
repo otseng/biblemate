@@ -5,7 +5,8 @@ CONFIG_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.
 CONFIG_FILE_BACKUP = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "config.py")
 
 # restore config backup after upgrade
-default_config = '''agent_mode=False
+default_config = '''banner_title=""
+agent_mode=False
 *prompt_engineering=False
 *auto_suggestions=True
 *max_steps=50

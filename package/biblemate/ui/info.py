@@ -1,6 +1,7 @@
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
+from biblemate import config
 
 def get_banner(version):
     """
@@ -57,7 +58,8 @@ def get_banner(version):
     # Use a Panel to box the content for a clean look
     return Panel(
         content,
-        title="[bold]👋 Welcome![/bold]",
+        #title="[bold]👋 Welcome![/bold]",
+        title=config.banner_title,
         title_align="left",
         border_style=f"{COLOR_SCRIPTURE}",
         padding=(1, 4), # Vertical padding (1), Horizontal padding (4)
