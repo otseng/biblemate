@@ -234,6 +234,9 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | `.exit`              | Quit BibleMate AI                  |
 | `.backend`           | Change backend                     |
 | `.mode`              | Change AI mode                     |
+| `.agent`             | Switch to agent mode directly      |
+| `.partner`           | Switch to partner mode directly    |
+| `.chat`              | Switch to chat mode directly       |
 | `.tools`             | List available tools               |
 | `.plans`             | List available plans               |
 | `.resources`         | List available resources           |

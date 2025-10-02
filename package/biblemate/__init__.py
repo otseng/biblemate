@@ -7,7 +7,7 @@ CONFIG_FILE_BACKUP = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "config.py")
 # restore config backup after upgrade
 default_config = '''agent_mode=False
 *prompt_engineering=False
-*auto_suggestions=False
+*auto_suggestions=True
 *max_steps=50
 *lite=False
 *hide_tools_order=True

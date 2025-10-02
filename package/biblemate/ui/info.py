@@ -1,26 +1,72 @@
+from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
-from rich.align import Align
 
-# Project title styling
-def get_banner():
-    # Title styling
-    title = Text("BibleMate AI", style="bold magenta", justify="center")
-    title.stylize("bold magenta underline", 0, len("BibleMate AI"))
-    # Tagline styling
-    tagline = Text("Automate Your Bible Study", style="bold cyan", justify="center")
-    # Combine into a panel
-    banner_content = Align.center(
-        Text("\n") + title + Text("\n") + tagline + Text("\n"),
-        vertical="middle"
+def get_banner(version):
+    """
+    Generates and prints a stylized startup banner for BibleMate AI using the rich library.
+    
+    The banner uses distinct colors and a panel structure to be visually engaging.
+    - Gold/Yellow is used to represent the spiritual/scriptural focus.
+    - Cyan/Blue is used to represent the AI/Intelligent nature of the tool.
+    - A dark gray background ensures high contrast on both dark and light terminal themes.
+    """
+
+    # --- Configuration and Styling ---
+    TITLE_TEXT = "BIBLEMATE AI"
+    TAGLINE = "🌿 Automate Your Bible Study 🌿"
+    
+    # Custom colors using HEX codes for better consistency
+    COLOR_SCRIPTURE = "#FFD700"  # Gold
+    COLOR_AI = "#00FFFF"         # Cyan
+    COLOR_PRIMARY = "#FFFFFF"    # White
+    COLOR_BACKGROUND = "#1A1A1A" # Dark Gray/Black for good contrast on most terminals
+
+    # --- 1. Assemble the Title ---
+    
+    # Create the stylized title text: "BIBLEMATE" (Gold) + " AI" (Cyan)
+    # This uses rich's ability to style segments of text
+    title = Text.assemble(
+        Text(TITLE_TEXT.split(' ')[0], style=f"bold {COLOR_SCRIPTURE}"),
+        Text(" ", style=""),
+        Text("AI", style=f"bold italic {COLOR_AI}"),
     )
-    banner = Panel(
-        banner_content,
-        border_style="bright_blue",
-        title="🚀 Praise the Lord!",
+    
+    # Center the title and make it larger
+    title.justify = "center"
+    title.style = "bold"
+
+    # --- 2. Assemble the Content (Title, Tagline, Version) ---
+    
+    # Tagline text
+    tagline_text = Text(TAGLINE, style=f"italic {COLOR_PRIMARY}")
+    tagline_text.justify = "center"
+
+    # Version text
+    version_text = Text(f"[{version}]", style="dim white")
+    version_text.justify = "right"
+    
+    # Combine all lines of content
+    content = Text(justify="center")
+    content.append(title)
+    content.append("\n")
+    content.append(tagline_text)
+    
+    # --- 3. Create the Panel ---
+    
+    # Use a Panel to box the content for a clean look
+    return Panel(
+        content,
+        title="[bold]👋 Welcome![/bold]",
         title_align="left",
-        subtitle="Hallelujah! 🚀",
+        border_style=f"{COLOR_SCRIPTURE}",
+        padding=(1, 4), # Vertical padding (1), Horizontal padding (4)
+        subtitle=version_text,
         subtitle_align="right",
-        padding=(1, 4)
+        style=f"on {COLOR_BACKGROUND}" # Apply the new background color
     )
-    return banner
+
+if __name__ == "__main__":
+    from rich.console import Console
+    console = Console()
+    console.print(get_banner("1.1.1"))
