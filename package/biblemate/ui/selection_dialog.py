@@ -68,3 +68,10 @@ class TerminalModeDialogs:
             default_values=default_values,
             style=self.style,
         ).run_async()
+
+    async def getInputDialog(self, title="Input Dialog", text="Please type your entry:"):
+        return await input_dialog(
+            title=title,
+            text=text,
+            style=self.style,
+        ).run_async()

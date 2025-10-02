@@ -6,7 +6,7 @@ CONFIG_FILE_BACKUP = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "config.py")
 
 # restore config backup after upgrade
 default_config = '''banner_title=""
-agent_mode=False
+*agent_mode=False
 *prompt_engineering=False
 *auto_suggestions=True
 *max_steps=50
@@ -100,7 +100,8 @@ from biblemate import config
 
 def write_user_config(backup=False):
     """Writes the current configuration to the user's config file."""
-    configurations = f"""agent_mode={config.agent_mode}
+    configurations = f"""banner_title="{config.banner_title}"
+agent_mode={config.agent_mode}
 prompt_engineering={config.prompt_engineering}
 auto_suggestions={config.auto_suggestions}
 max_steps={config.max_steps}
