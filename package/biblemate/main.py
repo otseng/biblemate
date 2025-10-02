@@ -371,7 +371,7 @@ async def main_async():
                     else:
                         display_content = resource_text
                     resource_description = resources.get(resource, "")
-                    info = Markdown(f"## Information about `{resource}`: `{resource.capitalize()}`\n\n{resource_description}\n\n{display_content}")
+                    info = Markdown(f"## Information - `{resource.capitalize()}`\n\n{resource_description}\n\n{display_content}")
                     display_info(console, info)
                 continue
 
