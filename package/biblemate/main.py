@@ -831,6 +831,7 @@ Available tools are: {available_tools}.
                     if not config.agent_mode:
                         info = Markdown("# Review & Confirm\n\nPlease review and confirm the master plan, or make any changes you need.")
                         console.print(info)
+                        print()
                         master_plan_edit = await getTextArea(default_entry=master_plan, title="Review - Master Plan")
                         if not master_plan_edit or master_plan_edit == ".exit":
                             if messages and messages[-1].get("role", "") == "user":
@@ -904,6 +905,7 @@ Available tools are: {available_tools}.
                 if config.agent_mode == False:
                     info = Markdown("# Review & Confirm\n\nPlease review and confirm the next instruction, or make any changes you need.")
                     console.print(info)
+                    print()
                     next_step_edit = await getTextArea(default_entry=next_step, title="Review - Next Instruction")
                     if not next_step_edit or next_step_edit == ".exit":
                         display_info(console, "I've stopped processing for you.")
