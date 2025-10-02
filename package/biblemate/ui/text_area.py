@@ -1,4 +1,4 @@
-from biblemate import config, BIBLEMATE_VERSION
+from biblemate import config
 from prompt_toolkit.layout import Layout, HSplit
 from prompt_toolkit.widgets import Frame, Label
 from prompt_toolkit.styles import Style, merge_styles
@@ -226,7 +226,7 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
     # edit in full editor
     while result == ".editprompt":
         if DEFAULT_TEXT_EDITOR == "etextedit":
-            text_area.text = await launch_async(input_text=config.current_prompt, exitWithoutSaving=True, customTitle=f"BibleMate AI [{BIBLEMATE_VERSION}]", startAt=config.cursor_position)
+            text_area.text = await launch_async(input_text=config.current_prompt, exitWithoutSaving=True, customTitle=f"BibleMate AI", startAt=config.cursor_position)
         else:
             text_area.text = edit_temp_file(config.current_prompt)
         config.current_prompt = ""

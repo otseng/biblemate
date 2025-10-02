@@ -1,5 +1,5 @@
 from agentmake import AGENTMAKE_USER_DIR, readTextFile, writeTextFile
-import os, shutil
+import os, shutil, pprint
 
 CONFIG_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py")
 CONFIG_FILE_BACKUP = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "config.py")
@@ -127,7 +127,6 @@ if just_upgraded:
     if changed:
         write_user_config()
 
-import pprint
 from pathlib import Path
 
 config.current_prompt = ""

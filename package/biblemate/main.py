@@ -34,7 +34,7 @@ log_file = os.path.join(log_path, "requests")
 set_log_file_max_lines(log_file, config.max_log_lines)"""
 
 # set window title
-set_title(f"BibleMate AI [{BIBLEMATE_VERSION}]")
+set_title(f"BibleMate AI")
 
 parser = argparse.ArgumentParser(description = f"""BibleMate AI {BIBLEMATE_VERSION} CLI options""")
 # global options
