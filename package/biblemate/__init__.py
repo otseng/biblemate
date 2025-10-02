@@ -1,25 +1,25 @@
 from agentmake import AGENTMAKE_USER_DIR, readTextFile, writeTextFile
-import os
+import os, shutil
 
-CONFIG_FILE = config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py")
+CONFIG_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py")
+CONFIG_FILE_BACKUP = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "config.py")
 
 # restore config backup after upgrade
-if readTextFile(CONFIG_FILE).strip() == "":
-    default_config = '''agent_mode=False
-prompt_engineering=False
-auto_suggestions=False
-max_steps=50
-lite=False
-hide_tools_order=True
-default_bible="NET"
-default_commentary="CBSC"
-default_encyclopedia="ISB"
-default_lexicon="Morphology"
-max_semantic_matches=15
-max_log_lines=2000
-mcp_port=33333
-embedding_model="paraphrase-multilingual"
-disabled_tools=['search_1_chronicles_only',
+default_config = '''agent_mode=False
+*prompt_engineering=False
+*auto_suggestions=False
+*max_steps=50
+*lite=False
+*hide_tools_order=True
+*default_bible="NET"
+*default_commentary="CBSC"
+*default_encyclopedia="ISB"
+*default_lexicon="Morphology"
+*max_semantic_matches=15
+*max_log_lines=2000
+*mcp_port=33333
+*embedding_model="paraphrase-multilingual"
+*disabled_tools=['search_1_chronicles_only',
 'search_1_corinthians_only',
 'search_1_john_only',
 'search_1_kings_only',
@@ -85,12 +85,49 @@ disabled_tools=['search_1_chronicles_only',
 'search_titus_only',
 'search_zechariah_only',
 'search_zephaniah_only']'''
-    writeTextFile(CONFIG_FILE, default_config)
+
+if readTextFile(CONFIG_FILE).strip() == "":
+    just_upgraded = True
+    if os.path.isfile(CONFIG_FILE_BACKUP):
+        shutil.copy(CONFIG_FILE_BACKUP, CONFIG_FILE)
+    else:
+        writeTextFile(CONFIG_FILE, default_config.replace("\n*", "\n"))
+else:
+    just_upgraded = False
 
 from biblemate import config
+
+def write_user_config(backup=False):
+    """Writes the current configuration to the user's config file."""
+    configurations = f"""agent_mode={config.agent_mode}
+prompt_engineering={config.prompt_engineering}
+auto_suggestions={config.auto_suggestions}
+max_steps={config.max_steps}
+lite={config.lite}
+hide_tools_order={config.hide_tools_order}
+default_bible="{config.default_bible}"
+default_commentary="{config.default_commentary}"
+default_encyclopedia="{config.default_encyclopedia}"
+default_lexicon="{config.default_lexicon}"
+max_semantic_matches={config.max_semantic_matches}
+max_log_lines={config.max_log_lines}
+mcp_port={config.mcp_port}
+embedding_model="{config.embedding_model}"
+disabled_tools={pprint.pformat(config.disabled_tools)}"""
+    writeTextFile(CONFIG_FILE_BACKUP if backup else CONFIG_FILE, configurations)
+
+if just_upgraded:
+    changed = False
+    for config_item in default_config.split("\n*"):
+        key, value = config_item.split("=", 1)
+        if not hasattr(config, key):
+            exec(f"config.{config_item}", globals())
+            changed = True
+    if changed:
+        write_user_config()
+
 import pprint
 from pathlib import Path
-import shutil
 
 config.current_prompt = ""
 
@@ -117,22 +154,3 @@ if not os.path.isdir(BIBLEMATEDATA):
 
 def fix_string(content):
     return content.replace(" ", " ").replace("‑", "-")
-
-def write_user_config():
-    """Writes the current configuration to the user's config file."""
-    configurations = f"""agent_mode={config.agent_mode}
-prompt_engineering={config.prompt_engineering}
-auto_suggestions={config.auto_suggestions}
-max_steps={config.max_steps}
-lite={config.lite}
-hide_tools_order={config.hide_tools_order}
-default_bible="{config.default_bible}"
-default_commentary="{config.default_commentary}"
-default_encyclopedia="{config.default_encyclopedia}"
-default_lexicon="{config.default_lexicon}"
-max_semantic_matches={config.max_semantic_matches}
-max_log_lines={config.max_log_lines}
-mcp_port={config.mcp_port}
-embedding_model="{config.embedding_model}"
-disabled_tools={pprint.pformat(config.disabled_tools)}"""
-    writeTextFile(CONFIG_FILE, configurations)

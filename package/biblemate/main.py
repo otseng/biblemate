@@ -955,6 +955,8 @@ Please provide me with the final answer to my original request based on the work
             if args.exit:
                 break
     
+    # back up configurations
+    write_user_config(backup=True)
     # reset terminal window title
     clear_title()
 
