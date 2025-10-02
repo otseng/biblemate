@@ -1,8 +1,96 @@
 from agentmake import AGENTMAKE_USER_DIR, readTextFile, writeTextFile
+import os
+
+CONFIG_FILE = config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py")
+
+# restore config backup after upgrade
+if readTextFile(CONFIG_FILE).strip() == "":
+    default_config = '''agent_mode=False
+prompt_engineering=False
+auto_suggestions=False
+max_steps=50
+lite=False
+hide_tools_order=True
+default_bible="NET"
+default_commentary="CBSC"
+default_encyclopedia="ISB"
+default_lexicon="Morphology"
+max_semantic_matches=15
+max_log_lines=2000
+mcp_port=33333
+embedding_model="paraphrase-multilingual"
+disabled_tools=['search_1_chronicles_only',
+'search_1_corinthians_only',
+'search_1_john_only',
+'search_1_kings_only',
+'search_1_peter_only',
+'search_1_samuel_only',
+'search_1_thessalonians_only',
+'search_1_timothy_only',
+'search_2_chronicles_only',
+'search_2_corinthians_only',
+'search_2_john_only',
+'search_2_kings_only',
+'search_2_peter_only',
+'search_2_samuel_only',
+'search_2_thessalonians_only',
+'search_2_timothy_only',
+'search_3_john_only',
+'search_acts_only',
+'search_amos_only',
+'search_colossians_only',
+'search_daniel_only',
+'search_deuteronomy_only',
+'search_ecclesiastes_only',
+'search_ephesians_only',
+'search_esther_only',
+'search_exodus_only',
+'search_ezekiel_only',
+'search_ezra_only',
+'search_galatians_only',
+'search_genesis_only',
+'search_habakkuk_only',
+'search_haggai_only',
+'search_hebrews_only',
+'search_hosea_only',
+'search_isaiah_only',
+'search_james_only',
+'search_jeremiah_only',
+'search_job_only',
+'search_joel_only',
+'search_john_only',
+'search_jonah_only',
+'search_joshua_only',
+'search_jude_only',
+'search_judges_only',
+'search_lamentations_only',
+'search_leviticus_only',
+'search_luke_only',
+'search_malachi_only',
+'search_mark_only',
+'search_matthew_only',
+'search_micah_only',
+'search_nahum_only',
+'search_nehemiah_only',
+'search_numbers_only',
+'search_obadiah_only',
+'search_philemon_only',
+'search_philippians_only',
+'search_proverbs_only',
+'search_psalms_only',
+'search_revelation_only',
+'search_romans_only',
+'search_ruth_only',
+'search_song_of_songs_only',
+'search_titus_only',
+'search_zechariah_only',
+'search_zephaniah_only']'''
+    writeTextFile(CONFIG_FILE, default_config)
+
 from biblemate import config
 import pprint
 from pathlib import Path
-import os, shutil
+import shutil
 
 config.current_prompt = ""
 
@@ -32,7 +120,6 @@ def fix_string(content):
 
 def write_user_config():
     """Writes the current configuration to the user's config file."""
-    config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py")
     configurations = f"""agent_mode={config.agent_mode}
 prompt_engineering={config.prompt_engineering}
 auto_suggestions={config.auto_suggestions}
@@ -48,4 +135,4 @@ max_log_lines={config.max_log_lines}
 mcp_port={config.mcp_port}
 embedding_model="{config.embedding_model}"
 disabled_tools={pprint.pformat(config.disabled_tools)}"""
-    writeTextFile(config_file, configurations)
+    writeTextFile(CONFIG_FILE, configurations)

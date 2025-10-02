@@ -125,7 +125,7 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
                 title=title,
             ),
             Label(
-                "[Ctrl+S] Send [Ctrl+Y] Help",
+                "[Ctrl+S] Send [Ctrl+Q] Exit" if title else "[Ctrl+S] Send [Ctrl+Y] Help",
                 align=WindowAlign.RIGHT,
                 style="fg:grey",
             ),
@@ -138,7 +138,35 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
     
     # Create key bindings
     bindings = KeyBindings()
+    config.cursor_position = 0
     
+    if not title: # these shortcuts are irrelevant for review or configuration prompts
+        # help
+        @bindings.add("c-y")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result=".help")
+        # get ideas
+        @bindings.add("c-g")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result=".ideas")
+        # new chat
+        @bindings.add("c-n")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result=".new")
+
+    # launch editor
+    @bindings.add("c-p")
+    def _(event):
+        config.cursor_position = text_area.buffer.cursor_position
+        config.current_prompt = text_area.text
+        event.app.exit(result=".editprompt")
+    # exit
+    @bindings.add("c-q")
+    def _(event):
+        event.app.exit(result=".exit")
     # submit
     @bindings.add("escape", "enter")
     @bindings.add("c-s")
@@ -154,30 +182,6 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
             event.app.exit(result=text_area.text.strip())
         else:
             text_area.buffer.newline()
-    # help
-    @bindings.add("c-y")
-    def _(event):
-        config.current_prompt = text_area.text
-        event.app.exit(result=".help")
-    # launch editor
-    @bindings.add("c-p")
-    def _(event):
-        config.current_prompt = text_area.text
-        event.app.exit(result=".editprompt")
-    # get ideas
-    @bindings.add("c-g")
-    def _(event):
-        config.current_prompt = text_area.text
-        event.app.exit(result=".ideas")
-    # new chat
-    @bindings.add("c-n")
-    def _(event):
-        config.current_prompt = text_area.text
-        event.app.exit(result=".new")
-    # exit
-    @bindings.add("c-q")
-    def _(event):
-        event.app.exit(result=".exit")
     # insert four spaces
     @bindings.add("s-tab")
     def _(event):
@@ -222,7 +226,7 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
     # edit in full editor
     while result == ".editprompt":
         if DEFAULT_TEXT_EDITOR == "etextedit":
-            text_area.text = await launch_async(input_text=config.current_prompt, exitWithoutSaving=True, customTitle=f"BibleMate AI [{BIBLEMATE_VERSION}]", startAtEnd=True)
+            text_area.text = await launch_async(input_text=config.current_prompt, exitWithoutSaving=True, customTitle=f"BibleMate AI [{BIBLEMATE_VERSION}]", startAt=config.cursor_position)
         else:
             text_area.text = edit_temp_file(config.current_prompt)
         config.current_prompt = ""

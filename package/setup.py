@@ -2,7 +2,7 @@ from setuptools import setup
 from setuptools.command.install import install
 import os, shutil, platform, sys
 
-version = "0.1.17"
+version = "0.1.19"
 with open(os.path.join("biblemate", "version.txt"), "w", encoding="utf-8") as fileObj:
     fileObj.write(version)
 
@@ -27,6 +27,9 @@ with open(os.path.join(package, "requirements.txt"), "r") as fileObj:
         mod = line.strip()
         if mod:
             install_requires.append(mod)
+
+# make sure config.py is empty
+open(os.path.join(package, "config.py"), "w").close()
 
 # https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/
 setup(

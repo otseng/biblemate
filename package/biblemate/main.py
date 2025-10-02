@@ -754,13 +754,13 @@ Viist https://github.com/eliranwong/biblemate"""
                 messages[-1]["content"] = fix_string(messages[-1]["content"])
 
             # user specify a single tool
-            if specified_tool and not specified_tool == "@@":
+            if specified_tool and not specified_tool == "@@" and not specified_prompt:
                 await process_tool(specified_tool, user_request)
                 console.print(Markdown(f"# User Request\n\n{messages[-2]['content']}\n\n# AI Response\n\n{messages[-1]['content']}"))
                 continue
 
             # Chat mode
-            if config.agent_mode is None and not specified_tool == "@@":
+            if config.agent_mode is None and not specified_tool == "@@" and not specified_prompt:
                 async def run_chat_mode():
                     nonlocal messages, user_request
                     messages = agentmake(messages if messages else user_request, system="auto", **AGENTMAKE_CONFIG)
@@ -810,7 +810,7 @@ Available tools are: {available_tools}.
                     await thinking(generate_master_plan)
 
                     # partner mode
-                    if config.agent_mode == False:
+                    if not config.agent_mode:
                         console.rule()
                         console.print(Markdown("# Review & Confirm"))
                         console.print("Please review and confirm the master plan, or make any changes you need:", justify="center")
