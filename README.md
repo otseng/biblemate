@@ -140,6 +140,31 @@ You may override the default AI backend temporarily by using the CLI option `-b`
 
 > biblemate -b groq
 
+### Configure UBA API [Optional]
+
+You can optionally configure the UBA API backend by editing the following items:
+
+```
+# Tool: UBA API
+UBA_API_LOCAL_PORT=8080
+UBA_API_ENDPOINT="https://bible.gospelchurch.uk/plain"
+UBA_API_TIMEOUT=10
+UBA_API_PRIVATE_KEY=
+```
+
+### Configure Remote MCP Server Authentication [Optional]
+
+You can optionally configure the authentication information for the remote MCP server by editing the following items:
+
+```
+# BibleMate AI
+BIBLEMATE_STATIC_TOKEN=
+BIBLEMATE_MCP_PUBLIC_KEY=
+BIBLEMATE_MCP_PRIVATE_KEY=
+BIBLEMATE_MCP_ISSUER=
+BIBLEMATE_MCP_AUDIENCE=
+```
+
 ## 🗣️ AI Modes
 
 You can select between three AI modes to suit your preferences:

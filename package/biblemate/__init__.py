@@ -4,6 +4,8 @@ import os, shutil, pprint
 CONFIG_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py")
 CONFIG_FILE_BACKUP = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "config.py")
 
+# NOTE: When add a config item, update both `default_config` and `write_user_config`
+
 # restore config backup after upgrade
 default_config = '''banner_title=""
 *agent_mode=False
