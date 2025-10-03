@@ -19,7 +19,11 @@ async def get_multiple_bibles(options, descriptions):
     return select if select else []
 
 async def get_reference(verse_reference=True, exhaustiveReferences=False):
-    result = await DIALOGS.getInputDialog(title="Bible Verse Reference", text="Enter a verse reference, e.g. John 3:16")
+    abbr = BibleBooks.abbrev["eng"]
+    input_suggestions = []
+    for book in range(1,67):
+        input_suggestions += list(abbr[str(book)])
+    result = await DIALOGS.getInputDialog(title="Bible Verse Reference", text="Enter a verse reference, e.g. John 3:16", suggestions=input_suggestions)
     if result:
         parser = BibleVerseParser(False)
         result = parser.extractExhaustiveReferencesReadable(result) if exhaustiveReferences else parser.extractAllReferencesReadable(result)
@@ -62,6 +66,101 @@ async def get_reference(verse_reference=True, exhaustiveReferences=False):
         return f"{abbr[str(book)][0]} {chapter}"
 
 # dialogs for content retrieval
+
+async def uba_search_bible(options, descriptions):
+    select = await DIALOGS.getValidOptions(
+        default=config.default_bible,
+        options=options,
+        descriptions=descriptions,
+        title="Search Bible",
+        text="Select a bible version to continue:"
+    )
+    if not select:
+        return ""
+    abbr = BibleBooks.abbrev["eng"]
+    book = await DIALOGS.getValidOptions(
+        default=str(config.last_book),
+        options=["0"]+[str(book) for book in range(1,67)],
+        descriptions=["ALL"]+[abbr[str(book)][-1] for book in range(1,67)],
+        title="Search in Book(s)",
+        text="Select all books or a book to continue:"
+    )
+    if not book:
+        return ""
+    templates = [
+        "search",
+        "genesis",
+        "exodus",
+        "leviticus",
+        "numbers",
+        "deuteronomy",
+        "joshua",
+        "judges",
+        "ruth",
+        "samuel1",
+        "samuel2",
+        "kings1",
+        "kings2",
+        "chronicles1",
+        "chronicles2",
+        "ezra",
+        "nehemiah",
+        "esther",
+        "job",
+        "psalms",
+        "proverbs",
+        "ecclesiastes",
+        "songs",
+        "isaiah",
+        "jeremiah",
+        "lamentations",
+        "ezekiel",
+        "daniel",
+        "hosea",
+        "joel",
+        "amos",
+        "obadiah",
+        "jonah",
+        "micah",
+        "nahum",
+        "habakkuk",
+        "zephaniah",
+        "haggai",
+        "zechariah",
+        "malachi",
+        "matthew",
+        "mark",
+        "luke",
+        "john",
+        "acts",
+        "romans",
+        "corinthians1",
+        "corinthians2",
+        "galatians",
+        "ephesians",
+        "philippians",
+        "colossians",
+        "thessalonians1",
+        "thessalonians2",
+        "timothy1",
+        "timothy2",
+        "titus",
+        "philemon",
+        "hebrews",
+        "james",
+        "peter1",
+        "peter2",
+        "john1",
+        "john2",
+        "john3",
+        "jude",
+        "revelation",
+    ]
+    template = templates[int(book)]
+    result = await DIALOGS.getInputDialog(title="Search Item", text="Enter an item to search for:")
+    if not result:
+        return ""
+    return f"//{template}/{select}/{result}" if result else ""
 
 async def uba_bible(options, descriptions):
     select = await DIALOGS.getValidOptions(
@@ -107,9 +206,46 @@ async def uba_compare_chapter(options, descriptions):
     result = await get_reference(verse_reference=False)
     return f"//uba/COMPARECHAPTER:::{select}:::{result}" if result else ""
 
+async def uba_commentary(options, descriptions):
+    select = await DIALOGS.getValidOptions(
+        default=config.default_bible,
+        options=options,
+        descriptions=descriptions,
+        title="Bible Commentary",
+        text="Select a commentary to continue:"
+    )
+    if not select:
+        return ""
+    result = await get_reference()
+    return f"//commentary/{select}/{result}" if result else ""
+
 async def uba_dictionary():
     result = await DIALOGS.getInputDialog(title="Search Dictionary", text="Enter a search item:")
     return f"//dictionary/{result.strip()}" if result and result.strip() else ""
+
+async def uba_parallel():
+    result = await DIALOGS.getInputDialog(title="Search Bible Parallel Passages", text="Enter a search item:")
+    return f"//parallel/{result.strip()}" if result and result.strip() else ""
+
+async def uba_promise():
+    result = await DIALOGS.getInputDialog(title="Search Bible Promises", text="Enter a search item:")
+    return f"//promise/{result.strip()}" if result and result.strip() else ""
+
+async def uba_topic():
+    result = await DIALOGS.getInputDialog(title="Search Bible Topics", text="Enter a search item:")
+    return f"//topic/{result.strip()}" if result and result.strip() else ""
+
+async def uba_name():
+    result = await DIALOGS.getInputDialog(title="Search Bible Names", text="Enter a search item:")
+    return f"//name/{result.strip()}" if result and result.strip() else ""
+
+async def uba_character():
+    result = await DIALOGS.getInputDialog(title="Search Bible Characters", text="Enter a search item:")
+    return f"//character/{result.strip()}" if result and result.strip() else ""
+
+async def uba_location():
+    result = await DIALOGS.getInputDialog(title="Search Bible Locations", text="Enter a search item:")
+    return f"//location/{result.strip()}" if result and result.strip() else ""
 
 async def uba_encyclopedia(options, descriptions):
     select = await DIALOGS.getValidOptions(

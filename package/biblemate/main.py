@@ -342,11 +342,17 @@ async def main_async():
                 ".chapter": "open bible chapter",
                 ".compare": "compare bible verse in different versions",
                 ".comparechapter": "compare bible chapter in different versions",
-                #".search": "search bible", # TODO
-                #".commentary": "open commentary", # TODO
+                ".search": "search bible",
+                ".commentary": "open commentary",
                 ".dictionary": "search dictionary",
                 ".encyclopedia": "search encyclopedia",
                 ".lexicon": "search lexicon",
+                ".parallel": "search parallel passages",
+                ".promise": "search bible promises",
+                ".topic": "search bible topic",
+                ".name": "search bible name",
+                ".character": "search bible character",
+                ".location": "search bible location",
                 # resource information
                 ".tools": "list available tools",
                 ".plans": "list available plans",
@@ -414,14 +420,30 @@ async def main_async():
             # run templates
             if user_request == ".bible":
                 user_request = await uba_bible(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
+            elif user_request == ".search":
+                user_request = await uba_search_bible(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
             elif user_request == ".chapter":
                 user_request = await uba_chapter(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
             elif user_request == ".compare":
                 user_request = await uba_compare(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
             elif user_request == ".comparechapter":
                 user_request = await uba_compare_chapter(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
+            elif user_request == ".commentary":
+                user_request = await uba_commentary(options=resource_suggestions_raw["commentaryListAbb"], descriptions=resource_suggestions_raw["commentaryList"])
             elif user_request == ".dictionary":
                 user_request = await uba_dictionary()
+            elif user_request == ".parallel":
+                user_request = await uba_parallel()
+            elif user_request == ".promise":
+                user_request = await uba_promise()
+            elif user_request == ".topic":
+                user_request = await uba_topic()
+            elif user_request == ".name":
+                user_request = await uba_name()
+            elif user_request == ".character":
+                user_request = await uba_character()
+            elif user_request == ".location":
+                user_request = await uba_location()
             elif user_request == ".encyclopedia":
                 user_request = await uba_encyclopedia(options=resource_suggestions_raw["encyclopediaListAbb"], descriptions=resource_suggestions_raw["encyclopediaList"])
             elif user_request == ".lexicon":
@@ -474,16 +496,20 @@ async def main_async():
                 except Exception as e: # invalid uri
                     print(f"Error: {e}\n")
                     continue
-            
+
             # system command
+            if user_request.startswith(".open") or user_request.startswith(".import"):
+                cwd = os.getcwd()
             if user_request == ".open":
-                open_item = await DIALOGS.getInputDialog(title="Open", text="Enter a file or folder path:", default=os.path.dirname(BIBLEMATEDATA), suggestions=PathCompleter())
+                os.chdir(os.path.dirname(BIBLEMATEDATA))
+                open_item = await DIALOGS.getInputDialog(title="Open", text="Enter a file or folder path:", suggestions=PathCompleter())
                 if not open_item:
                     open_item = os.getcwd()
                 user_request = f".open {open_item}"
             elif user_request == ".import":
                 chats_path = os.path.join(os.path.dirname(BIBLEMATEDATA), "chats")
-                import_item = await DIALOGS.getInputDialog(title="Import", text="Enter a conversation file or folder path:", default=chats_path, suggestions=PathCompleter())
+                os.chdir(chats_path)
+                import_item = await DIALOGS.getInputDialog(title="Import", text="Enter a conversation file or folder path:", suggestions=PathCompleter())
                 if import_item:
                     user_request = f".import {import_item}"
                 else:
@@ -494,6 +520,7 @@ async def main_async():
                 with warnings.catch_warnings():
                     warnings.filterwarnings("ignore", category=ResourceWarning)
                     subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                os.chdir(cwd)
                 continue
             elif user_request.startswith(".import ") and os.path.exists(os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[8:]))):
                 load_path = os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[8:]))
@@ -505,6 +532,7 @@ async def main_async():
                         file_path = os.path.join(load_path, "conversation.py")
                     else:
                         print("Expected a file or a directory containing `conversation.py` and `master_plan.md`.")
+                        os.chdir(cwd)
                         continue
                     backup_conversation(messages, master_plan, console)
                     messages = [{"role": i["role"], "content": i["content"]} for i in eval(readTextFile(file_path)) if i.get("role", "") in ("user", "assistant")]
@@ -528,10 +556,14 @@ async def main_async():
                                 console.print(Markdown(f"# {i['role']}\n\n{i['content']}"))
                     if os.path.isfile(load_path) or config.agent_mode is None:
                         # next user request
+                        os.chdir(cwd)
                         continue
                 except Exception as e:
                     print(f"Error: {e}\n")
+                    os.chdir(cwd)
                     continue
+            if user_request.startswith(".open") or user_request.startswith(".import"):
+                os.chdir(cwd)
 
             # predefined operations with `.` commands
             if user_request in action_list:

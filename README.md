@@ -265,11 +265,13 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | `.tools`             | List available tools               |
 | `.plans`             | List available plans               |
 | `.resources`         | List available resources           |
-| `.edit`              | Edit current conversation          |
 | `.editprompt`        | Edit current prompt                |
 | `.backup`            | Backup conversation                |
-| `.import`            | Import a saved conversation        |
-| `.open`              | Open a file or directory           |
+| `.edit`              | Edit current conversation          |
+| `.trim`              | Trim current conversation          |
+| `.import`            | Import conversation                |
+| `.export`            | Export conversation                |
+| `.open`              | Open file or directory             |
 | `.autosuggestions`   | Toggle auto input suggestions      |
 | `.promptengineer`    | Toggle auto prompt engineering     |
 | `.lite`              | Toggle lite context                |
@@ -277,6 +279,26 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | `.matches`           | Set max number of semantic matches |
 | `.download`          | Download data files                |
 | `.help`              | Show help page                     |
+
+Some commands are designed for retrieving content from UniqueBible App:
+
+| Command              | Description                        |
+|----------------------|------------------------------------|
+| `.bible`             | Open bible verse                   |
+| `.chapter`           | Open bible chapter                 |
+| `.compare`           | Compare bible verse                |
+| `.comparechapter`    | Compare bible chapter              |
+| `.dictionary`        | Search dictionary                  |
+| `.encyclopedia`      | Search encyclopedia                |
+| `.lexicon`           | Search lexicon                     |
+| `.search`            | Search bible                       |
+| `.commentary`        | Open commentary                    |
+| `.parallel`          | Search parallel passages           |
+| `.promise`           | Search bible promises              |
+| `.topic`             | Search bible topics                |
+| `.name`              | Search bible names                 |
+| `.character`         | Search bible characters            |
+| `.locations`         | Search bible locations             |
 
 ### Remarks:
 
