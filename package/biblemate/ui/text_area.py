@@ -22,6 +22,8 @@ import os
 async def getTextArea(input_suggestions:list=None, default_entry="", title="", multiline:bool=True, completion:Optional[Any]=None, scrollbar:bool=True, read_only:bool=False):
     """Get text area input with a border frame"""
 
+    if config.current_prompt and not default_entry:
+        default_entry = config.current_prompt
     config.current_prompt = "" # reset config.current_prompt
     completer = FuzzyCompleter(WordCompleter(input_suggestions, ignore_case=True)) if input_suggestions else None
     
@@ -54,6 +56,7 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         focus_on_click=True,
         wrap_lines=True,
     )
+    text_area.buffer.cursor_position = len(text_area.text)
 
     def unpack_text_chunks(_):
         openai_style = True if config.backend in ("azure", "azure_any", "custom", "deepseek", "github", "github_any", "googleai", "groq", "llamacpp", "mistral", "openai", "xai") else False
@@ -172,16 +175,15 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
     @bindings.add("escape", "enter")
     @bindings.add("c-s")
     def _(event):
-        if text_area.text.strip():
-            event.app.exit(result=text_area.text.strip())
+        if not text_area.text.strip():
+            text_area.text = entry = "."
+        event.app.exit(result=text_area.text.strip())
     # submit or new line
     @bindings.add("enter")
     @bindings.add("c-m")
     def _(event):
         entry = text_area.text.strip()
-        if not title and not entry:
-            text_area.text = entry = "."
-        if not multiline or (entry == "." or entry.startswith(".") and entry in input_suggestions) or entry.startswith(".open ") or entry.startswith(".import "):
+        if not multiline or (not title and ((entry.strip() == "." or entry.startswith(".") and entry in input_suggestions) or entry.startswith(".open ") or entry.startswith(".import "))):
             event.app.exit(result=text_area.text.strip())
         else:
             text_area.buffer.newline()
@@ -233,6 +235,7 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
             text_area.text = await launch_async(input_text=config.current_prompt, exitWithoutSaving=True, customTitle=f"BibleMate AI", startAt=config.cursor_position)
         else:
             text_area.text = edit_temp_file(config.current_prompt)
+        text_area.buffer.cursor_position = len(text_area.text)
         config.current_prompt = ""
         # Run the non-full-screen text area again
         result = await app.run_async()

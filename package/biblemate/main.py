@@ -12,8 +12,9 @@ from alive_progress import alive_bar
 from fastmcp import Client
 from fastmcp.client.transports import StreamableHttpTransport
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
-from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_file, edit_configurations, readTextFile, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND
+from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_file, edit_configurations, readTextFile, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND, DEFAULT_TEXT_EDITOR
 #from agentmake.utils.handle_text import set_log_file_max_lines
+from agentmake.etextedit import launch_async
 from agentmake.utils.manage_package import getPackageLatestVersion
 from rich.console import Console
 from rich.panel import Panel
@@ -24,6 +25,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.terminal_theme import MONOKAI
 from prompt_toolkit.shortcuts import set_title, clear_title
 from prompt_toolkit.completion import PathCompleter
+from packaging import version
 if not USER_OS == "Windows":
     import readline  # for better input experience
 
@@ -183,34 +185,35 @@ def display_info(console, info):
     console.print(info_panel)
     console.print()
 
-def backup_conversation(messages, master_plan, console=None):
+def backup_conversation(messages, master_plan, console=None, storage_path=None):
     """Backs up the current conversation to the user's directory."""
     if len(messages) > len(DEFAULT_MESSAGES):
         # determine storage path
-        if console:
-            timestamp = getCurrentDateTime()
-            storagePath = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "chats", timestamp)
-        else:
-            storagePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "temp")
+        if not storage_path:
+            if console:
+                timestamp = getCurrentDateTime()
+                storage_path = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "chats", timestamp)
+            else:
+                storage_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "temp")
         # create directory if not exists
-        if not os.path.isdir(storagePath):
-            Path(storagePath).mkdir(parents=True, exist_ok=True)
+        if not os.path.isdir(storage_path):
+            Path(storage_path).mkdir(parents=True, exist_ok=True)
         # Save full conversation
-        conversation_file = os.path.join(storagePath, "conversation.py")
+        conversation_file = os.path.join(storage_path, "conversation.py")
         writeTextFile(conversation_file, pprint.pformat(messages))
         # Save master plan
-        writeTextFile(os.path.join(storagePath, "master_plan.md"), master_plan)
+        writeTextFile(os.path.join(storage_path, "master_plan.md"), master_plan)
         # Save markdown
-        markdown_file = os.path.join(storagePath, "conversation.md")
+        markdown_file = os.path.join(storage_path, "conversation.md")
         markdown_text = "\n\n".join(["```"+i["role"]+"\n"+i["content"]+"\n```" for i in messages if i.get("role", "") in ("user", "assistant")])
         writeTextFile(markdown_file, markdown_text)
         # Save html
         if console:
-            html_file = os.path.join(storagePath, "conversation.html")
+            html_file = os.path.join(storage_path, "conversation.html")
             console.save_html(html_file, inline_styles=True, theme=MONOKAI)
         # Inform users of the backup location
         if console:
-            info = f"Conversation saved to: {storagePath}\nReport saved to: {html_file}"
+            info = f"Conversation saved to: {storage_path}\nReport saved to: {html_file}"
             display_info(console, info)
 
 async def main_async():
@@ -307,7 +310,7 @@ async def main_async():
                 print()
                 # check for updates
                 latest_version = getPackageLatestVersion("biblemate")
-                if latest_version and str(latest_version).strip() != BIBLEMATE_VERSION:
+                if latest_version and latest_version > version.parse(BIBLEMATE_VERSION):
                     info = f"A new version of BibleMate AI is available: {latest_version} (you are using {BIBLEMATE_VERSION}).\nTo upgrade, close `BibleMate AI` first and run `pip install --upgrade biblemate`."
                     display_info(console, info)
                 # check connection
@@ -329,11 +332,11 @@ async def main_async():
                 ".exit": "exit current prompt",
                 # conversations
                 ".new": "new conversation",
-                #".trim": "trim conversation", # TODO
+                ".trim": "trim conversation",
                 ".edit": "edit conversation",
-                ".backup": "backup conversation",
                 ".import": "import conversation",
-                #".export": "export conversation",
+                ".export": "export conversation",
+                ".backup": "backup conversation",
                 # UBA content
                 ".bible": "open bible verse",
                 ".chapter": "open bible chapter",
@@ -593,6 +596,47 @@ Viist https://github.com/eliranwong/biblemate
                     prompts_descriptions = [f"- `/{name}`: {description}" for name, description in prompts.items()]
                     info = Markdown("## Available Plans\n\n"+"\n".join(prompts_descriptions))
                     display_info(console, info)
+                elif user_request == ".export":
+                    cwd = os.getcwd()
+                    chats_path = os.path.join(os.path.dirname(BIBLEMATEDATA), "chats")
+                    if not os.path.isdir(chats_path):
+                        Path(chats_path).mkdir(parents=True, exist_ok=True)
+                    os.chdir(chats_path)
+                    export_item = await DIALOGS.getInputDialog(title="Export", text="Enter a name or path:", default=chats_path, suggestions=PathCompleter())
+                    if export_item:
+                        export_item_parent = os.path.dirname(export_item)
+                        if not export_item_parent:
+                            storage_path = os.path.join(chats_path, export_item)
+                        elif os.path.isdir(export_item_parent):
+                            storage_path = export_item
+                        else:
+                            storage_path = os.path.join(chats_path, export_item)
+                        try:
+                            backup_conversation(messages, master_plan, console, storage_path=storage_path)
+                        except Exception as e:
+                            print(f"Error: {e}\n")
+                    os.chdir(cwd)
+                elif user_request == ".trim":
+                    options = [str(i) for i in range(0, len(messages))]
+                    index_to_trim = await DIALOGS.getValidOptions(
+                        default=str(len(messages)-1),
+                        options=options,
+                        descriptions=[f"{messages[int(i)]['role']}: "+(messages[int(i)]['content'].replace('\n', ' ')[:50]+'...' if len(messages[int(i)]['content'])>50 else messages[int(i)]['content'].replace('\n', ' ')) for i in options],
+                        title="Trim Conversation",
+                        text="Select an entry to be removed:\n(Note: Its paired user/assistant content will also be removed.)"
+                    )
+                    if index_to_trim:
+                        index_to_trim = int(index_to_trim)
+                        trim_role = messages[index_to_trim]["role"]
+                        # make sure the user/assistant is removed in pair; skip system message
+                        if trim_role == "user":
+                            if len(messages) > (index_to_trim + 1) and messages[index_to_trim+1]["role"] == "assistant":
+                                del messages[index_to_trim+1]
+                            del messages[index_to_trim]
+                        elif trim_role == "assistant":
+                            del messages[index_to_trim]
+                            if messages[index_to_trim-1]["role"] == "user":
+                                del messages[index_to_trim-1]
                 elif user_request == ".edit":
                     options = [str(i) for i in range(0, len(messages))]
                     index_to_edit = await DIALOGS.getValidOptions(
@@ -604,10 +648,14 @@ Viist https://github.com/eliranwong/biblemate
                     )
                     if index_to_edit:
                         index_to_edit = int(index_to_edit)
-                        temp_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "temp", "edit.md")
-                        writeTextFile(temp_file, messages[index_to_edit]["content"])
-                        edit_file(temp_file)
-                        edited_content = readTextFile(temp_file).strip()
+                        edit_content = messages[index_to_edit]["content"]
+                        if DEFAULT_TEXT_EDITOR == "etextedit":
+                            edited_content = await launch_async(input_text=edit_content, exitWithoutSaving=True, customTitle=f"BibleMate AI")
+                        else:
+                            temp_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "temp", "edit.md")
+                            writeTextFile(temp_file, edit_content)
+                            edit_file(temp_file)
+                            edited_content = readTextFile(temp_file).strip()
                         if edited_content:
                             messages[index_to_edit]["content"] = edited_content
                             backup_conversation(messages, master_plan) # backup
