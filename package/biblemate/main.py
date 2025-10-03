@@ -1,13 +1,12 @@
 from biblemate.core.systems import *
 from biblemate.uba.dialogs import *
-from biblemate.ui.selection_dialog import TerminalModeDialogs
 from biblemate.ui.text_area import getTextArea
 from biblemate.ui.info import get_banner
 from biblemate import config, BIBLEMATE_VERSION, AGENTMAKE_CONFIG, BIBLEMATEDATA, fix_string, write_user_config
 from biblemate.uba.api import run_uba_api, DEFAULT_MODULES
 from pathlib import Path
 import urllib.parse
-import asyncio, re, os, subprocess, click, gdown, pprint, argparse, json, zipfile, warnings
+import asyncio, re, os, subprocess, click, gdown, pprint, argparse, json, zipfile, warnings, sys
 from copy import deepcopy
 from alive_progress import alive_bar
 from fastmcp import Client
@@ -24,6 +23,7 @@ from rich.markdown import Markdown
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.terminal_theme import MONOKAI
 from prompt_toolkit.shortcuts import set_title, clear_title
+from prompt_toolkit.completion import PathCompleter
 if not USER_OS == "Windows":
     import readline  # for better input experience
 
@@ -51,6 +51,14 @@ parser.add_argument("-t", "--token", action="store", dest="token", help="specify
 parser.add_argument("-mcp", "--mcp", action="store", dest="mcp", help=f"specify a custom MCP server to use, e.g. 'http://127.0.0.1:{config.mcp_port}/mcp/'; applicable to command `biblemate` only")
 parser.add_argument("-p", "--port", action="store", dest="port", help=f"specify a port for the MCP server to use, e.g. {config.mcp_port}; applicable to command `biblematemcp` only")
 args = parser.parse_args()
+
+if not sys.stdin.isatty():
+    stdin_text = sys.stdin.read()
+    if args.default:
+        args.default.append(stdin_text)
+    else:
+        args.default = [stdin_text]
+
 # write to the `config.py` file temporarily for the MCP server to pick it up
 if args.backend:
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py"), "a", encoding="utf-8") as fileObj:
@@ -324,7 +332,8 @@ async def main_async():
                 #".trim": "trim conversation", # TODO
                 ".edit": "edit conversation",
                 ".backup": "backup conversation",
-                ".load": "import conversation",
+                ".import": "import conversation",
+                #".export": "export conversation",
                 # UBA content
                 ".bible": "open bible verse",
                 ".chapter": "open bible chapter",
@@ -358,10 +367,17 @@ async def main_async():
             }
             input_suggestions = list(action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+[f"{p} " for p in prompt_list]+[f"//{r}" for r in resources.keys()]+template_list+resource_suggestions
             if args.default:
-                user_request = " ".join(args.default)
+                user_request = " ".join(args.default).strip()
                 args.default = None # reset to avoid repeated use
+                display_info(console, user_request)
             else:
                 user_request = await getTextArea(input_suggestions=input_suggestions)
+            # luanch action menu
+            if user_request == ".":
+                select = await DIALOGS.getValidOptions(options=action_list.keys(), descriptions=list(action_list.values()), title="Action Menu", text="Select an action:")
+                user_request = select if select else ""
+            if not user_request:
+                continue
             if user_request == ".ideas":
                 # Generate ideas for `prompts to try`
                 ideas = ""
@@ -458,7 +474,17 @@ async def main_async():
             
             # system command
             if user_request == ".open":
-                user_request = f".open {os.getcwd()}"
+                open_item = await DIALOGS.getInputDialog(title="Open", text="Enter a file or folder path:", default=os.path.dirname(BIBLEMATEDATA), suggestions=PathCompleter())
+                if not open_item:
+                    open_item = os.getcwd()
+                user_request = f".open {open_item}"
+            elif user_request == ".import":
+                chats_path = os.path.join(os.path.dirname(BIBLEMATEDATA), "chats")
+                import_item = await DIALOGS.getInputDialog(title="Import", text="Enter a conversation file or folder path:", default=chats_path, suggestions=PathCompleter())
+                if import_item:
+                    user_request = f".import {import_item}"
+                else:
+                    user_request = f".open {chats_path}"
             if user_request.startswith(".open ") and os.path.exists(os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))):
                 file_path = os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))
                 cmd = f'''{getOpenCommand()} "{file_path}"'''
@@ -466,10 +492,10 @@ async def main_async():
                     warnings.filterwarnings("ignore", category=ResourceWarning)
                     subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 continue
-            elif user_request.startswith(".load") and os.path.exists(os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))):
-                load_path = os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))
+            elif user_request.startswith(".import ") and os.path.exists(os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[8:]))):
+                load_path = os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[8:]))
                 try:
-                    # load conversation
+                    # import conversation
                     if os.path.isfile(load_path):
                         file_path = load_path
                     elif os.path.isdir(load_path) and os.path.isfile(os.path.join(load_path, "conversation.py")) and os.path.isfile(os.path.join(load_path, "master_plan.md")):
@@ -483,7 +509,7 @@ async def main_async():
                         messages.insert(0, {"role": "system", "content": DEFAULT_SYSTEM})
                     if messages[-1].get("role", "") == "user":
                         messages = messages[:-1]
-                    # load master plan
+                    # import master plan
                     if os.path.isdir(load_path):
                         master_plan = readTextFile(os.path.join(load_path, "master_plan.md"))
                         user_request = "[CONTINUE]"

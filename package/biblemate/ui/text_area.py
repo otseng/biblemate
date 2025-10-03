@@ -1,4 +1,5 @@
 from biblemate import config
+from prompt_toolkit.input import create_input
 from prompt_toolkit.layout import Layout, HSplit
 from prompt_toolkit.widgets import Frame, Label
 from prompt_toolkit.styles import Style, merge_styles
@@ -140,7 +141,7 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
     bindings = KeyBindings()
     config.cursor_position = 0
     
-    if not title: # these shortcuts are irrelevant for review or configuration prompts
+    if not title: # for the main prompt only; these shortcuts are irrelevant for review or configuration prompts
         # help
         @bindings.add("c-y")
         def _(event):
@@ -178,7 +179,9 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
     @bindings.add("c-m")
     def _(event):
         entry = text_area.text.strip()
-        if not multiline or (entry.startswith(".") and entry in input_suggestions) or entry.startswith(".open ") or entry.startswith(".load "):
+        if not title and not entry:
+            text_area.text = entry = "."
+        if not multiline or (entry == "." or entry.startswith(".") and entry in input_suggestions) or entry.startswith(".open ") or entry.startswith(".import "):
             event.app.exit(result=text_area.text.strip())
         else:
             text_area.buffer.newline()
@@ -216,6 +219,7 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         style=style,
         #clipboard=PyperclipClipboard(), # not useful if mouse_support is not enabled
         #mouse_support=True, # If enabled; content outside the app becomes unscrollable
+        input=create_input(always_prefer_tty=True),
         full_screen=False,
         after_render=unpack_text_chunks if completion is not None else None,
     )

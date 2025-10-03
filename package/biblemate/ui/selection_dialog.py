@@ -1,6 +1,7 @@
 from prompt_toolkit import HTML
 from prompt_toolkit.styles import Style
 from prompt_toolkit.shortcuts import input_dialog, radiolist_dialog, checkboxlist_dialog
+from prompt_toolkit.completion import WordCompleter, FuzzyCompleter
 
 
 class TerminalModeDialogs:
@@ -69,9 +70,18 @@ class TerminalModeDialogs:
             style=self.style,
         ).run_async()
 
-    async def getInputDialog(self, title="Input Dialog", text="Please type your entry:"):
+    async def getInputDialog(self, title="Input Dialog", text="Please type your entry:", default="", suggestions=None):
+        if suggestions:
+            if isinstance(suggestions, list):
+                completer = FuzzyCompleter(WordCompleter(suggestions, ignore_case=True))
+            else:
+                completer = suggestions
+        else:
+            completer = None
         return await input_dialog(
             title=title,
             text=text,
+            default=default,
             style=self.style,
+            completer=completer,
         ).run_async()
