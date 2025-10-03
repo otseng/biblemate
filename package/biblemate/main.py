@@ -598,7 +598,7 @@ Viist https://github.com/eliranwong/biblemate
                     index_to_edit = await DIALOGS.getValidOptions(
                         default=str(len(messages)-1),
                         options=options,
-                        descriptions=[f"{messages[int(i)]['role']}: {messages[int(i)]['content'].replace('\n', ' ')[:50]+'...' if len(messages[int(i)]['content'])>50 else messages[int(i)]['content'].replace('\n', ' ')}" for i in options],
+                        descriptions=[f"{messages[int(i)]['role']}: "+(messages[int(i)]['content'].replace('\n', ' ')[:50]+'...' if len(messages[int(i)]['content'])>50 else messages[int(i)]['content'].replace('\n', ' ')) for i in options],
                         title="Edit Conversation",
                         text="Select an entry to edit:"
                     )
