@@ -1,7 +1,8 @@
 from biblemate.core.systems import *
+from biblemate.uba.dialogs import *
+from biblemate.ui.selection_dialog import TerminalModeDialogs
 from biblemate.ui.text_area import getTextArea
 from biblemate.ui.info import get_banner
-from biblemate.ui.selection_dialog import TerminalModeDialogs
 from biblemate import config, BIBLEMATE_VERSION, AGENTMAKE_CONFIG, BIBLEMATEDATA, fix_string, write_user_config
 from biblemate.uba.api import run_uba_api, DEFAULT_MODULES
 from pathlib import Path
@@ -169,7 +170,7 @@ def display_info(console, info):
         border_style="bright_blue",
         box=box.ROUNDED,
         style="on grey11" if isinstance(info, str) else "",
-        padding=(1, 1)
+        #padding=(1 if isinstance(info, str) else 0, 1) # (0, 1) by default
     )
     console.print(info_panel)
     console.print()
@@ -230,12 +231,11 @@ async def main_async():
     console = Console(record=True)
     console.clear()
     console.print(get_banner(BIBLEMATE_VERSION))
-    dialogs = TerminalModeDialogs(None)
 
     async with client:
         tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources, templates = await initialize_app(client)
-        resource_suggestions = json.loads(run_uba_api(".resources"))
-        resource_suggestions = [f"//bible/{i}/" for i in resource_suggestions["bibleListAbb"]]+[f"//commentary/{i}/" for i in resource_suggestions["commentaryListAbb"]]+[f"//encyclopedia/{i}/" for i in resource_suggestions["encyclopediaListAbb"]]+[f"//lexicon/{i}/" for i in resource_suggestions["lexiconList"]]
+        resource_suggestions_raw = json.loads(run_uba_api(".resources"))
+        resource_suggestions = [f"//bible/{i}/" for i in resource_suggestions_raw["bibleListAbb"]]+[f"//commentary/{i}/" for i in resource_suggestions_raw["commentaryListAbb"]]+[f"//encyclopedia/{i}/" for i in resource_suggestions_raw["encyclopediaListAbb"]]+[f"//lexicon/{i}/" for i in resource_suggestions_raw["lexiconList"]]
         abbr = BibleBooks.abbrev["eng"]
         resource_suggestions += [abbr[str(book)][0] for book in range(1,67)]
 
@@ -316,8 +316,30 @@ async def main_async():
             # note: `python3 -m rich.emoji` for checking emoji
             console.print("Enter your request :smiley: :" if len(messages) == len(DEFAULT_MESSAGES) else "Enter a follow-up request :flexed_biceps: :")
             action_list = {
-                ".new": "new conversation",
+                # general
+                ".ideas": "generate ideas for prompts to try",
                 ".exit": "exit current prompt",
+                # conversations
+                ".new": "new conversation",
+                #".trim": "trim conversation", # TODO
+                ".edit": "edit conversation",
+                ".backup": "backup conversation",
+                ".load": "import conversation",
+                # UBA content
+                ".bible": "open bible verse",
+                ".chapter": "open bible chapter",
+                ".compare": "compare bible verse in different versions",
+                ".comparechapter": "compare bible chapter in different versions",
+                #".search": "search bible", # TODO
+                #".commentary": "open commentary", # TODO
+                ".dictionary": "search dictionary",
+                ".encyclopedia": "search encyclopedia",
+                ".lexicon": "search lexicon",
+                # resource information
+                ".tools": "list available tools",
+                ".plans": "list available plans",
+                ".resources": "list UniqueBible resources",
+                # configurations
                 ".backend": "configure backend",
                 ".steps": "configure the maximum number of steps allowed",
                 ".matches": "configure the maximum number of semantic matches",
@@ -325,18 +347,13 @@ async def main_async():
                 ".agent": "switch to agent mode",
                 ".partner": "switch to partner mode",
                 ".chat": "switch to chat mode",
-                ".tools": "list available tools",
-                ".plans": "list available plans",
-                ".resources": "list UniqueBible resources",
                 ".autosuggestions": "toggle auto input suggestions",
                 ".promptengineer": "toggle auto prompt engineering",
                 ".lite": "toggle lite context",
-                ".edit": "load the current conversation",
-                ".backup": "backup conversation",
-                ".load": "load a saved conversation",
-                ".open": "open a file or directory",
+                # file access
+                ".open": "open file or folder",
                 ".download": "download data files",
-                ".ideas": "generate ideas for prompts to try",
+                # help
                 ".help": "help page",
             }
             input_suggestions = list(action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+[f"{p} " for p in prompt_list]+[f"//{r}" for r in resources.keys()]+template_list+resource_suggestions
@@ -376,6 +393,23 @@ async def main_async():
                 continue
 
             # run templates
+            if user_request == ".bible":
+                user_request = await uba_bible(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
+            elif user_request == ".chapter":
+                user_request = await uba_chapter(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
+            elif user_request == ".compare":
+                user_request = await uba_compare(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
+            elif user_request == ".comparechapter":
+                user_request = await uba_compare_chapter(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
+            elif user_request == ".dictionary":
+                user_request = await uba_dictionary()
+            elif user_request == ".encyclopedia":
+                user_request = await uba_encyclopedia(options=resource_suggestions_raw["encyclopediaListAbb"], descriptions=resource_suggestions_raw["encyclopediaList"])
+            elif user_request == ".lexicon":
+                user_request = await uba_lexicon(options=resource_suggestions_raw["lexiconList"])
+            if not user_request:
+                continue
+
             if re.search(template_pattern, user_request):
                 user_request = urllib.parse.quote(user_request)
                 if user_request[2:].count("/") == 1:
@@ -393,7 +427,7 @@ async def main_async():
                     resource_content = resource_content[0].text
                     while resource_content.startswith("[") and resource_content.endswith("]"):
                         options = json.loads(resource_content)
-                        select = await dialogs.getValidOptions(
+                        select = await DIALOGS.getValidOptions(
                             options=options,
                             title="Multiple Matches",
                             text="Select one of them to continue:"
@@ -411,12 +445,12 @@ async def main_async():
                             {"role": "user", "content": f"Retrieve content from:\n\n{uri}"},
                             {"role": "assistant", "content": resource_content},
                         ]
-                        console.rule()
                         if resource_content == "Cancelled by user.":
                             info = resource_content
                             display_info(console, info)
                         else:
-                            console.print(Markdown(resource_content))
+                            info = Markdown(resource_content.strip())
+                            display_info(console, info)
                     continue
                 except Exception as e: # invalid uri
                     print(f"Error: {e}\n")
@@ -510,7 +544,7 @@ Viist https://github.com/eliranwong/biblemate
 - `Esc`: close input suggestion menu"""
                     display_info(console, Markdown(help_info))
                 elif user_request == ".tools":
-                    enabled_tools = await dialogs.getMultipleSelection(
+                    enabled_tools = await DIALOGS.getMultipleSelection(
                         default_values=available_tools,
                         options=master_available_tools,
                         title="Tool Options",
@@ -535,10 +569,10 @@ Viist https://github.com/eliranwong/biblemate
                     display_info(console, info)
                 elif user_request == ".edit":
                     options = [str(i) for i in range(0, len(messages))]
-                    index_to_edit = await dialogs.getValidOptions(
+                    index_to_edit = await DIALOGS.getValidOptions(
                         default=str(len(messages)-1),
                         options=options,
-                        descriptions=[f"{messages[int(i)]['role']}: {messages[int(i)]['content'][:50]+'...' if len(messages[int(i)]['content'])>50 else messages[int(i)]['content']}" for i in options],
+                        descriptions=[f"{messages[int(i)]['role']}: {messages[int(i)]['content'].replace('\n', ' ')[:50]+'...' if len(messages[int(i)]['content'])>50 else messages[int(i)]['content'].replace('\n', ' ')}" for i in options],
                         title="Edit Conversation",
                         text="Select an entry to edit:"
                     )
@@ -612,7 +646,7 @@ Viist https://github.com/eliranwong/biblemate
                         "encyclopedia.db": "1NLUBepvFd9UDxoGQyQ-IohmySjjeis2-",
                         "exlb.db": "1Hpo6iLSh5KzgR6IZ-c7KuML--A3nmP1-",
                     }
-                    file_id = await dialogs.getValidOptions(
+                    file_id = await DIALOGS.getValidOptions(
                         options=file_ids.keys(),
                         title="BibleMate Data Files",
                         text="Select a file:"
@@ -630,7 +664,7 @@ Viist https://github.com/eliranwong/biblemate
                             os.remove(output)
                 elif user_request == ".mode":
                     default_ai_mode = "chat" if config.agent_mode is None else "agent" if config.agent_mode else "partner"
-                    ai_mode = await dialogs.getValidOptions(
+                    ai_mode = await DIALOGS.getValidOptions(
                         default=default_ai_mode,
                         options=["agent", "partner", "chat"],
                         descriptions=["AGENT - Fully automated", "PARTNER - Semi-automated, with review and edit prompts", "CHAT - Direct text responses"],
@@ -698,7 +732,7 @@ Viist https://github.com/eliranwong/biblemate
                 if config.agent_mode:
                     this_tool = suggested_tools[0] if suggested_tools else "get_direct_text_response"
                 else: # `partner` mode when config.agent_mode is set to False
-                    this_tool = await dialogs.getValidOptions(options=suggested_tools if suggested_tools else available_tools, title="Suggested Tools", text="Select a tool:")
+                    this_tool = await DIALOGS.getValidOptions(options=suggested_tools if suggested_tools else available_tools, title="Suggested Tools", text="Select a tool:")
                     if not this_tool:
                         this_tool = "get_direct_text_response"
                 # Re-format user request
@@ -883,7 +917,7 @@ Available tools are: {available_tools}.
                 if config.agent_mode:
                     next_tool = suggested_tools[0] if suggested_tools else "get_direct_text_response"
                 else: # `partner` mode when config.agent_mode is set to False
-                    next_tool = await dialogs.getValidOptions(options=suggested_tools if suggested_tools else available_tools, title="Suggested Tools", text="Select a tool:")
+                    next_tool = await DIALOGS.getValidOptions(options=suggested_tools if suggested_tools else available_tools, title="Suggested Tools", text="Select a tool:")
                     if not next_tool:
                         next_tool = "get_direct_text_response"
                 prefix = f"## Next Tool [{step}]\n\n" if DEVELOPER_MODE and not config.hide_tools_order else f"## Tool Selection [{step}]\n\n"

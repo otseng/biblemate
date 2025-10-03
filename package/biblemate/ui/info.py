@@ -15,7 +15,7 @@ def get_banner(version):
 
     # --- Configuration and Styling ---
     TITLE_TEXT = "BIBLEMATE AI"
-    TAGLINE = "🌿 Automate Your Bible Study 🌿"
+    TAGLINE = "🌿 Empower Your Bible Study 🌿"
     
     # Custom colors using HEX codes for better consistency
     COLOR_SCRIPTURE = "#FFD700"  # Gold
@@ -30,7 +30,7 @@ def get_banner(version):
     title = Text.assemble(
         Text(TITLE_TEXT.split(' ')[0], style=f"bold {COLOR_SCRIPTURE}"),
         Text(" ", style=""),
-        Text("AI", style=f"bold italic {COLOR_AI}"),
+        Text(TITLE_TEXT.split(' ')[-1], style=f"bold italic {COLOR_AI}"),
     )
     
     # Center the title and make it larger

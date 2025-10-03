@@ -69,7 +69,7 @@ def bible(module:str, reference:str) -> str:
     reference = BibleVerseParser(False).extractAllReferencesReadable(reference)
     if not reference:
         return "Please provide a valid Bible reference to complete your request."
-    return run_uba_api(f"BIBLE:::{module}:::{reference}")
+    return f"{reference}\n\n"+run_uba_api(f"BIBLE:::{module}:::{reference}")
 
 @mcp.resource("chapter://{module}/{reference}")
 def chapter(module:str, reference:str) -> str:

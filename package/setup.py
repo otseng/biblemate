@@ -2,7 +2,7 @@ from setuptools import setup
 from setuptools.command.install import install
 import os, shutil, platform, sys
 
-version = "0.1.28"
+version = "0.1.29"
 with open(os.path.join("biblemate", "version.txt"), "w", encoding="utf-8") as fileObj:
     fileObj.write(version)
 
@@ -67,6 +67,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
+            f"bm={package}.main:main",
             f"{package}={package}.main:main",
             f"{package}mcp={package}.main:mcp",
         ],

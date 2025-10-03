@@ -1,5 +1,6 @@
 from agentmake import AGENTMAKE_USER_DIR, readTextFile, writeTextFile
 import os, shutil, pprint
+from pathlib import Path
 
 CONFIG_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py")
 CONFIG_FILE_BACKUP = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "config.py")
@@ -13,6 +14,7 @@ default_config = '''banner_title=""
 *auto_suggestions=True
 *max_steps=50
 *lite=False
+*web_browser=False
 *hide_tools_order=True
 *default_bible="NET"
 *default_commentary="CBSC"
@@ -108,6 +110,7 @@ prompt_engineering={config.prompt_engineering}
 auto_suggestions={config.auto_suggestions}
 max_steps={config.max_steps}
 lite={config.lite}
+web_browser={config.web_browser}
 hide_tools_order={config.hide_tools_order}
 default_bible="{config.default_bible}"
 default_commentary="{config.default_commentary}"
@@ -130,9 +133,11 @@ if just_upgraded:
     if changed:
         write_user_config()
 
-from pathlib import Path
-
+# temporary config
 config.current_prompt = ""
+config.last_book = 43
+config.last_chapter = 3
+config.last_verse = 16
 
 BIBLEMATE_VERSION = readTextFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), "version.txt"))
 

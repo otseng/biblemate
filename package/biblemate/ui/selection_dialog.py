@@ -1,11 +1,11 @@
 from prompt_toolkit import HTML
 from prompt_toolkit.styles import Style
-from prompt_toolkit.shortcuts import radiolist_dialog, checkboxlist_dialog
+from prompt_toolkit.shortcuts import input_dialog, radiolist_dialog, checkboxlist_dialog
 
 
 class TerminalModeDialogs:
 
-    def __init__(self, parent) -> None:
+    def __init__(self, parent=None) -> None:
         self.parent = parent
 
         #terminalHeadingTextColor = 'ansigreen'

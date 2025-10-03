@@ -95,7 +95,9 @@ def run_uba_api(command: str, html=False) -> str:
         content = response.text.strip()
         if command.lower().startswith("data:::"):
             return content.replace("\n", "\n- ")
-        content = re.sub(r"\n\(", "\n- (", content)
-        return re.sub(r"^\(", "- (", content)
+        content = re.sub(r"\n([0-9]+?) \(([^\(\)]+?)\)", r"\n- `\1` (`\2`)", content)
+        content = re.sub(r"^([0-9]+?) \(([^\(\)]+?)\)", r"- `\1` (`\2`)", content)
+        content = re.sub(r"\n\(([^\(\)]+?)\)", r"\n- (`\1`)", content)
+        return re.sub(r"^\(([^\(\)]+?)\)", r"- (`\1`)", content)
     except Exception as err:
         return f"An error occurred: {err}"
