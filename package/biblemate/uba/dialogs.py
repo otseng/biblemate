@@ -208,7 +208,7 @@ async def uba_compare_chapter(options, descriptions):
 
 async def uba_commentary(options, descriptions):
     select = await DIALOGS.getValidOptions(
-        default=config.default_bible,
+        default=config.default_commentary,
         options=options,
         descriptions=descriptions,
         title="Bible Commentary",
@@ -272,4 +272,44 @@ async def uba_lexicon(options):
     result = await DIALOGS.getInputDialog(title=f"Search Lexicon - {select}", text="Enter a search item:")
     return f"//lexicon/{select}/{result.strip()}" if result and result.strip() else ""
 
-# TODO: dialogs for changing default modules
+# Configure default modules
+
+async def uba_default_bible(options, descriptions):
+    select = await DIALOGS.getValidOptions(
+        default=config.default_bible,
+        options=options,
+        descriptions=descriptions,
+        title="Configure Default Bible",
+        text="Select a bible version:"
+    )
+    return select if select else ""
+
+async def uba_default_commentary(options, descriptions):
+    select = await DIALOGS.getValidOptions(
+        default=config.default_commentary,
+        options=options,
+        descriptions=descriptions,
+        title="Configure Default Commentary",
+        text="Select a commentary:"
+    )
+    return select if select else ""
+
+async def uba_default_encyclopedia(options, descriptions):
+    select = await DIALOGS.getValidOptions(
+        default=config.default_encyclopedia,
+        options=options,
+        descriptions=descriptions,
+        title="Configure Default Encyclopedia",
+        text="Select an encyclopedia:"
+    )
+    return select if select else ""
+
+async def uba_default_lexicon(options):
+    select = await DIALOGS.getValidOptions(
+        default=config.default_lexicon,
+        options=options,
+        descriptions=descriptions,
+        title="Configure Default Lexicon",
+        text="Select a lexicon:"
+    )
+    return select if select else ""

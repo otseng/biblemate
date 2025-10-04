@@ -435,6 +435,10 @@ Read more about `etextedit` at https://github.com/eliranwong/etextedit
 
 > sudo apt install texlive-full
 
+## Third-Party Text Editor [Optional]
+
+You can use a third-party text editor of your own choice. Enter `.backend` in the BibleMate AI prompt and specify the value of `DEFAULT_TEXT_EDITOR` with a command that calls your favorite text editor, e.g. `micro -softwrap true -wordwrap true`. To use the built-in text editor `etextedit` for making changes, you simply need one step, i.e. either save `Ctrl+S` or exit `Ctrl+Q`, to return to the BibleMate AI prompt. With third-party text editor, however, you need to save the changes first before exiting.
+
 ## 🛠️ Customization
 
 BibleMate AI is highly customizable. Advanced users can modify existing tools, create new ones, and even change the behavior of the AI agent by customizing system prompts.

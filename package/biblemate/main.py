@@ -216,6 +216,34 @@ def backup_conversation(messages, master_plan, console=None, storage_path=None):
             info = f"Conversation saved to: {storage_path}\nReport saved to: {html_file}"
             display_info(console, info)
 
+def download_data(console, default=""):
+    file_ids ={
+        "bible.db": "1E6pDKfjUMhmMWjjazrg5ZcpH1RBD8qgW",
+        "collection.db": "1y4txzRzXTBty0aYfFgkWfz5qlHERrA17",
+        "dictionary.db": "1UxDKGEQa7UEIJ6Ggknx13Yt8XNvo3Ld3",
+        "encyclopedia.db": "1NLUBepvFd9UDxoGQyQ-IohmySjjeis2-",
+        "exlb.db": "1Hpo6iLSh5KzgR6IZ-c7KuML--A3nmP1-",
+    }
+    file_id = await DIALOGS.getValidOptions(
+        options=file_ids.keys(),
+        title="BibleMate Data Files",
+        text="Select a file:"
+        default=default,
+    )
+    if file_id:
+        output = os.path.join(BIBLEMATEDATA, file_id+".zip")
+        if os.path.isfile(output):
+            os.remove(output)
+        if os.path.isfile(output[:-4]):
+            os.remove(output[:-4])
+        gdown.download(id=file_ids[file_id], output=output)
+        with zipfile.ZipFile(output, 'r') as zip_ref:
+            zip_ref.extractall(BIBLEMATEDATA)
+        if os.path.isfile(output):
+            os.remove(output)
+    info = "Restart to make the changes in the backend effective!"
+    display_info(console, info)
+
 async def main_async():
 
     BIBLEMATE_STATIC_TOKEN = args.token if args.token else os.getenv("BIBLEMATE_STATIC_TOKEN")
@@ -246,6 +274,23 @@ async def main_async():
     async with client:
         tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources, templates = await initialize_app(client)
         resource_suggestions_raw = json.loads(run_uba_api(".resources"))
+        # check if default modules are valid:
+        config_changed = False
+        if not config.default_bible in resource_suggestions_raw["bibleListAbb"]:
+            config.default_bible = "NET"
+            config_changed = True
+        if not config.default_commentary in resource_suggestions_raw["commentaryListAbb"]:
+            config.default_commentary = "CBSC"
+            config_changed = True
+        if not config.default_encyclopedia in resource_suggestions_raw["encyclopediaListAbb"]:
+            config.default_encyclopedia = "ISB"
+            config_changed = True
+        if not config.default_lexicon in resource_suggestions_raw["lexiconList"]:
+            config.default_lexicon = "Morphology"
+            config_changed = True
+        if config_changed:
+            write_user_config()
+        # format input suggestions
         resource_suggestions = [f"//bible/{i}/" for i in resource_suggestions_raw["bibleListAbb"]]+[f"//commentary/{i}/" for i in resource_suggestions_raw["commentaryListAbb"]]+[f"//encyclopedia/{i}/" for i in resource_suggestions_raw["encyclopediaListAbb"]]+[f"//lexicon/{i}/" for i in resource_suggestions_raw["lexiconList"]]
         abbr = BibleBooks.abbrev["eng"]
         resource_suggestions += [abbr[str(book)][0] for book in range(1,67)]
@@ -354,6 +399,10 @@ async def main_async():
                 ".character": "search bible character",
                 ".location": "search bible location",
                 ".chronology": "open bible chronology",
+                ".defaultbible": "configure default bible",
+                ".defaultcommentary": "configure default commentary",
+                ".defaultencyclopedia": "configure default encyclopedia",
+                ".defaultlexicon": "configure default lexicon",
                 # resource information
                 ".tools": "list available tools",
                 ".plans": "list available plans",
@@ -432,21 +481,45 @@ async def main_async():
             elif user_request == ".commentary":
                 user_request = await uba_commentary(options=resource_suggestions_raw["commentaryListAbb"], descriptions=resource_suggestions_raw["commentaryList"])
             elif user_request == ".dictionary":
-                user_request = await uba_dictionary()
+                if not args.mcp and not "//dictionary/" in template_list:
+                    download_data(console, default="dictionary.db")
+                else:
+                    user_request = await uba_dictionary()
             elif user_request == ".parallel":
-                user_request = await uba_parallel()
+                if not args.mcp and not "//parallel/" in template_list:
+                    download_data(console, default="collection.db")
+                else:
+                    user_request = await uba_parallel()
             elif user_request == ".promise":
-                user_request = await uba_promise()
+                if not args.mcp and not "//promise/" in template_list:
+                    download_data(console, default="collection.db")
+                else:
+                    user_request = await uba_promise()
             elif user_request == ".topic":
-                user_request = await uba_topic()
+                if not args.mcp and not "//topic/" in template_list:
+                    download_data(console, default="exlb.db")
+                else:
+                    user_request = await uba_topic()
             elif user_request == ".name":
-                user_request = await uba_name()
+                if not args.mcp and not "//name/" in template_list:
+                    download_data(console, default="exlb.db")
+                else:
+                    user_request = await uba_name()
             elif user_request == ".character":
-                user_request = await uba_character()
+                if not args.mcp and not "//character/" in template_list:
+                    download_data(console, default="exlb.db")
+                else:
+                    user_request = await uba_character()
             elif user_request == ".location":
-                user_request = await uba_location()
+                if not args.mcp and not "//location/" in template_list:
+                    download_data(console, default="exlb.db")
+                else:
+                    user_request = await uba_location()
             elif user_request == ".encyclopedia":
-                user_request = await uba_encyclopedia(options=resource_suggestions_raw["encyclopediaListAbb"], descriptions=resource_suggestions_raw["encyclopediaList"])
+                if not args.mcp and not "//encyclopedia/" in template_list:
+                    download_data(console, default="encyclopedia.db")
+                else:
+                    user_request = await uba_encyclopedia(options=resource_suggestions_raw["encyclopediaListAbb"], descriptions=resource_suggestions_raw["encyclopediaList"])
             elif user_request == ".lexicon":
                 user_request = await uba_lexicon(options=resource_suggestions_raw["lexiconList"])
             elif user_request == ".chronology":
@@ -748,29 +821,7 @@ Viist https://github.com/eliranwong/biblemate
                     info = f"Lite Context {'Enabled' if config.lite else 'Disabled'}!"
                     display_info(console, info)
                 elif user_request == ".download":
-                    file_ids ={
-                        "bible.db": "1E6pDKfjUMhmMWjjazrg5ZcpH1RBD8qgW",
-                        "collection.db": "1y4txzRzXTBty0aYfFgkWfz5qlHERrA17",
-                        "dictionary.db": "1UxDKGEQa7UEIJ6Ggknx13Yt8XNvo3Ld3",
-                        "encyclopedia.db": "1NLUBepvFd9UDxoGQyQ-IohmySjjeis2-",
-                        "exlb.db": "1Hpo6iLSh5KzgR6IZ-c7KuML--A3nmP1-",
-                    }
-                    file_id = await DIALOGS.getValidOptions(
-                        options=file_ids.keys(),
-                        title="BibleMate Data Files",
-                        text="Select a file:"
-                    )
-                    if file_id:
-                        output = os.path.join(BIBLEMATEDATA, file_id+".zip")
-                        if os.path.isfile(output):
-                            os.remove(output)
-                        if os.path.isfile(output[:-4]):
-                            os.remove(output[:-4])
-                        gdown.download(id=file_ids[file_id], output=output)
-                        with zipfile.ZipFile(output, 'r') as zip_ref:
-                            zip_ref.extractall(BIBLEMATEDATA)
-                        if os.path.isfile(output):
-                            os.remove(output)
+                    download_data(console)
                 elif user_request == ".mode":
                     default_ai_mode = "chat" if config.agent_mode is None else "agent" if config.agent_mode else "partner"
                     ai_mode = await DIALOGS.getValidOptions(
@@ -801,6 +852,30 @@ Viist https://github.com/eliranwong/biblemate
                     config.agent_mode = None
                     write_user_config()
                     display_info(console, f"`Chat` Mode Enabled!")
+                elif user_request == ".defaultbible":
+                    select = await uba_default_bible(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
+                    if select:
+                        config.default_bible = select
+                        write_user_config()
+                        display_info(console, f"Default bible set to: `{config.default_bible}`")
+                elif user_request == ".defaultcommentary":
+                    select = await uba_default_commentary(options=resource_suggestions_raw["commentaryListAbb"], descriptions=resource_suggestions_raw["commentaryList"])
+                    if select:
+                        config.default_commentary = select
+                        write_user_config()
+                        display_info(console, f"Default commentary set to: `{config.default_commentary}`")
+                elif user_request == ".defaultencyclopedia":
+                    select = await uba_default_encyclopedia(options=resource_suggestions_raw["encyclopediaListAbb"], descriptions=resource_suggestions_raw["encyclopediaList"])
+                    if select:
+                        config.default_encyclopedia = select
+                        write_user_config()
+                        display_info(console, f"Default encyclopedia set to: `{config.default_encyclopedia}`")
+                elif user_request == ".defaultlexicon":
+                    select = await uba_default_lexicon(options=resource_suggestions_raw["lexiconList"])
+                    if select:
+                        config.default_lexicon = select
+                        write_user_config()
+                        display_info(console, f"Default lexicon set to: `{config.default_lexicon}`")
                 elif user_request in (".new", ".exit"):
                     backup_conversation(messages, master_plan, console) # backup
                 # reset

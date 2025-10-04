@@ -142,7 +142,7 @@ def encyclopedias() -> dict:
     return dict(zip(resources["encyclopediaListAbb"], resources["encyclopediaList"]))
 
 encyclopedia_db = os.path.join(BIBLEMATEDATA, "encyclopedia.db")
-if os.path.exists(encyclopedia_db):
+if os.path.isfile(encyclopedia_db):
     @mcp.resource("encyclopedia://{module}/{query}")
     def encyclopedia(module: str, query:str) -> Union[str, list]:
         """Encyclopedia; prompt examples: `//encyclopedia/Jesus`, `//encyclopedia/ISB/Jesus`"""
@@ -217,7 +217,7 @@ def topics() -> dict:
     return dict(zip(resources["topicListAbb"], resources["topicList"]))
 
 collection_db = os.path.join(BIBLEMATEDATA, "collection.db")
-if os.path.exists(collection_db):
+if os.path.isfile(collection_db):
     @mcp.resource("parallel://{query}")
     def parallel(query:str) -> Union[str, list]:
         """Bible Parallels; prompt examples: `//parallel/baptism`, `//parallel/light`, `//parallel/sermon`"""
@@ -242,7 +242,7 @@ if os.path.exists(collection_db):
         )
 
 topic_db = os.path.join(BIBLEMATEDATA, "exlb.db")
-if os.path.exists(topic_db):
+if os.path.isfile(topic_db):
     @mcp.resource("topic://{query}")
     def topic(query:str) -> Union[str, list]:
         """Topical Studies; prompt examples: `//topic/faith`, `//topic/hope`, `//topic/love`"""
