@@ -299,6 +299,7 @@ Some commands are designed for retrieving content from UniqueBible App:
 | `.name`              | Search bible names                 |
 | `.character`         | Search bible characters            |
 | `.locations`         | Search bible locations             |
+| `.chronology`        | Open Bible Chronology              |
 
 ### Remarks:
 

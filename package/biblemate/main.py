@@ -353,6 +353,7 @@ async def main_async():
                 ".name": "search bible name",
                 ".character": "search bible character",
                 ".location": "search bible location",
+                ".chronology": "open bible chronology",
                 # resource information
                 ".tools": "list available tools",
                 ".plans": "list available plans",
@@ -383,7 +384,7 @@ async def main_async():
                 user_request = await getTextArea(input_suggestions=input_suggestions)
             # luanch action menu
             if user_request == ".":
-                select = await DIALOGS.getValidOptions(options=action_list.keys(), descriptions=list(action_list.values()), title="Action Menu", text="Select an action:")
+                select = await DIALOGS.getValidOptions(options=action_list.keys(), descriptions=[i.capitalize() for i in action_list.values()], title="Action Menu", text="Select an action:")
                 user_request = select if select else ""
             if not user_request:
                 continue
@@ -448,6 +449,8 @@ async def main_async():
                 user_request = await uba_encyclopedia(options=resource_suggestions_raw["encyclopediaListAbb"], descriptions=resource_suggestions_raw["encyclopediaList"])
             elif user_request == ".lexicon":
                 user_request = await uba_lexicon(options=resource_suggestions_raw["lexiconList"])
+            elif user_request == ".chronology":
+                user_request = "//uba/DATA:::Bible Chronology"
             if not user_request:
                 continue
 
