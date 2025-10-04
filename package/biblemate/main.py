@@ -241,8 +241,8 @@ async def download_data(console, default=""):
             zip_ref.extractall(BIBLEMATEDATA)
         if os.path.isfile(output):
             os.remove(output)
-    info = "Restart to make the changes in the backend effective!"
-    display_info(console, info)
+        info = "Restart to make the changes effective!"
+        display_info(console, info)
 
 async def main_async():
 
