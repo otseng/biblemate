@@ -348,6 +348,9 @@ async def main_async():
                 # Await the custom async progress bar that awaits the task.
                 await async_alive_bar(task)
 
+            if not APP_START and args.exit:
+                break
+
             if not len(messages) == len(DEFAULT_MESSAGES):
                 console.rule()
             elif APP_START:
@@ -1188,9 +1191,6 @@ Please provide me with the final answer to my original request based on the work
             # Backup
             print()
             backup_conversation(messages, master_plan, console)
-
-            if args.exit:
-                break
     
     # back up configurations
     write_user_config(backup=True)
