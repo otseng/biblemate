@@ -216,7 +216,7 @@ def backup_conversation(messages, master_plan, console=None, storage_path=None):
             info = f"Conversation saved to: {storage_path}\nReport saved to: {html_file}"
             display_info(console, info)
 
-def download_data(console, default=""):
+async def download_data(console, default=""):
     file_ids ={
         "bible.db": "1E6pDKfjUMhmMWjjazrg5ZcpH1RBD8qgW",
         "collection.db": "1y4txzRzXTBty0aYfFgkWfz5qlHERrA17",
@@ -482,49 +482,49 @@ async def main_async():
                 user_request = await uba_commentary(options=resource_suggestions_raw["commentaryListAbb"], descriptions=resource_suggestions_raw["commentaryList"])
             elif user_request == ".dictionary":
                 if not args.mcp and not "//dictionary/" in template_list:
-                    download_data(console, default="dictionary.db")
+                    await download_data(console, default="dictionary.db")
                     continue
                 else:
                     user_request = await uba_dictionary()
             elif user_request == ".parallel":
                 if not args.mcp and not "//parallel/" in template_list:
-                    download_data(console, default="collection.db")
+                    await download_data(console, default="collection.db")
                     continue
                 else:
                     user_request = await uba_parallel()
             elif user_request == ".promise":
                 if not args.mcp and not "//promise/" in template_list:
-                    download_data(console, default="collection.db")
+                    await download_data(console, default="collection.db")
                     continue
                 else:
                     user_request = await uba_promise()
             elif user_request == ".topic":
                 if not args.mcp and not "//topic/" in template_list:
-                    download_data(console, default="exlb.db")
+                    await download_data(console, default="exlb.db")
                     continue
                 else:
                     user_request = await uba_topic()
             elif user_request == ".name":
                 if not args.mcp and not "//name/" in template_list:
-                    download_data(console, default="exlb.db")
+                    await download_data(console, default="exlb.db")
                     continue
                 else:
                     user_request = await uba_name()
             elif user_request == ".character":
                 if not args.mcp and not "//character/" in template_list:
-                    download_data(console, default="exlb.db")
+                    await download_data(console, default="exlb.db")
                     continue
                 else:
                     user_request = await uba_character()
             elif user_request == ".location":
                 if not args.mcp and not "//location/" in template_list:
-                    download_data(console, default="exlb.db")
+                    await download_data(console, default="exlb.db")
                     continue
                 else:
                     user_request = await uba_location()
             elif user_request == ".encyclopedia":
                 if not args.mcp and not "//encyclopedia/" in template_list:
-                    download_data(console, default="encyclopedia.db")
+                    await download_data(console, default="encyclopedia.db")
                     continue
                 else:
                     user_request = await uba_encyclopedia(options=resource_suggestions_raw["encyclopediaListAbb"], descriptions=resource_suggestions_raw["encyclopediaList"])
@@ -829,7 +829,7 @@ Viist https://github.com/eliranwong/biblemate
                     info = f"Lite Context {'Enabled' if config.lite else 'Disabled'}!"
                     display_info(console, info)
                 elif user_request == ".download":
-                    download_data(console)
+                    await download_data(console)
                 elif user_request == ".mode":
                     default_ai_mode = "chat" if config.agent_mode is None else "agent" if config.agent_mode else "partner"
                     ai_mode = await DIALOGS.getValidOptions(
