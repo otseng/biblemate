@@ -227,7 +227,7 @@ def download_data(console, default=""):
     file_id = await DIALOGS.getValidOptions(
         options=file_ids.keys(),
         title="BibleMate Data Files",
-        text="Select a file:"
+        text="Select a file:",
         default=default,
     )
     if file_id:
@@ -483,41 +483,49 @@ async def main_async():
             elif user_request == ".dictionary":
                 if not args.mcp and not "//dictionary/" in template_list:
                     download_data(console, default="dictionary.db")
+                    continue
                 else:
                     user_request = await uba_dictionary()
             elif user_request == ".parallel":
                 if not args.mcp and not "//parallel/" in template_list:
                     download_data(console, default="collection.db")
+                    continue
                 else:
                     user_request = await uba_parallel()
             elif user_request == ".promise":
                 if not args.mcp and not "//promise/" in template_list:
                     download_data(console, default="collection.db")
+                    continue
                 else:
                     user_request = await uba_promise()
             elif user_request == ".topic":
                 if not args.mcp and not "//topic/" in template_list:
                     download_data(console, default="exlb.db")
+                    continue
                 else:
                     user_request = await uba_topic()
             elif user_request == ".name":
                 if not args.mcp and not "//name/" in template_list:
                     download_data(console, default="exlb.db")
+                    continue
                 else:
                     user_request = await uba_name()
             elif user_request == ".character":
                 if not args.mcp and not "//character/" in template_list:
                     download_data(console, default="exlb.db")
+                    continue
                 else:
                     user_request = await uba_character()
             elif user_request == ".location":
                 if not args.mcp and not "//location/" in template_list:
                     download_data(console, default="exlb.db")
+                    continue
                 else:
                     user_request = await uba_location()
             elif user_request == ".encyclopedia":
                 if not args.mcp and not "//encyclopedia/" in template_list:
                     download_data(console, default="encyclopedia.db")
+                    continue
                 else:
                     user_request = await uba_encyclopedia(options=resource_suggestions_raw["encyclopediaListAbb"], descriptions=resource_suggestions_raw["encyclopediaList"])
             elif user_request == ".lexicon":
