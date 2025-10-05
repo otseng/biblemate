@@ -291,7 +291,12 @@ async def main_async():
         if config_changed:
             write_user_config()
         # format input suggestions
-        resource_suggestions = [f"//bible/{i}/" for i in resource_suggestions_raw["bibleListAbb"]]+[f"//commentary/{i}/" for i in resource_suggestions_raw["commentaryListAbb"]]+[f"//encyclopedia/{i}/" for i in resource_suggestions_raw["encyclopediaListAbb"]]+[f"//lexicon/{i}/" for i in resource_suggestions_raw["lexiconList"]]
+        resource_suggestions = []
+        for resource in ["bible", "parallel", "promise"]+BIBLE_SEARCH_SCOPES:
+            resource_suggestions += [f"//{resource}/{i}/" for i in resource_suggestions_raw["bibleListAbb"]]
+        resource_suggestions += [f"//commentary/{i}/" for i in resource_suggestions_raw["commentaryListAbb"]]
+        resource_suggestions += [f"//encyclopedia/{i}/" for i in resource_suggestions_raw["encyclopediaListAbb"]]
+        resource_suggestions += [f"//lexicon/{i}/" for i in resource_suggestions_raw["lexiconList"]]
         abbr = BibleBooks.abbrev["eng"]
         resource_suggestions += [abbr[str(book)][0] for book in range(1,67)]
 
@@ -494,13 +499,13 @@ async def main_async():
                     await download_data(console, default="collection.db")
                     continue
                 else:
-                    user_request = await uba_parallel()
+                    user_request = await uba_parallel(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
             elif user_request == ".promise":
                 if not args.mcp and not "//promise/" in template_list:
                     await download_data(console, default="collection.db")
                     continue
                 else:
-                    user_request = await uba_promise()
+                    user_request = await uba_promise(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
             elif user_request == ".topic":
                 if not args.mcp and not "//topic/" in template_list:
                     await download_data(console, default="exlb.db")

@@ -72,6 +72,8 @@ DEFAULT_MODULES = {
     "john3": config.default_bible,
     "jude": config.default_bible,
     "revelation": config.default_bible,
+    "parallel": config.default_bible,
+    "promise": config.default_bible,
     "commentary": config.default_commentary,
     "encyclopedia": config.default_encyclopedia,
     "lexicon": config.default_lexicon,

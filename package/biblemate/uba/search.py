@@ -10,8 +10,8 @@ import urllib.parse
 class UBASearches:
     
     @staticmethod
-    def search_data(db_file: str, sql_table: str, query: str, top_k: int=3) -> Union[list, str]:
-        """search `dictionary.db` or `encyclopedia.db` for a query"""
+    def search_data(db_file: str, sql_table: str, query: str, top_k: int=3, bible="") -> Union[list, str]:
+        """search for a query"""
         if not os.path.isfile(db_file):
             return "Invalid database file."
 
@@ -21,7 +21,7 @@ class UBASearches:
             "dictionary.db": "DICTIONARY:::",
             "encyclopedia.db": f"ENCYCLOPEDIA:::{sql_table}:::",
             "exlb.db": f"EXLB:::{sql_table}:::",
-            "collection.db": f"{'_promise' if sql_table == 'PROMISES' else '_harmony'}:::{config.default_bible}:::",
+            "collection.db": f"{'_promise' if sql_table == 'PROMISES' else '_harmony'}:::{bible}:::",
         }
 
         with apsw.Connection(db_file) as connection:

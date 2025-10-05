@@ -5,6 +5,75 @@ from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 import re
 
 DIALOGS = TerminalModeDialogs()
+BIBLE_SEARCH_SCOPES = [
+    "search",
+    "genesis",
+    "exodus",
+    "leviticus",
+    "numbers",
+    "deuteronomy",
+    "joshua",
+    "judges",
+    "ruth",
+    "samuel1",
+    "samuel2",
+    "kings1",
+    "kings2",
+    "chronicles1",
+    "chronicles2",
+    "ezra",
+    "nehemiah",
+    "esther",
+    "job",
+    "psalms",
+    "proverbs",
+    "ecclesiastes",
+    "songs",
+    "isaiah",
+    "jeremiah",
+    "lamentations",
+    "ezekiel",
+    "daniel",
+    "hosea",
+    "joel",
+    "amos",
+    "obadiah",
+    "jonah",
+    "micah",
+    "nahum",
+    "habakkuk",
+    "zephaniah",
+    "haggai",
+    "zechariah",
+    "malachi",
+    "matthew",
+    "mark",
+    "luke",
+    "john",
+    "acts",
+    "romans",
+    "corinthians1",
+    "corinthians2",
+    "galatians",
+    "ephesians",
+    "philippians",
+    "colossians",
+    "thessalonians1",
+    "thessalonians2",
+    "timothy1",
+    "timothy2",
+    "titus",
+    "philemon",
+    "hebrews",
+    "james",
+    "peter1",
+    "peter2",
+    "john1",
+    "john2",
+    "john3",
+    "jude",
+    "revelation",
+]
 
 # shared dialogs
 
@@ -87,76 +156,7 @@ async def uba_search_bible(options, descriptions):
     )
     if not book:
         return ""
-    templates = [
-        "search",
-        "genesis",
-        "exodus",
-        "leviticus",
-        "numbers",
-        "deuteronomy",
-        "joshua",
-        "judges",
-        "ruth",
-        "samuel1",
-        "samuel2",
-        "kings1",
-        "kings2",
-        "chronicles1",
-        "chronicles2",
-        "ezra",
-        "nehemiah",
-        "esther",
-        "job",
-        "psalms",
-        "proverbs",
-        "ecclesiastes",
-        "songs",
-        "isaiah",
-        "jeremiah",
-        "lamentations",
-        "ezekiel",
-        "daniel",
-        "hosea",
-        "joel",
-        "amos",
-        "obadiah",
-        "jonah",
-        "micah",
-        "nahum",
-        "habakkuk",
-        "zephaniah",
-        "haggai",
-        "zechariah",
-        "malachi",
-        "matthew",
-        "mark",
-        "luke",
-        "john",
-        "acts",
-        "romans",
-        "corinthians1",
-        "corinthians2",
-        "galatians",
-        "ephesians",
-        "philippians",
-        "colossians",
-        "thessalonians1",
-        "thessalonians2",
-        "timothy1",
-        "timothy2",
-        "titus",
-        "philemon",
-        "hebrews",
-        "james",
-        "peter1",
-        "peter2",
-        "john1",
-        "john2",
-        "john3",
-        "jude",
-        "revelation",
-    ]
-    template = templates[int(book)]
+    template = BIBLE_SEARCH_SCOPES[int(book)]
     result = await DIALOGS.getInputDialog(title="Search Item", text="Enter an item to search for:")
     if not result:
         return ""
@@ -223,13 +223,31 @@ async def uba_dictionary():
     result = await DIALOGS.getInputDialog(title="Search Dictionary", text="Enter a search item:")
     return f"//dictionary/{result.strip()}" if result and result.strip() else ""
 
-async def uba_parallel():
-    result = await DIALOGS.getInputDialog(title="Search Bible Parallel Passages", text="Enter a search item:")
-    return f"//parallel/{result.strip()}" if result and result.strip() else ""
+async def uba_parallel(options, descriptions):
+    select = await DIALOGS.getValidOptions(
+        default=config.default_bible,
+        options=options,
+        descriptions=descriptions,
+        title="Search Bible Parallels",
+        text="Select a bible version to continue:"
+    )
+    if not select:
+        return ""
+    result = await DIALOGS.getInputDialog(title="Search Bible Parallels", text="Enter a search item:")
+    return f"//parallel/{select}/{result.strip()}" if result and result.strip() else ""
 
-async def uba_promise():
+async def uba_promise(options, descriptions):
+    select = await DIALOGS.getValidOptions(
+        default=config.default_bible,
+        options=options,
+        descriptions=descriptions,
+        title="Search Bible Promises",
+        text="Select a bible version to continue:"
+    )
+    if not select:
+        return ""
     result = await DIALOGS.getInputDialog(title="Search Bible Promises", text="Enter a search item:")
-    return f"//promise/{result.strip()}" if result and result.strip() else ""
+    return f"//promise/{select}/{result.strip()}" if result and result.strip() else ""
 
 async def uba_topic():
     result = await DIALOGS.getInputDialog(title="Search Bible Topics", text="Enter a search item:")
