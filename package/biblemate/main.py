@@ -2,7 +2,7 @@ from biblemate.core.systems import *
 from biblemate.uba.dialogs import *
 from biblemate.ui.text_area import getTextArea
 from biblemate.ui.info import get_banner
-from biblemate import config, BIBLEMATE_VERSION, AGENTMAKE_CONFIG, BIBLEMATEDATA, fix_string, write_user_config
+from biblemate import config, DIALOGS, BIBLEMATE_VERSION, AGENTMAKE_CONFIG, BIBLEMATE_USER_DIR, BIBLEMATEDATA, fix_string, write_user_config
 from biblemate.uba.api import run_uba_api, DEFAULT_MODULES
 from pathlib import Path
 import urllib.parse
@@ -13,7 +13,7 @@ from fastmcp import Client
 from fastmcp.client.transports import StreamableHttpTransport
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_file, edit_configurations, readTextFile, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND, DEFAULT_TEXT_EDITOR
-#from agentmake.utils.handle_text import set_log_file_max_lines
+from agentmake.utils.files import searchFolder
 from agentmake.etextedit import launch_async
 from agentmake.utils.manage_package import getPackageLatestVersion
 from rich.console import Console
@@ -28,13 +28,6 @@ from prompt_toolkit.completion import PathCompleter
 from packaging import version
 if not USER_OS == "Windows":
     import readline  # for better input experience
-
-"""# trim long log file
-log_path = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "logs")
-if not os.path.isdir(log_path):
-    Path(log_path).mkdir(parents=True, exist_ok=True)
-log_file = os.path.join(log_path, "requests")
-set_log_file_max_lines(log_file, config.max_log_lines)"""
 
 # set window title
 set_title(f"BibleMate AI")
@@ -380,61 +373,7 @@ async def main_async():
             # Original user request
             # note: `python3 -m rich.emoji` for checking emoji
             console.print("Enter your request :smiley: :" if len(messages) == len(DEFAULT_MESSAGES) else "Enter a follow-up request :flexed_biceps: :")
-            action_list = {
-                # general
-                ".ideas": "generate ideas for prompts to try",
-                ".exit": "exit current prompt",
-                # conversations
-                ".new": "new conversation",
-                ".trim": "trim conversation",
-                ".edit": "edit conversation",
-                ".reload": "reload conversation",
-                ".import": "import conversation",
-                ".export": "export conversation",
-                ".backup": "backup conversation",
-                # UBA content
-                ".bible": "open bible verse",
-                ".chapter": "open bible chapter",
-                ".compare": "compare bible verse in different versions",
-                ".comparechapter": "compare bible chapter in different versions",
-                ".search": "search bible",
-                ".commentary": "open commentary",
-                ".dictionary": "search dictionary",
-                ".encyclopedia": "search encyclopedia",
-                ".lexicon": "search lexicon",
-                ".parallel": "search parallel passages",
-                ".promise": "search bible promises",
-                ".topic": "search bible topic",
-                ".name": "search bible name",
-                ".character": "search bible character",
-                ".location": "search bible location",
-                ".chronology": "open bible chronology",
-                ".defaultbible": "configure default bible",
-                ".defaultcommentary": "configure default commentary",
-                ".defaultencyclopedia": "configure default encyclopedia",
-                ".defaultlexicon": "configure default lexicon",
-                # resource information
-                ".tools": "list available tools",
-                ".plans": "list available plans",
-                ".resources": "list UniqueBible resources",
-                # configurations
-                ".backend": "configure backend",
-                ".steps": "configure the maximum number of steps allowed",
-                ".matches": "configure the maximum number of semantic matches",
-                ".mode": "configure AI mode",
-                #".agent": "switch to agent mode",
-                #".partner": "switch to partner mode",
-                #".chat": "switch to chat mode",
-                ".autosuggestions": "toggle auto input suggestions",
-                ".promptengineer": "toggle auto prompt engineering",
-                ".lite": "toggle lite context",
-                # file access
-                ".open": "open file or folder",
-                ".download": "download data files",
-                # help
-                ".help": "help page",
-            }
-            input_suggestions = list(action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+[f"{p} " for p in prompt_list]+[f"//{r}" for r in resources.keys()]+template_list+resource_suggestions
+            input_suggestions = list(config.action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+[f"{p} " for p in prompt_list]+[f"//{r}" for r in resources.keys()]+template_list+resource_suggestions
             if args.default:
                 user_request = " ".join(args.default).strip()
                 args.default = None # reset to avoid repeated use
@@ -443,7 +382,7 @@ async def main_async():
                 user_request = await getTextArea(input_suggestions=input_suggestions)
             # luanch action menu
             if user_request == ".":
-                select = await DIALOGS.getValidOptions(options=action_list.keys(), descriptions=[i.capitalize() for i in action_list.values()], title="Action Menu", text="Select an action:")
+                select = await DIALOGS.getValidOptions(options=config.action_list.keys(), descriptions=[i.capitalize() for i in config.action_list.values()], title="Action Menu", text="Select an action:")
                 user_request = select if select else ""
             if not user_request:
                 continue
@@ -568,7 +507,7 @@ async def main_async():
                             text="Select one of them to continue:"
                         )
                         if select:
-                            if keyword == "name":
+                            if user_request.startswith("//name/"):
                                 resource_content = select
                             else:
                                 resource_content = await client.read_resource(re.sub("^(.*?/)[^/]*?$", r"\1", uri)+urllib.parse.quote(select.replace("/", "「」")))
@@ -592,16 +531,16 @@ async def main_async():
                     continue
 
             # system command
-            if user_request.startswith(".open") or user_request.startswith(".import"):
+            if user_request.startswith(".open") or user_request.startswith(".import") or user_request.startswith(".reload"):
                 cwd = os.getcwd()
             if user_request == ".open":
-                os.chdir(os.path.dirname(BIBLEMATEDATA))
+                os.chdir(BIBLEMATE_USER_DIR)
                 open_item = await DIALOGS.getInputDialog(title="Open", text="Enter a file or folder path:", suggestions=PathCompleter())
                 if not open_item:
                     open_item = os.getcwd()
                 user_request = f".open {open_item}"
             elif user_request == ".import":
-                chats_path = os.path.join(os.path.dirname(BIBLEMATEDATA), "chats")
+                chats_path = os.path.join(BIBLEMATE_USER_DIR, "chats")
                 os.chdir(chats_path)
                 import_item = await DIALOGS.getInputDialog(title="Import", text="Enter a conversation file or folder path:", suggestions=PathCompleter())
                 if import_item:
@@ -647,7 +586,10 @@ async def main_async():
                     # import master plan
                     if os.path.isdir(load_path):
                         master_plan = readTextFile(os.path.join(load_path, "master_plan.md"))
-                        user_request = "[CONTINUE]"
+                        if master_plan.strip():
+                            user_request = "[CONTINUE]"
+                        else:
+                            user_request = ""
                     else:
                         master_plan = ""
                         user_request = ""
@@ -666,16 +608,16 @@ async def main_async():
                     print(f"Error: {e}\n")
                     os.chdir(cwd)
                     continue
-            if user_request.startswith(".open") or user_request.startswith(".import"):
+            if user_request.startswith(".open") or user_request.startswith(".import") or user_request.startswith(".reload"):
                 os.chdir(cwd)
 
             # predefined operations with `.` commands
-            if user_request in action_list:
+            if user_request in config.action_list:
                 if user_request == ".backup":
                     backup_conversation(messages, master_plan, console)
                     config.backup_required = False
                 elif user_request == ".help":
-                    actions = "\n".join([f"- `{k}`: {v}" for k, v in action_list.items()])
+                    actions = "\n".join([f"- `{k}`: {v}" for k, v in config.action_list.items()])
                     help_info = f"""## Help Page
 
 Viist https://github.com/eliranwong/biblemate
@@ -687,9 +629,13 @@ Viist https://github.com/eliranwong/biblemate
 ## Key Bindings
 
 - `Ctrl+Y`: help info
+- `Ctrl+B`: open bible-related features
+- `Ctrl+C`: open commentary
+- `Ctrl+F`: search
+- `Ctrl+P`: toggle auto prompt engineering
+- `Ctrl+G`: change AI mode
 - `Ctrl+N`: new conversation
-- `Ctrl+G`: get ideas for prompts to try
-- `Ctrl+P`: edit current prompt
+- `Ctrl+O`: edit current prompt
 - `Ctrl+Q`: exit current prompt
 - `Ctrl+R`: reset current prompt
 - `Ctrl+S` or `Esc+ENTER` or `Alt+ENTER`: submit current prompt
@@ -735,7 +681,7 @@ Viist https://github.com/eliranwong/biblemate
                     display_info(console, info)
                 elif user_request == ".export":
                     cwd = os.getcwd()
-                    chats_path = os.path.join(os.path.dirname(BIBLEMATEDATA), "chats")
+                    chats_path = os.path.join(BIBLEMATE_USER_DIR, "chats")
                     if not os.path.isdir(chats_path):
                         Path(chats_path).mkdir(parents=True, exist_ok=True)
                     os.chdir(chats_path)
@@ -853,6 +799,10 @@ Viist https://github.com/eliranwong/biblemate
                     display_info(console, info)
                 elif user_request == ".download":
                     await download_data(console)
+                elif user_request == ".chats":
+                    query = await DIALOGS.getInputDialog(title="Search Chat Files", text="Enter a search query:")
+                    if query:
+                        searchFolder(os.path.join(BIBLEMATE_USER_DIR, "chats"), query=query, filter="*.md")
                 elif user_request == ".mode":
                     default_ai_mode = "chat" if config.agent_mode is None else "agent" if config.agent_mode else "partner"
                     ai_mode = await DIALOGS.getValidOptions(
@@ -1034,6 +984,9 @@ Viist https://github.com/eliranwong/biblemate
                     messages = agentmake(messages if messages else user_request, system="auto", **AGENTMAKE_CONFIG)
                 await thinking(run_chat_mode, "Processing your request ...")
                 console.print(Markdown(f"# User Request\n\n{messages[-2]['content']}\n\n# AI Response\n\n{messages[-1]['content']}"))
+                # temporaily save after each step
+                backup_conversation(messages, "")
+                config.backup_required = True
                 continue
 
             # agent mode or partner mode

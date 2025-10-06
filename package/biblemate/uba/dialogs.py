@@ -1,10 +1,8 @@
-from biblemate import config
-from biblemate.ui.selection_dialog import TerminalModeDialogs
+from biblemate import config, DIALOGS
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 import re
 
-DIALOGS = TerminalModeDialogs()
 BIBLE_SEARCH_SCOPES = [
     "search",
     "genesis",

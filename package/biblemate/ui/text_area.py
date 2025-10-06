@@ -1,4 +1,4 @@
-from biblemate import config
+from biblemate import config, DIALOGS
 from prompt_toolkit.input import create_input
 from prompt_toolkit.layout import Layout, HSplit
 from prompt_toolkit.widgets import Frame, Label
@@ -150,19 +150,34 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         def _(event):
             config.current_prompt = text_area.text
             event.app.exit(result=".help")
-        # get ideas
+        # change AI mode
         @bindings.add("c-g")
         def _(event):
             config.current_prompt = text_area.text
-            event.app.exit(result=".ideas")
+            event.app.exit(result=".mode")
         # new chat
         @bindings.add("c-n")
         def _(event):
             config.current_prompt = text_area.text
             event.app.exit(result=".new")
+        # toggle prompt engineering
+        @bindings.add("c-p")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result=".promptengineer")
+        # open commentary
+        @bindings.add("c-c")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result=".commentary")
+        # open bible-related features
+        @bindings.add("c-b")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result="BIBLE")
 
-    # launch editor
-    @bindings.add("c-p")
+    # open editor
+    @bindings.add("c-o")
     def _(event):
         config.cursor_position = text_area.buffer.cursor_position
         config.current_prompt = text_area.text
@@ -240,6 +255,17 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         # Run the non-full-screen text area again
         result = await app.run_async()
         print()
+    if not title and result in ("BIBLE", "SEARCH"):
+        if result == "BIBLE":
+            options = [".chats", ".bible", ".chapter", ".compare", ".comparechapter", ".chronology"]
+            descriptions = [config.action_list[i] for i in options]
+            select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Bible-related Features", text="Select a feature:")
+            return select if select else ""
+        elif result == "SEARCH":
+            options = [".search", ".parallel", ".promise", ".topic", ".dictionary", ".encyclopedia", ".lexicon", ".name", ".character", ".location"]
+            descriptions = [config.action_list[i] for i in options]
+            select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Search Resources", text="Select to search:")
+            return select if select else ""
     # return the text content
     return result
 

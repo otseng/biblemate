@@ -1,6 +1,7 @@
 from agentmake import AGENTMAKE_USER_DIR, readTextFile, writeTextFile
-import os, shutil, pprint
 from pathlib import Path
+from biblemate.ui.selection_dialog import TerminalModeDialogs
+import os, shutil, pprint
 
 CONFIG_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py")
 CONFIG_FILE_BACKUP = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "config.py")
@@ -142,8 +143,61 @@ config.last_chapter = 3
 config.last_verse = 16
 config.backup_required = False
 config.export_item = ""
-
-BIBLEMATE_VERSION = readTextFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), "version.txt"))
+config.action_list = {
+    # general
+    ".ideas": "generate ideas for prompts to try",
+    ".exit": "exit current prompt",
+    # conversations
+    ".new": "new conversation",
+    ".trim": "trim conversation",
+    ".edit": "edit conversation",
+    ".reload": "reload conversation",
+    ".import": "import conversation",
+    ".export": "export conversation",
+    ".backup": "backup conversation",
+    ".chats": "search chats files",
+    # UBA content
+    ".bible": "open bible verse",
+    ".chapter": "open bible chapter",
+    ".compare": "compare bible verse in different versions",
+    ".comparechapter": "compare bible chapter in different versions",
+    ".search": "search bible",
+    ".commentary": "open commentary",
+    ".dictionary": "search dictionary",
+    ".encyclopedia": "search encyclopedia",
+    ".lexicon": "search lexicon",
+    ".parallel": "search parallel passages",
+    ".promise": "search bible promises",
+    ".topic": "search bible topic",
+    ".name": "search bible name",
+    ".character": "search bible character",
+    ".location": "search bible location",
+    ".chronology": "open bible chronology",
+    ".defaultbible": "configure default bible",
+    ".defaultcommentary": "configure default commentary",
+    ".defaultencyclopedia": "configure default encyclopedia",
+    ".defaultlexicon": "configure default lexicon",
+    # resource information
+    ".tools": "list available tools",
+    ".plans": "list available plans",
+    ".resources": "list UniqueBible resources",
+    # configurations
+    ".backend": "configure backend",
+    ".steps": "configure the maximum number of steps allowed",
+    ".matches": "configure the maximum number of semantic matches",
+    ".mode": "configure AI mode",
+    #".agent": "switch to agent mode",
+    #".partner": "switch to partner mode",
+    #".chat": "switch to chat mode",
+    ".autosuggestions": "toggle auto input suggestions",
+    ".promptengineer": "toggle auto prompt engineering",
+    ".lite": "toggle lite context",
+    # file access
+    ".open": "open file or folder",
+    ".download": "download data files",
+    # help
+    ".help": "help page",
+}
 
 # copy etextedit plugins
 ETEXTEDIT_USER_PULGIN_DIR = os.path.join(os.path.expanduser("~"), "etextedit", "plugins")
@@ -155,14 +209,18 @@ for file_name in os.listdir(BIBLEMATE_ETEXTEDIT_PLUGINS):
     if file_name.endswith(".py") and os.path.isfile(full_file_name) and not os.path.isfile(os.path.join(ETEXTEDIT_USER_PULGIN_DIR, file_name)):
         shutil.copy(full_file_name, ETEXTEDIT_USER_PULGIN_DIR)
 
+# constants
 AGENTMAKE_CONFIG = {
     "print_on_terminal": False,
     "word_wrap": False,
 }
 OLLAMA_NOT_FOUND = "`Ollama` is not found! BibleMate AI uses `Ollama` to generate embeddings for semantic searches. You may install it from https://ollama.com/ so that you can perform semantic searches of the Bible with BibleMate AI."
+BIBLEMATE_VERSION = readTextFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), "version.txt"))
+BIBLEMATE_USER_DIR = os.path.join(AGENTMAKE_USER_DIR, "biblemate")
 BIBLEMATEDATA = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "data")
 if not os.path.isdir(BIBLEMATEDATA):
     Path(BIBLEMATEDATA).mkdir(parents=True, exist_ok=True)
+DIALOGS = TerminalModeDialogs()
 
 def fix_string(content):
     return content.replace(" ", " ").replace("‑", "-")

@@ -269,6 +269,7 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | `.trim`              | Trim current conversation          |
 | `.import`            | Import conversation                |
 | `.export`            | Export conversation                |
+| `.chats`             | search chats files                 |
 | `.open`              | Open file or directory             |
 | `.autosuggestions`   | Toggle auto input suggestions      |
 | `.promptengineer`    | Toggle auto prompt engineering     |
