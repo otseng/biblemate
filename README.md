@@ -259,14 +259,12 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | `.exit`              | Quit BibleMate AI                  |
 | `.backend`           | Change backend                     |
 | `.mode`              | Change AI mode                     |
-| `.agent`             | Switch to agent mode directly      |
-| `.partner`           | Switch to partner mode directly    |
-| `.chat`              | Switch to chat mode directly       |
 | `.tools`             | List available tools               |
 | `.plans`             | List available plans               |
 | `.resources`         | List available resources           |
 | `.editprompt`        | Edit current prompt                |
 | `.backup`            | Backup conversation                |
+| `.reload`            | Reload current conversation        |
 | `.edit`              | Edit current conversation          |
 | `.trim`              | Trim current conversation          |
 | `.import`            | Import conversation                |
@@ -308,6 +306,7 @@ Some commands are designed for retrieving content from UniqueBible App:
 * To use `.open`, you need to specify a file or a directory that is to be opened.
 * `.edit` command allows you to edit the current conversation with our built-in text editor.  You may customize to use your favorite text editor. Enter `.backend` and change the value of `DEFAULT_TEXT_EDITOR` with a command that calls your favorite text editor.
 * Use `.autosuggestions` to toggle auto input suggestions. If enabled, you can use `TAB` key to open input suggestions menu.
+* Use `.reload` to reload the last saved conversation, if any.  It is useful for continuing an unfinished agentic flow after a conversation was broken for any reasons.
 
 ## ✝️ UniqueBible Resources
 
@@ -406,6 +405,11 @@ The following key bindings are supported in BibleMate AI prompt field:
 - `Shift+TAB`: insert four spaces
 - `TAB` or `Ctrl+I`: open input suggestion menu
 - `Esc`: close input suggestion menu
+
+Common shortcuts on Terminal Apps:
+
+- `Ctrl+Shift+C`: Copy
+- `Ctrl+Shift+V`: Paste
 
 ## ✒️ Built-in Text Editor
 

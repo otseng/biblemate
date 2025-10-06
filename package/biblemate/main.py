@@ -187,7 +187,7 @@ def display_info(console, info):
 
 def backup_conversation(messages, master_plan, console=None, storage_path=None):
     """Backs up the current conversation to the user's directory."""
-    if len(messages) > len(DEFAULT_MESSAGES):
+    if len(messages) > len(DEFAULT_MESSAGES) and ((not console) or (console and storage_path) or (console and not storage_path and config.backup_required)):
         # determine storage path
         if not storage_path:
             if console:
@@ -217,7 +217,7 @@ def backup_conversation(messages, master_plan, console=None, storage_path=None):
             display_info(console, info)
 
 async def download_data(console, default=""):
-    file_ids ={
+    file_ids = {
         "bible.db": "1E6pDKfjUMhmMWjjazrg5ZcpH1RBD8qgW",
         "collection.db": "1y4txzRzXTBty0aYfFgkWfz5qlHERrA17",
         "dictionary.db": "1UxDKGEQa7UEIJ6Ggknx13Yt8XNvo3Ld3",
@@ -255,13 +255,14 @@ async def main_async():
         transport = StreamableHttpTransport(
             mcp_server,
             auth=BIBLEMATE_STATIC_TOKEN if BIBLEMATE_STATIC_TOKEN else BIBLEMATE_MCP_PRIVATE_KEY if BIBLEMATE_MCP_PRIVATE_KEY else None,
+            sse_read_timeout=config.mcp_timeout,
         )
-        client = Client(transport=transport)
+        client = Client(transport=transport, timeout=config.mcp_timeout)
     else:
         builtin_mcp_server = os.path.join(os.path.dirname(os.path.realpath(__file__)), "bible_study_mcp.py")
         user_mcp_server = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "bible_study_mcp.py") # The user path has the same basename as the built-in one; users may copy the built-in server settings to this location for customization. 
         mcp_server = user_mcp_server if os.path.isfile(user_mcp_server) else builtin_mcp_server        
-        client = Client(mcp_server) # no auth for local server
+        client = Client(mcp_server) # no auth for stdio transport
 
     APP_START = True
     DEFAULT_SYSTEM = "You are BibleMate AI, an autonomous agent designed to assist users with their Bible study."
@@ -387,6 +388,7 @@ async def main_async():
                 ".new": "new conversation",
                 ".trim": "trim conversation",
                 ".edit": "edit conversation",
+                ".reload": "reload conversation",
                 ".import": "import conversation",
                 ".export": "export conversation",
                 ".backup": "backup conversation",
@@ -420,9 +422,9 @@ async def main_async():
                 ".steps": "configure the maximum number of steps allowed",
                 ".matches": "configure the maximum number of semantic matches",
                 ".mode": "configure AI mode",
-                ".agent": "switch to agent mode",
-                ".partner": "switch to partner mode",
-                ".chat": "switch to chat mode",
+                #".agent": "switch to agent mode",
+                #".partner": "switch to partner mode",
+                #".chat": "switch to chat mode",
                 ".autosuggestions": "toggle auto input suggestions",
                 ".promptengineer": "toggle auto prompt engineering",
                 ".lite": "toggle lite context",
@@ -606,6 +608,15 @@ async def main_async():
                     user_request = f".import {import_item}"
                 else:
                     user_request = f".open {chats_path}"
+            elif user_request == ".reload":
+                temp_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "temp")
+                last_saved_conversation = os.path.join(temp_dir, "conversation.py")
+                if os.path.isfile(last_saved_conversation):
+                    user_request = f".import {temp_dir}"
+                    display_info(console, "Reloading ...")
+                else:
+                    display_info(console, "Temporary conversation not found!")
+                    continue
             if user_request.startswith(".open ") and os.path.exists(os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))):
                 file_path = os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))
                 cmd = f'''{getOpenCommand()} "{file_path}"'''
@@ -627,6 +638,7 @@ async def main_async():
                         os.chdir(cwd)
                         continue
                     backup_conversation(messages, master_plan, console)
+                    config.backup_required = False
                     messages = [{"role": i["role"], "content": i["content"]} for i in eval(readTextFile(file_path)) if i.get("role", "") in ("user", "assistant")]
                     if messages:
                         messages.insert(0, {"role": "system", "content": DEFAULT_SYSTEM})
@@ -661,6 +673,7 @@ async def main_async():
             if user_request in action_list:
                 if user_request == ".backup":
                     backup_conversation(messages, master_plan, console)
+                    config.backup_required = False
                 elif user_request == ".help":
                     actions = "\n".join([f"- `{k}`: {v}" for k, v in action_list.items()])
                     help_info = f"""## Help Page
@@ -726,8 +739,9 @@ Viist https://github.com/eliranwong/biblemate
                     if not os.path.isdir(chats_path):
                         Path(chats_path).mkdir(parents=True, exist_ok=True)
                     os.chdir(chats_path)
-                    export_item = await DIALOGS.getInputDialog(title="Export", text="Enter a name or path:", default=chats_path, suggestions=PathCompleter())
+                    export_item = await DIALOGS.getInputDialog(title="Export", text="Enter a name or path:", default=config.export_item, suggestions=PathCompleter())
                     if export_item:
+                        config.export_item = export_item
                         export_item_parent = os.path.dirname(export_item)
                         if not export_item_parent:
                             storage_path = os.path.join(chats_path, export_item)
@@ -783,6 +797,7 @@ Viist https://github.com/eliranwong/biblemate
                         if edited_content:
                             messages[index_to_edit]["content"] = edited_content
                             backup_conversation(messages, master_plan) # backup
+                            config.backup_required = True
                             info = "Changes saved!"
                             display_info(console, info)
                 elif user_request == ".backend":
@@ -894,6 +909,7 @@ Viist https://github.com/eliranwong/biblemate
                         display_info(console, f"Default lexicon set to: `{config.default_lexicon}`")
                 elif user_request in (".new", ".exit"):
                     backup_conversation(messages, master_plan, console) # backup
+                    config.backup_required = False
                 # reset
                 if user_request == ".new":
                     user_request = ""
@@ -989,12 +1005,12 @@ Viist https://github.com/eliranwong/biblemate
                         if len(tool_properties) == 1 and "request" in tool_properties: # AgentMake MCP Servers or alike
                             if "items" in tool_properties["request"]: # requires a dictionary instead of a string
                                 request_dict = [{"role": "system", "content": DEFAULT_SYSTEM}]+messages[len(messages)-2:] if config.lite else deepcopy(messages)
-                                tool_result = await client.call_tool(tool, {"request": request_dict})
+                                tool_result = await client.call_tool(tool, {"request": request_dict}, timeout=config.mcp_timeout)
                             else:
-                                tool_result = await client.call_tool(tool, {"request": tool_instruction})
+                                tool_result = await client.call_tool(tool, {"request": tool_instruction}, timeout=config.mcp_timeout)
                         else:
                             structured_output = getDictionaryOutput(messages=messages, schema=tool_schema, backend=config.backend)
-                            tool_result = await client.call_tool(tool, structured_output)
+                            tool_result = await client.call_tool(tool, structured_output, timeout=config.mcp_timeout)
                         tool_result = tool_result.content[0].text
                         messages[-1]["content"] += f"\n\n[Using tool `{tool}`]"
                         messages.append({"role": "assistant", "content": tool_result if tool_result.strip() else "Tool error!"})
@@ -1084,6 +1100,7 @@ Available tools are: {available_tools}.
             system_make_suggestion = get_system_make_suggestion(master_plan=master_plan)
 
             # Get the first suggestion
+            conversation_broken = False
             next_suggestion = "CONTINUE" if user_request == "[CONTINUE]" else "START"
 
             step = int(((len(messages)-len(DEFAULT_MESSAGES)-2)/2+1)) if user_request == "[CONTINUE]" else 1
@@ -1160,12 +1177,14 @@ Available tools are: {available_tools}.
                 console.rule()
                 # temporaily save after each step
                 backup_conversation(messages, master_plan)
+                config.backup_required = True
 
                 # iteration count
                 step += 1
                 if step > config.max_steps:
                     info = Markdown(f"I've stopped processing for you, as the maximum steps allowed is currently set to `{config.max_steps}` steps. Enter `.steps` to configure more.")
                     display_info(console, info)
+                    conversation_broken = True
                     break
 
                 # Check the progress
@@ -1178,24 +1197,26 @@ Available tools are: {available_tools}.
                 messages.append({"role": "assistant", "content": next_suggestion})
             
             # write the final answer
-            console.print(Markdown("# Wrapping up ..."))
-            messages = agentmake(
-                messages,
-                system="write_final_answer",
-                follow_up_prompt=f"""# Instruction
+            if not conversation_broken:
+                console.print(Markdown("# Wrapping up ..."))
+                messages = agentmake(
+                    messages,
+                    system="write_final_answer",
+                    follow_up_prompt=f"""# Instruction
 Please provide me with the final answer to my original request based on the work that has been completed.
 
 # Original Request
 {user_request}""",
-                stream=True,
-            )
-            messages[-1]["content"] = fix_string(messages[-1]["content"])
-            console.rule()
-            console.print(Markdown(messages[-1]['content']))
+                    stream=True,
+                )
+                messages[-1]["content"] = fix_string(messages[-1]["content"])
+                console.rule()
+                console.print(Markdown(messages[-1]['content']))
 
             # Backup
             print()
             backup_conversation(messages, master_plan, console)
+            config.backup_required = False
     
     # back up configurations
     write_user_config(backup=True)

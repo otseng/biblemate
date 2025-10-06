@@ -23,6 +23,7 @@ default_config = '''banner_title=""
 *max_semantic_matches=15
 *max_log_lines=2000
 *mcp_port=33333
+*mcp_timeout=9999999999
 *embedding_model="paraphrase-multilingual"
 *disabled_tools=['search_1_chronicles_only',
 'search_1_corinthians_only',
@@ -119,6 +120,7 @@ default_lexicon="{config.default_lexicon}"
 max_semantic_matches={config.max_semantic_matches}
 max_log_lines={config.max_log_lines}
 mcp_port={config.mcp_port}
+mcp_timeout={config.mcp_timeout}
 embedding_model="{config.embedding_model}"
 disabled_tools={pprint.pformat(config.disabled_tools)}"""
     writeTextFile(CONFIG_FILE_BACKUP if backup else CONFIG_FILE, configurations)
@@ -138,6 +140,8 @@ config.current_prompt = ""
 config.last_book = 43
 config.last_chapter = 3
 config.last_verse = 16
+config.backup_required = False
+config.export_item = ""
 
 BIBLEMATE_VERSION = readTextFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), "version.txt"))
 
