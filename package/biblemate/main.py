@@ -286,7 +286,7 @@ async def main_async():
             write_user_config()
         # format input suggestions
         resource_suggestions = []
-        for resource in ["bible", "parallel", "promise", "xref", "treasury"]+BIBLE_SEARCH_SCOPES:
+        for resource in ["bible", "chapter", "parallel", "promise", "xref", "treasury"]+BIBLE_SEARCH_SCOPES:
             resource_suggestions += [f"//{resource}/{i}/" for i in resource_suggestions_raw["bibleListAbb"]]
         if "AIC" in resource_suggestions_raw["commentaryListAbb"]:
             resource_suggestions_raw["commentaryListAbb"].remove("AIC")
