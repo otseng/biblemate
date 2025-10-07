@@ -3,7 +3,7 @@ from biblemate.uba.dialogs import *
 from biblemate.ui.text_area import getTextArea
 from biblemate.ui.info import get_banner
 from biblemate import config, DIALOGS, BIBLEMATE_VERSION, AGENTMAKE_CONFIG, BIBLEMATE_USER_DIR, BIBLEMATEDATA, fix_string, write_user_config
-from biblemate.uba.api import run_uba_api, DEFAULT_MODULES
+from biblemate.uba.api import DEFAULT_MODULES, run_uba_api, run_uba_ai_commentary, run_uba_words, run_uba_discourse, run_uba_translation
 from pathlib import Path
 import urllib.parse
 import asyncio, re, os, subprocess, click, gdown, pprint, argparse, json, zipfile, warnings, sys
@@ -286,8 +286,11 @@ async def main_async():
             write_user_config()
         # format input suggestions
         resource_suggestions = []
-        for resource in ["bible", "parallel", "promise"]+BIBLE_SEARCH_SCOPES:
+        for resource in ["bible", "parallel", "promise", "xref", "treasury"]+BIBLE_SEARCH_SCOPES:
             resource_suggestions += [f"//{resource}/{i}/" for i in resource_suggestions_raw["bibleListAbb"]]
+        if "AIC" in resource_suggestions_raw["commentaryListAbb"]:
+            resource_suggestions_raw["commentaryListAbb"].remove("AIC")
+            resource_suggestions_raw["commentaryList"].remove("AI Commentary")
         resource_suggestions += [f"//commentary/{i}/" for i in resource_suggestions_raw["commentaryListAbb"]]
         resource_suggestions += [f"//encyclopedia/{i}/" for i in resource_suggestions_raw["encyclopediaListAbb"]]
         resource_suggestions += [f"//lexicon/{i}/" for i in resource_suggestions_raw["lexiconList"]]
@@ -433,6 +436,16 @@ async def main_async():
                 user_request = await uba_compare_chapter(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
             elif user_request == ".commentary":
                 user_request = await uba_commentary(options=resource_suggestions_raw["commentaryListAbb"], descriptions=resource_suggestions_raw["commentaryList"])
+            elif user_request == ".aicommentary":
+                user_request = await uba_aicommentary()
+            elif user_request == ".index":
+                user_request = await uba_index()
+            elif user_request == ".translation":
+                user_request = await uba_translation()
+            elif user_request == ".discourse":
+                user_request = await uba_discourse()
+            elif user_request == ".morphology":
+                user_request = await uba_morphology()
             elif user_request == ".dictionary":
                 if not args.mcp and not "//dictionary/" in template_list:
                     await download_data(console, default="dictionary.db")
@@ -641,7 +654,8 @@ Viist https://github.com/eliranwong/biblemate
 - `Ctrl+R`: reset input
 - `Ctrl+Z`: undo input changes
 - `Ctrl+B`: open bible-related features
-- `Ctrl+C`: open bible commentary
+- `Ctrl+C`: open bible commentaries
+- `Ctrl+V`: open bible verse features
 - `Ctrl+X`: open cross-references features
 - `Ctrl+F`: open search features
 - `Ctrl+G`: change AI mode

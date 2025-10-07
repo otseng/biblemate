@@ -1,6 +1,8 @@
+from agentmake import agentmake
 from agentmake.utils.online import get_local_ip
+from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
+from biblemate import config, AGENTMAKE_CONFIG
 import requests, os, re
-from biblemate import config
 
 DEFAULT_MODULES = {
     "bible": config.default_bible,
@@ -108,3 +110,62 @@ def run_uba_api(command: str, html=False) -> str:
         return content
     except Exception as err:
         return f"An error occurred: {err}"
+
+def run_uba_ai_commentary(request: str):
+    refs = BibleVerseParser(False).extractExhaustiveReferencesReadable(request)
+    if not refs:
+        return "Please provide a valid Bible reference to complete your request."
+    output = []
+    for ref in refs.split("; "):
+        default_verse = run_uba_api(f"BIBLE:::{config.default_bible}:::{ref}")
+        interlinear_verse = run_uba_api(f"BIBLE:::OHGBi:::{ref}")
+        prompt = f"""# Write a detailed commentary on the following Bible verse:\n\n## {ref}\n{default_verse}\n\n##Interlinear (Hebrew/Greek with literal translation):\n{interlinear_verse}\n\nCommentary:"""
+        messages = agentmake(prompt, system="biblemate/commentary", **AGENTMAKE_CONFIG)
+        output.append(messages[-1].get("content") if messages and "content" in messages[-1] else "Error!")
+    return f"# Commentary - {ref}\n\n"+"\n\n".join(output)
+
+def run_uba_index(request: str):
+    messages = agentmake(request, **{'input_content_plugin': 'uba/every_single_ref', 'tool': 'uba/index'}, **AGENTMAKE_CONFIG)
+    return messages[-1].get("content") if messages and "content" in messages[-1] else "Error!"
+
+def run_uba_translation(request: str):
+    refs = BibleVerseParser(False).extractExhaustiveReferencesReadable(request)
+    if not refs:
+        return "Please provide a valid Bible reference to complete your request."
+    output = ""
+    for ref in refs.split("; "):
+        command = f"TRANSLATION:::{ref}"
+        content = run_uba_api(command)
+        output += content.replace("\n", "\n- ")
+    return output
+
+def run_uba_discourse(request: str):
+    refs = BibleVerseParser(False).extractExhaustiveReferencesReadable(request)
+    if not refs:
+        return "Please provide a valid Bible reference to complete your request."
+    output = ""
+    for ref in refs.split("; "):
+        command = f"DISCOURSE:::{ref}"
+        content = run_uba_api(command)
+        output += content.replace("\n", "\n- ")
+    return output
+
+def run_uba_words(request: str):
+    refs = BibleVerseParser(False).extractExhaustiveReferencesReadable(request)
+    if not refs:
+        return "Please provide a valid Bible reference to complete your request."
+    output = ""
+    for ref in refs.split("; "):
+        command = f"WORDS:::{ref}"
+        morphology = run_uba_api(command, True)
+        morphology = re.sub('''<[^<>]*?(READWORD|READLEXEME)(:::.*?)'">''', r'\n- [\1\2]\n- ', morphology)
+        morphology = morphology.replace("audiotrack", "")
+        morphology = morphology.replace("<div ", "\n### <div ")
+        morphology = re.sub('''<[^<>]*? G(E[0-9]+?) (H[0-9]+?)"[^<>]*?>([^<>]*?)<[^<>]*?>''', r"\3 [\1] [\2]", morphology)
+        morphology = re.sub('''<[^<>]*? (G[0-9]+?)"[^<>]*?>([^<>]*?)<[^<>]*?>''', r"\2 [\1]", morphology)
+        morphology = morphology.replace("<heb>", "\n- <heb>")
+        morphology = morphology.replace("<grk>", "\n- <grk>")
+        morphology = morphology.replace("<br>", "\n- <br>")
+        morphology = re.sub('<[^<>]*?>', '', morphology)
+        output += "# "+morphology
+    return output

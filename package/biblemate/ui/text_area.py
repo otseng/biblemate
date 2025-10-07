@@ -165,11 +165,16 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         def _(event):
             config.current_prompt = text_area.text
             event.app.exit(result=".promptengineer")
-        # open commentary
+        # open commentaries
         @bindings.add("c-c")
         def _(event):
             config.current_prompt = text_area.text
-            event.app.exit(result=".commentary")
+            event.app.exit(result="[COMMENTARY]")
+        # open verse features
+        @bindings.add("c-v")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result="[VERSE]")
         # open bible-related features
         @bindings.add("c-b")
         def _(event):
@@ -265,7 +270,7 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         # Run the non-full-screen text area again
         result = await app.run_async()
         print()
-    if not title and result in ("BIBLE", "SEARCH"):
+    if not title and result in ("[BIBLE]", "[SEARCH]", "[VERSE]", "[COMMENTARY]", "[CROSSREFERENCE]"):
         if result == "[BIBLE]":
             options = [".bible", ".chapter", ".compare", ".comparechapter", ".chronology"]
             descriptions = [config.action_list[i] for i in options]
@@ -279,7 +284,17 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         elif result == "[CROSSREFERENCE]":
             options = [".xref", ".treasury"]
             descriptions = [config.action_list[i] for i in options]
-            select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Search Resources", text="Select to search:")
+            select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Cross-Reference Features", text="Select an option to continue:")
+            return select if select else ""
+        elif result == "[VERSE]":
+            options = [".index", ".translation", ".discourse", ".morphology"]
+            descriptions = [config.action_list[i] for i in options]
+            select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Bible Verse Features", text="Select an option to continue:")
+            return select if select else ""
+        elif result == "[COMMENTARY]":
+            options = [".aicommentary", ".commentary"]
+            descriptions = [config.action_list[i] for i in options]
+            select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Commentaries", text="Select an option to continue:")
             return select if select else ""
     # return the text content
     return result

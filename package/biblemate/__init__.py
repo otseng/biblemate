@@ -138,6 +138,8 @@ if just_upgraded:
 
 # temporary config
 config.current_prompt = ""
+config.last_multi_bible_selection = [config.default_bible]
+config.last_bible_reference = ""
 config.last_book = 43
 config.last_chapter = 3
 config.last_verse = 16
@@ -163,8 +165,13 @@ config.action_list = {
     ".comparechapter": "compare bible chapter in different versions",
     ".xref": "open cross-references",
     ".treasury": "open treasury of scripture knowledge",
-    ".search": "search bible",
     ".commentary": "open commentary",
+    ".aicommentary": "open AI commentary",
+    ".index": "open verse study indexes",
+    ".translation": "open interlinear, literal & dynamic translations",
+    ".discourse": "open discourse analysis",
+    ".morphology": "open morphology data",
+    ".search": "search bible",
     ".dictionary": "search dictionary",
     ".encyclopedia": "search encyclopedia",
     ".lexicon": "search lexicon",

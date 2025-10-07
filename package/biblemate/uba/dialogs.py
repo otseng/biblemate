@@ -77,26 +77,30 @@ BIBLE_SEARCH_SCOPES = [
 
 async def get_multiple_bibles(options, descriptions):
     select = await DIALOGS.getMultipleSelection(
-        default_values=[config.default_bible],
+        default_values=config.last_multi_bible_selection,
         options=options,
         descriptions=descriptions,
         title="Bibles",
         text="Select versions to continue:"
     )
-    return select if select else []
+    if select:
+        config.last_multi_bible_selection = select
+        return select
+    return []
 
 async def get_reference(verse_reference=True, exhaustiveReferences=False):
     abbr = BibleBooks.abbrev["eng"]
     input_suggestions = []
     for book in range(1,67):
         input_suggestions += list(abbr[str(book)])
-    result = await DIALOGS.getInputDialog(title="Bible Verse Reference", text="Enter a verse reference, e.g. John 3:16", suggestions=input_suggestions)
+    result = await DIALOGS.getInputDialog(title="Bible Verse Reference", text="Enter a verse reference, e.g. John 3:16", default=config.last_bible_reference, suggestions=input_suggestions)
     if result:
         parser = BibleVerseParser(False)
         result = parser.extractExhaustiveReferencesReadable(result) if exhaustiveReferences else parser.extractAllReferencesReadable(result)
         if result and not verse_reference:
             result = re.sub(r":[\-0-9]+?;", ";", f"{result};")[:-1]
     if result:
+        config.last_bible_reference = result
         return result
     if not result:
         abbr = BibleBooks.abbrev["eng"]
@@ -242,6 +246,26 @@ async def uba_commentary(options, descriptions):
         return ""
     result = await get_reference()
     return f"//commentary/{select}/{result}" if result else ""
+
+async def uba_aicommentary():
+    result = await get_reference()
+    return f"//aicommentary/{result}" if result else ""
+
+async def uba_index():
+    result = await get_reference()
+    return f"//index/{result}" if result else ""
+
+async def uba_translation():
+    result = await get_reference()
+    return f"//translation/{result}" if result else ""
+
+async def uba_discourse():
+    result = await get_reference()
+    return f"//discourse/{result}" if result else ""
+
+async def uba_morphology():
+    result = await get_reference()
+    return f"//morphology/{result}" if result else ""
 
 async def uba_dictionary():
     result = await DIALOGS.getInputDialog(title="Search Dictionary", text="Enter a search item:")

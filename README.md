@@ -289,6 +289,11 @@ Some commands are designed for retrieving content from UniqueBible App:
 | `.comparechapter`    | Compare bible chapter              |
 | `.chronology`        | Open Bible Chronology              |
 | `.commentary`        | Open commentary                    |
+| `.aicommentary`      | Open AI commentary                 |
+| `.index`             | Open verse study indexes           |
+| `.translation`       | Open interlinear and translations  |
+| `.discourse`         | Open discourse analysis            |
+| `.morphology`        | Open morphology data               |
 | `.xref`              | Open cross-references              |
 | `.treasury`          | Open TSKE                          |
 | `.search`            | Search bible                       |
@@ -301,6 +306,8 @@ Some commands are designed for retrieving content from UniqueBible App:
 | `.name`              | Search bible names                 |
 | `.character`         | Search bible characters            |
 | `.locations`         | Search bible locations             |
+
+Key bindings `Ctrl+B`, `Ctrl+C`, `Ctrl+V` and `Ctrl+X` are designed for opening UBA content in BibleMate AI [[Read](https://github.com/eliranwong/biblemate#%EF%B8%8F-keyboard-shortcuts)].
 
 ### Remarks:
 
@@ -395,7 +402,8 @@ The following key bindings are supported in BibleMate AI prompt field:
 - `Ctrl+R`: reset input
 - `Ctrl+Z`: undo input changes
 - `Ctrl+B`: open bible-related features
-- `Ctrl+C`: open bible commentary
+- `Ctrl+C`: open bible commentaries
+- `Ctrl+V`: open bible verse features
 - `Ctrl+X`: open cross-references features
 - `Ctrl+F`: open search features
 - `Ctrl+G`: change AI mode
