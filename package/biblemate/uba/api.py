@@ -136,6 +136,14 @@ def run_uba_translation(request: str):
     for ref in refs.split("; "):
         command = f"TRANSLATION:::{ref}"
         content = run_uba_api(command)
+        if "\nBSB " in content:
+            it, lt = content.split("\nBSB ", 1)
+            heading, it = it.split("\nBHS\n", 1)
+        else:
+            it, lt = content.split("\nLT ", 1)
+            heading, it = it.split("\nIT ", 1)
+        it = re.sub('''([0-9A-Za-z,.!?'":]+?)([^0-9A-Za-z,.!?'":])''', r"`\1`\2", it+"\n")
+        content = (heading+"\nBHS\n"+it+"BSB "+lt) if "\nBSB " in content else (heading+"\nIT "+it+"LT "+lt)
         output += content.replace("\n", "\n- ")
     return output
 
