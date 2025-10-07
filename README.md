@@ -434,7 +434,7 @@ Common shortcuts on Terminal Apps:
 
 <img width="866" height="629" alt="Image" src="https://github.com/user-attachments/assets/d62658d0-10df-4e56-8de3-58787600327f" />
 
-You can edit current prompt with our built-in text editor, by either enter `.editprompt` or pressing `Ctrl+P` in the BibleMate AI prompt field.
+You can edit current prompt with our built-in text editor, by either enter `.editprompt` or pressing `Ctrl+O` in the BibleMate AI prompt field.
 
 You can also launch the built-in editor on its own by running `etextedit`.
 
