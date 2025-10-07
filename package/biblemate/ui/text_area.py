@@ -175,6 +175,11 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         def _(event):
             config.current_prompt = text_area.text
             event.app.exit(result="BIBLE")
+        # open bible-related features
+        @bindings.add("c-f")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result="SEARCH")
 
     # open editor
     @bindings.add("c-o")
@@ -257,12 +262,12 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         print()
     if not title and result in ("BIBLE", "SEARCH"):
         if result == "BIBLE":
-            options = [".chats", ".bible", ".chapter", ".compare", ".comparechapter", ".chronology"]
+            options = [".bible", ".chapter", ".compare", ".comparechapter", ".chronology"]
             descriptions = [config.action_list[i] for i in options]
             select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Bible-related Features", text="Select a feature:")
             return select if select else ""
         elif result == "SEARCH":
-            options = [".search", ".parallel", ".promise", ".topic", ".dictionary", ".encyclopedia", ".lexicon", ".name", ".character", ".location"]
+            options = [".chats", ".search", ".parallel", ".promise", ".topic", ".dictionary", ".encyclopedia", ".lexicon", ".name", ".character", ".location"]
             descriptions = [config.action_list[i] for i in options]
             select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Search Resources", text="Select to search:")
             return select if select else ""
