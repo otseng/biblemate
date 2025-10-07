@@ -4,6 +4,8 @@
 
 Developer: Eliran Wong
 
+<img width="1732" height="1302" alt="Image" src="https://github.com/user-attachments/assets/cb19d61a-2492-474d-b67a-ef2c59c7bcff" />
+
 ## 👀 An Overview
 
 [![Watch the video](https://img.youtube.com/vi/BxpLmpCm4QU/maxresdefault.jpg)](https://youtu.be/BxpLmpCm4QU)
