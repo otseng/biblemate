@@ -174,12 +174,17 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         @bindings.add("c-b")
         def _(event):
             config.current_prompt = text_area.text
-            event.app.exit(result="BIBLE")
+            event.app.exit(result="[BIBLE]")
         # open bible-related features
         @bindings.add("c-f")
         def _(event):
             config.current_prompt = text_area.text
-            event.app.exit(result="SEARCH")
+            event.app.exit(result="[SEARCH]")
+        # open cross-reference-related features
+        @bindings.add("c-x")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result="[CROSSREFERENCE]")
 
     # open editor
     @bindings.add("c-o")
@@ -261,13 +266,18 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         result = await app.run_async()
         print()
     if not title and result in ("BIBLE", "SEARCH"):
-        if result == "BIBLE":
+        if result == "[BIBLE]":
             options = [".bible", ".chapter", ".compare", ".comparechapter", ".chronology"]
             descriptions = [config.action_list[i] for i in options]
             select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Bible-related Features", text="Select a feature:")
             return select if select else ""
-        elif result == "SEARCH":
-            options = [".chats", ".search", ".parallel", ".promise", ".topic", ".dictionary", ".encyclopedia", ".lexicon", ".name", ".character", ".location"]
+        elif result == "[SEARCH]":
+            options = [".search", ".parallel", ".promise", ".topic", ".dictionary", ".encyclopedia", ".lexicon", ".name", ".character", ".location", ".find"]
+            descriptions = [config.action_list[i] for i in options]
+            select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Search Resources", text="Select to search:")
+            return select if select else ""
+        elif result == "[CROSSREFERENCE]":
+            options = [".xref", ".treasury"]
             descriptions = [config.action_list[i] for i in options]
             select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Search Resources", text="Select to search:")
             return select if select else ""

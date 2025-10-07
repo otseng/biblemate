@@ -419,6 +419,10 @@ async def main_async():
             # run templates
             if user_request == ".bible":
                 user_request = await uba_bible(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
+            elif user_request == ".xref":
+                user_request = await uba_ref(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
+            elif user_request == ".treasury":
+                user_request = await uba_treasury(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
             elif user_request == ".search":
                 user_request = await uba_search_bible(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
             elif user_request == ".chapter":
@@ -487,6 +491,7 @@ async def main_async():
             if re.search(template_pattern, user_request):
                 user_request = urllib.parse.quote(user_request)
                 if user_request[2:].count("/") == 1:
+                    # check if default module is used
                     keywords = DEFAULT_MODULES
                     keyword, entry = user_request[2:].split("/")
                     if module := keywords.get(keyword, ""):
@@ -629,17 +634,18 @@ Viist https://github.com/eliranwong/biblemate
 ## Key Bindings
 
 - `Ctrl+Y`: help info
-- `Ctrl+B`: open bible-related features
-- `Ctrl+C`: open commentary
-- `Ctrl+F`: search
-- `Ctrl+P`: toggle auto prompt engineering
-- `Ctrl+G`: change AI mode
+- `Ctrl+S` or `Esc+ENTER` or `Alt+ENTER`: submit input
 - `Ctrl+N`: new conversation
-- `Ctrl+O`: edit current prompt
-- `Ctrl+Q`: exit current prompt
-- `Ctrl+R`: reset current prompt
-- `Ctrl+S` or `Esc+ENTER` or `Alt+ENTER`: submit current prompt
-- `Ctrl+Z`: undo current prompt
+- `Ctrl+O`: edit input in text editor
+- `Ctrl+Q`: exit input
+- `Ctrl+R`: reset input
+- `Ctrl+Z`: undo input changes
+- `Ctrl+B`: open bible-related features
+- `Ctrl+C`: open bible commentary
+- `Ctrl+X`: open cross-references features
+- `Ctrl+F`: open search features
+- `Ctrl+G`: change AI mode
+- `Ctrl+P`: toggle auto prompt engineering
 - `Ctrl+D`: delete
 - `Ctrl+H`: backspace
 - `Ctrl+W`: delete previous word
@@ -799,10 +805,10 @@ Viist https://github.com/eliranwong/biblemate
                     display_info(console, info)
                 elif user_request == ".download":
                     await download_data(console)
-                elif user_request == ".chats":
+                elif user_request == ".find":
                     query = await DIALOGS.getInputDialog(title="Search Chat Files", text="Enter a search query:")
                     if query:
-                        searchFolder(os.path.join(BIBLEMATE_USER_DIR, "chats"), query=query, filter="*.md")
+                        searchFolder(os.path.join(BIBLEMATE_USER_DIR, "chats"), query=query, filter="*conversation.py")
                 elif user_request == ".mode":
                     default_ai_mode = "chat" if config.agent_mode is None else "agent" if config.agent_mode else "partner"
                     ai_mode = await DIALOGS.getValidOptions(

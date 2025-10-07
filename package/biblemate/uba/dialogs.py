@@ -173,6 +173,32 @@ async def uba_bible(options, descriptions):
     result = await get_reference()
     return f"//bible/{select}/{result}" if result else ""
 
+async def uba_ref(options, descriptions):
+    select = await DIALOGS.getValidOptions(
+        default=config.default_bible,
+        options=options,
+        descriptions=descriptions,
+        title="Cross-References",
+        text="Select a bible version to continue:"
+    )
+    if not select:
+        return ""
+    result = await get_reference()
+    return f"//xref/{select}/{result}" if result else ""
+
+async def uba_treasury(options, descriptions):
+    select = await DIALOGS.getValidOptions(
+        default=config.default_bible,
+        options=options,
+        descriptions=descriptions,
+        title="Treasury of Scripture Knowledge",
+        text="Select a bible version to continue:"
+    )
+    if not select:
+        return ""
+    result = await get_reference()
+    return f"//treasury/{select}/{result}" if result else ""
+
 async def uba_chapter(options, descriptions):
     select = await DIALOGS.getValidOptions(
         default=config.default_bible,

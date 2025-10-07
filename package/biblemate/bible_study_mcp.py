@@ -96,10 +96,15 @@ def commentary(module:str, reference:str) -> str:
     """Commentary; prompt examples: `//commentary/John 3:16`, `//commentary/CBSC/John 3:16`"""
     return run_uba_api(f"COMMENTARY:::{module}:::{reference}")
 
-@mcp.resource("treasury://{reference}")
-def treasury(reference:str) -> str:
+@mcp.resource("xref://{module}/{reference}")
+def xref(module:str, reference:str) -> str:
+    """Cross-Reference; prompt examples: `//xref/John 3:16`, `//xref/Deut 6:4`"""
+    return run_uba_api(f"CROSSREFERENCE:::{module}:::{reference}")
+
+@mcp.resource("treasury://{module}/{reference}")
+def treasury(module:str, reference:str) -> str:
     """Treasury of Scripture Knowledge (Enhance); prompt examples: `//treasury/John 3:16`, `//treasury/Deut 6:4`"""
-    return run_uba_api(f"TSKE:::{config.default_bible}:::{reference}")
+    return run_uba_api(f"TSKE:::{module}:::{reference}")
 
 if DEVELOPER_MODE:
     @mcp.resource("resource://data")

@@ -269,7 +269,7 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | `.trim`              | Trim current conversation          |
 | `.import`            | Import conversation                |
 | `.export`            | Export conversation                |
-| `.chats`             | search chats files                 |
+| `.find`              | search conversation                |
 | `.open`              | Open file or directory             |
 | `.autosuggestions`   | Toggle auto input suggestions      |
 | `.promptengineer`    | Toggle auto prompt engineering     |
@@ -287,18 +287,20 @@ Some commands are designed for retrieving content from UniqueBible App:
 | `.chapter`           | Open bible chapter                 |
 | `.compare`           | Compare bible verse                |
 | `.comparechapter`    | Compare bible chapter              |
+| `.chronology`        | Open Bible Chronology              |
+| `.commentary`        | Open commentary                    |
+| `.xref`              | Open cross-references              |
+| `.treasury`          | Open TSKE                          |
+| `.search`            | Search bible                       |
+| `.parallel`          | Search bible parallels             |
+| `.promise`           | Search bible promises              |
 | `.dictionary`        | Search dictionary                  |
 | `.encyclopedia`      | Search encyclopedia                |
 | `.lexicon`           | Search lexicon                     |
-| `.search`            | Search bible                       |
-| `.commentary`        | Open commentary                    |
-| `.parallel`          | Search parallel passages           |
-| `.promise`           | Search bible promises              |
 | `.topic`             | Search bible topics                |
 | `.name`              | Search bible names                 |
 | `.character`         | Search bible characters            |
 | `.locations`         | Search bible locations             |
-| `.chronology`        | Open Bible Chronology              |
 
 ### Remarks:
 
@@ -308,6 +310,7 @@ Some commands are designed for retrieving content from UniqueBible App:
 * `.edit` command allows you to edit the current conversation with our built-in text editor.  You may customize to use your favorite text editor. Enter `.backend` and change the value of `DEFAULT_TEXT_EDITOR` with a command that calls your favorite text editor.
 * Use `.autosuggestions` to toggle auto input suggestions. If enabled, you can use `TAB` key to open input suggestions menu.
 * Use `.reload` to reload the last saved conversation, if any.  It is useful for continuing an unfinished agentic flow after a conversation was broken for any reasons.
+* Command `.matches` works for local MCP connection only.  It doesn't apply to remote MCP connection, as the changes in local settings does not affect the settings in remote servers.
 
 ## ✝️ UniqueBible Resources
 
@@ -385,13 +388,18 @@ Examples:
 The following key bindings are supported in BibleMate AI prompt field:
 
 - `Ctrl+Y`: help info
+- `Ctrl+S` or `Esc+ENTER` or `Alt+ENTER`: submit input
 - `Ctrl+N`: new conversation
-- `Ctrl+G`: get ideas for prompts to try
-- `Ctrl+P`: edit current prompt
-- `Ctrl+Q`: exit current prompt
-- `Ctrl+R`: reset current prompt
-- `Ctrl+S` or `Esc+ENTER` or `Alt+ENTER`: submit current prompt
-- `Ctrl+Z`: undo current prompt
+- `Ctrl+O`: edit input in text editor
+- `Ctrl+Q`: exit input
+- `Ctrl+R`: reset input
+- `Ctrl+Z`: undo input changes
+- `Ctrl+B`: open bible-related features
+- `Ctrl+C`: open bible commentary
+- `Ctrl+X`: open cross-references features
+- `Ctrl+F`: open search features
+- `Ctrl+G`: change AI mode
+- `Ctrl+P`: toggle auto prompt engineering
 - `Ctrl+D`: delete
 - `Ctrl+H`: backspace
 - `Ctrl+W`: delete previous word

@@ -5,6 +5,8 @@ from biblemate import config
 DEFAULT_MODULES = {
     "bible": config.default_bible,
     "chapter": config.default_bible,
+    "xref": config.default_bible,
+    "treasury": config.default_bible,
     "search": config.default_bible,
     "genesis": config.default_bible,
     "exodus": config.default_bible,
