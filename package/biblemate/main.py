@@ -363,21 +363,22 @@ async def main_async():
             elif APP_START:
                 APP_START = False
                 print()
-                # check for updates
-                latest_version = getPackageLatestVersion("biblemate")
-                if latest_version and latest_version > version.parse(BIBLEMATE_VERSION):
-                    info = f"A new version of BibleMate AI is available: {latest_version} (you are using {BIBLEMATE_VERSION}).\nTo upgrade, close `BibleMate AI` first and run `pip install --upgrade biblemate`."
-                    display_info(console, info)
-                # check connection
-                try:
-                    agentmake("Hello!", system=DEFAULT_SYSTEM)
-                except Exception as e:
-                    print("Connection failed! Please ensure that you have a stable internet connection and that my AI backend and model are properly configured.")
-                    print("Viist https://github.com/eliranwong/agentmake#supported-backends for help about the backend configuration.\n")
-                    if click.confirm("Do you want to configure my AI backend and model now?", default=True):
-                        edit_configurations()
-                        display_info(console, "Restart to make the changes in the backend effective!")
-                        exit()
+                if not args.exit:
+                    # check for updates
+                    latest_version = getPackageLatestVersion("biblemate")
+                    if latest_version and latest_version > version.parse(BIBLEMATE_VERSION):
+                        info = f"A new version of BibleMate AI is available: {latest_version} (you are using {BIBLEMATE_VERSION}).\nTo upgrade, close `BibleMate AI` first and run `pip install --upgrade biblemate`."
+                        display_info(console, info)
+                    # check connection
+                    try:
+                        agentmake("Hello!", system=DEFAULT_SYSTEM)
+                    except Exception as e:
+                        print("Connection failed! Please ensure that you have a stable internet connection and that my AI backend and model are properly configured.")
+                        print("Viist https://github.com/eliranwong/agentmake#supported-backends for help about the backend configuration.\n")
+                        if click.confirm("Do you want to configure my AI backend and model now?", default=True):
+                            edit_configurations()
+                            display_info(console, "Restart to make the changes in the backend effective!")
+                            exit()
             # Original user request
             # note: `python3 -m rich.emoji` for checking emoji
             console.print("Enter your request :smiley: :" if len(messages) == len(DEFAULT_MESSAGES) else "Enter a follow-up request :flexed_biceps: :")
@@ -388,6 +389,7 @@ async def main_async():
                 display_info(console, user_request)
             else:
                 user_request = await getTextArea(input_suggestions=input_suggestions)
+                master_plan = ""
             # luanch action menu
             if user_request == ".":
                 select = await DIALOGS.getValidOptions(options=config.action_list.keys(), descriptions=[i.capitalize() for i in config.action_list.values()], title="Action Menu", text="Select an action:")
