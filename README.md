@@ -114,6 +114,18 @@ export PATH=$PATH:$HOME/biblemate/bin
 biblemate
 ```
 
+### For Android Users
+
+For Pixel Terminal or Termux users, run the built-in MCP server and the MCP client in two different tabs or sessions, as the default stdio MCP connection does not work on these Android apps.
+
+Run the built-in BibleMate AI MCP server in a session:
+
+> biblematemcp
+
+Run the BibleMate AI interface in another session:
+
+> biblemate -mcp biblemate
+
 ### Support Using Vertex AI
 
 Run:

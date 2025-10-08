@@ -67,6 +67,11 @@ else:
 AGENTMAKE_CONFIG["backend"] = config.backend
 DEFAULT_SYSTEM = "You are BibleMate AI, an autonomous agent designed to assist users with their Bible study."
 DEFAULT_MESSAGES = [{"role": "system", "content": DEFAULT_SYSTEM}, {"role": "user", "content": "Hello!"}, {"role": "assistant", "content": "Hello! I'm BibleMate AI, your personal assistant for Bible study. How can I help you today?"}] # set a tone for bible study; it is userful when auto system is used.
+FINAL_INSTRUCTION = """# Instruction
+Please provide me with the final answer to my original request based on the work that has been completed.
+
+# Original Request
+"""
 
 # other temporary config changes
 if args.lite == "true":
@@ -604,7 +609,9 @@ async def main_async():
                     # import master plan
                     if os.path.isdir(load_path):
                         master_plan = readTextFile(os.path.join(load_path, "master_plan.md"))
-                        if master_plan.strip():
+                        if messages[-2].get("content").startswith(FINAL_INSTRUCTION):
+                            user_request = "[STOP]"
+                        elif master_plan.strip():
                             user_request = "[CONTINUE]"
                         else:
                             user_request = ""
@@ -946,7 +953,7 @@ Viist https://github.com/eliranwong/biblemate
                 display_info(console, info)
 
             # Prompt Engineering
-            if not specified_tool == "@@" and config.prompt_engineering and not user_request == "[CONTINUE]":
+            if not specified_tool == "@@" and config.prompt_engineering and not user_request in ("[STOP]", "[CONTINUE]"):
                 async def run_prompt_engineering():
                     nonlocal user_request
                     try:
@@ -1074,7 +1081,12 @@ Available tools are: {available_tools}.
 
             # Get the first suggestion
             conversation_broken = False
-            next_suggestion = "CONTINUE" if user_request == "[CONTINUE]" else "START"
+            if user_request == "[CONTINUE]":
+                next_suggestion = "CONTINUE"
+            elif user_request == "[STOP]":
+                next_suggestion = "STOP"
+            else:
+                next_suggestion = "START"
 
             step = int(((len(messages)-len(DEFAULT_MESSAGES)-2)/2+1)) if user_request == "[CONTINUE]" else 1
             while not ("STOP" in next_suggestion or re.sub("^[^A-Za-z]*?([A-Za-z]+?)[^A-Za-z]*?$", r"\1", next_suggestion).upper() == "STOP"):
@@ -1170,16 +1182,14 @@ Available tools are: {available_tools}.
                 messages.append({"role": "assistant", "content": next_suggestion})
             
             # write the final answer
-            if not conversation_broken:
+            if messages[-2].get("content") == "[STOP]" and messages[-1].get("content") == "STOP":
+                messages = messages[:-2]
+            if not conversation_broken and not messages[-2].get("content").startswith(FINAL_INSTRUCTION):
                 console.print(Markdown("# Wrapping up ..."))
                 messages = agentmake(
                     messages,
                     system="write_final_answer",
-                    follow_up_prompt=f"""# Instruction
-Please provide me with the final answer to my original request based on the work that has been completed.
-
-# Original Request
-{user_request}""",
+                    follow_up_prompt=f"""{FINAL_INSTRUCTION}{user_request}""",
                     stream=True,
                 )
                 messages[-1]["content"] = fix_string(messages[-1]["content"])
