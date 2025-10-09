@@ -415,6 +415,10 @@ The following key bindings are supported in BibleMate AI prompt field:
 - `Ctrl+Q`: exit input
 - `Ctrl+R`: reset input
 - `Ctrl+Z`: undo input changes
+- `Ctrl+W`: save prompt / plan
+- `Esc+W`: delete prompt / plan
+- `Ctrl+L`: open prompt / plan
+- `Esc+L`: search prompt / plan
 - `Ctrl+B`: open bible-related features
 - `Ctrl+C`: open bible commentaries
 - `Ctrl+V`: open bible verse features
@@ -422,6 +426,7 @@ The following key bindings are supported in BibleMate AI prompt field:
 - `Ctrl+F`: open search features
 - `Ctrl+G`: change AI mode
 - `Ctrl+P`: toggle auto prompt engineering
+- `Esc+P`: improve prompt content
 - `Ctrl+D`: delete
 - `Ctrl+H`: backspace
 - `Ctrl+W`: delete previous word
@@ -479,6 +484,18 @@ You can use a third-party text editor of your own choice. Enter `.backend` in th
 BibleMate AI is highly customizable. Advanced users can modify existing tools, create new ones, and even change the behavior of the AI agent by customizing system prompts.
 
 Custom files are placed in the `biblemate` sub-directory within the AgentMake user directory (typically `~/.agentmake/biblemate` on Linux/macOS or `%USERPROFILE%\.agentmake\biblemate` on Windows).
+
+### Frequently Used Prompts and Plans
+
+You can save, search, open or delete frequently used prompts and plans.
+
+For examples:
+
+* Enter a prompt and use `Ctrl+W` to save a prompt.
+* Prefix a prompt with `@@` and use `Ctrl+W` to save a prompt.
+* Use `Esc+W` to delete a saved prompt / plan.
+* Use `Ctrl+L` to open a prompt / plan.
+* Use `Esc+L` to search for prompts / plans.
 
 ### Override system prompts
 

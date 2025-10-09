@@ -13,7 +13,7 @@ from fastmcp import Client
 from fastmcp.client.transports import StreamableHttpTransport
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_file, edit_configurations, readTextFile, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND, DEFAULT_TEXT_EDITOR
-from agentmake.utils.files import searchFolder
+from agentmake.utils.files import searchFolder, isExistingPath
 from agentmake.etextedit import launch_async
 from agentmake.utils.manage_package import getPackageLatestVersion
 from rich.console import Console
@@ -390,6 +390,11 @@ async def main_async():
             else:
                 user_request = await getTextArea(input_suggestions=input_suggestions)
                 master_plan = ""
+            # open a text file as a prompt
+            check_path = isExistingPath(user_request)
+            if check_path:
+                config.current_prompt = readTextFile(check_path)
+                continue
             # luanch action menu
             if user_request == ".":
                 select = await DIALOGS.getValidOptions(options=config.action_list.keys(), descriptions=[i.capitalize() for i in config.action_list.values()], title="Action Menu", text="Select an action:")
@@ -581,16 +586,16 @@ async def main_async():
                 else:
                     display_info(console, "Temporary conversation not found!")
                     continue
-            if user_request.startswith(".open ") and os.path.exists(os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))):
-                file_path = os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[6:]))
+            if user_request.startswith(".open ") and check_path = isExistingPath(user_request[6:]):
+                file_path = isExistingPath(user_request[6:])
                 cmd = f'''{getOpenCommand()} "{file_path}"'''
                 with warnings.catch_warnings():
                     warnings.filterwarnings("ignore", category=ResourceWarning)
                     subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 os.chdir(cwd)
                 continue
-            elif user_request.startswith(".import ") and os.path.exists(os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[8:]))):
-                load_path = os.path.expanduser(re.sub('''^['" ]*?([^'" ].+?)['" ]*?$''', r"\1", user_request[8:]))
+            elif user_request.startswith(".import ") and isExistingPath(user_request[8:]):
+                load_path = isExistingPath(user_request[8:])
                 try:
                     # import conversation
                     if os.path.isfile(load_path):
@@ -662,6 +667,10 @@ Viist https://github.com/eliranwong/biblemate
 - `Ctrl+Q`: exit input
 - `Ctrl+R`: reset input
 - `Ctrl+Z`: undo input changes
+- `Ctrl+W`: save prompt / plan
+- `Esc+W`: delete prompt / plan
+- `Ctrl+L`: open prompt / plan
+- `Esc+L`: search prompt / plan
 - `Ctrl+B`: open bible-related features
 - `Ctrl+C`: open bible commentaries
 - `Ctrl+V`: open bible verse features
@@ -669,6 +678,7 @@ Viist https://github.com/eliranwong/biblemate
 - `Ctrl+F`: open search features
 - `Ctrl+G`: change AI mode
 - `Ctrl+P`: toggle auto prompt engineering
+- `Esc+P`: improve prompt content
 - `Ctrl+D`: delete
 - `Ctrl+H`: backspace
 - `Ctrl+W`: delete previous word
@@ -832,6 +842,7 @@ Viist https://github.com/eliranwong/biblemate
                     query = await DIALOGS.getInputDialog(title="Search Chat Files", text="Enter a search query:")
                     if query:
                         searchFolder(os.path.join(BIBLEMATE_USER_DIR, "chats"), query=query, filter="*conversation.py")
+                        print()
                 elif user_request == ".mode":
                     default_ai_mode = "chat" if config.agent_mode is None else "agent" if config.agent_mode else "partner"
                     ai_mode = await DIALOGS.getValidOptions(
@@ -955,6 +966,7 @@ Viist https://github.com/eliranwong/biblemate
                 display_info(console, info)
 
             # Prompt Engineering
+            original_request = user_request
             if not specified_tool == "@@" and config.prompt_engineering and not user_request in ("[STOP]", "[CONTINUE]"):
                 async def run_prompt_engineering():
                     nonlocal user_request
@@ -966,6 +978,20 @@ Viist https://github.com/eliranwong/biblemate
                         user_request = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, system="improve_prompt_2")[-1].get("content", "").strip()
                         user_request = re.sub(r"^.*?(```improved_prompt|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
                 await thinking(run_prompt_engineering, "Improving your prompt ...")
+
+                if not config.agent_mode:
+                    info = Markdown("# Review & Confirm\n\nPlease review and confirm the improved prompt, or make any changes you need.")
+                    console.print(info)
+                    print()
+                    improved_prompt_edit = await getTextArea(default_entry=user_request, title="Review - Master Plan")
+                    if not improved_prompt_edit or improved_prompt_edit == ".exit":
+                        if messages and messages[-1].get("role", "") == "user":
+                            messages = messages[:-1]
+                        display_info(console, "I've stopped processing for you.")
+                        config.current_prompt = original_request
+                        continue
+                    else:
+                        user_request = improved_prompt_edit
 
             # Add user request to messages
             if not user_request == "[CONTINUE]":
@@ -1071,7 +1097,7 @@ Available tools are: {available_tools}.
                             display_info(console, "I've stopped processing for you.")
                             continue
                         else:
-                            master_plan_edit = master_plan_edit
+                            master_plan = master_plan_edit
 
                     # display info
                     info = Markdown(f"# Master plan\n\n{master_plan}")

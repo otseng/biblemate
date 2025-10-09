@@ -1,4 +1,4 @@
-from biblemate import config, DIALOGS
+from biblemate import config, DIALOGS, AGENTMAKE_CONFIG, BIBLEMATE_USER_DIR
 from prompt_toolkit.input import create_input
 from prompt_toolkit.layout import Layout, HSplit
 from prompt_toolkit.widgets import Frame, Label
@@ -13,10 +13,12 @@ from prompt_toolkit.lexers import PygmentsLexer
 from pygments.lexers.markup import MarkdownLexer
 from prompt_toolkit.styles import style_from_pygments_cls
 from pygments.styles import get_style_by_name
-from agentmake import DEFAULT_TEXT_EDITOR, edit_file, readTextFile, writeTextFile
+from agentmake import agentmake, DEFAULT_TEXT_EDITOR, edit_file, readTextFile, writeTextFile
 from agentmake.etextedit import launch_async
+from agentmake.utils.files import searchFolder
 from typing import Any, Optional
-import os
+from pathlib import Path
+import os, re, glob
 
 
 async def getTextArea(input_suggestions:list=None, default_entry="", title="", multiline:bool=True, completion:Optional[Any]=None, scrollbar:bool=True, read_only:bool=False):
@@ -160,11 +162,45 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         def _(event):
             config.current_prompt = text_area.text
             event.app.exit(result=".new")
+        # improve prompt
+        @bindings.add("escape", "p")
+        def _(event):
+            buffer = event.app.current_buffer if event is not None else text_area.buffer
+            user_request = text_area.text
+            try:
+                user_request = agentmake(user_request, tool="improve_prompt", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                if "```" in user_request:
+                    user_request = re.sub(r"^.*?(```improved_version|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
+            except:
+                user_request = agentmake(user_request, system="improve_prompt_2", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                user_request = re.sub(r"^.*?(```improved_prompt|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
+            text_area.text = user_request
+            config.cursor_position = len(text_area.text)
         # toggle prompt engineering
         @bindings.add("c-p")
         def _(event):
             config.current_prompt = text_area.text
             event.app.exit(result=".promptengineer")
+        # write prompts or plans
+        @bindings.add("c-w")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result="[SAVEPROMPT]")
+        # delete prompts or plans
+        @bindings.add("escape", "w")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result="[DELETEPROMPT]")
+        # open prompts or plans
+        @bindings.add("c-l")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result="[LOADPROMPT]")
+        # open prompts or plans
+        @bindings.add("escape", "l")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result="[SEARCHPROMPT]")
         # open commentaries
         @bindings.add("c-c")
         def _(event):
@@ -270,7 +306,7 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         # Run the non-full-screen text area again
         result = await app.run_async()
         print()
-    if not title and result in ("[BIBLE]", "[SEARCH]", "[VERSE]", "[COMMENTARY]", "[CROSSREFERENCE]"):
+    if not title and result in ("[BIBLE]", "[SEARCH]", "[VERSE]", "[COMMENTARY]", "[CROSSREFERENCE]", "[DELETEPROMPT]", "[SAVEPROMPT]", "[LOADPROMPT]", "[SEARCHPROMPT]"):
         if result == "[BIBLE]":
             options = [".bible", ".chapter", ".compare", ".comparechapter", ".chronology"]
             descriptions = [config.action_list[i] for i in options]
@@ -296,6 +332,77 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
             descriptions = [config.action_list[i] for i in options]
             select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Commentaries", text="Select an option to continue:")
             return select if select else ""
+        elif result == "[SAVEPROMPT]":
+            user_input = await DIALOGS.getInputDialog(title="Save Prompt", text="Enter a name:")
+            if user_input:
+                prompt_dir = os.path.join(BIBLEMATE_USER_DIR, "prompts")
+                plan_dir = os.path.join(BIBLEMATE_USER_DIR, "plans")
+                storage_path = plan_dir if text_area.text.startswith("@@") else prompt_dir
+                if not os.path.isdir(os.path.join(storage_path, os.path.dirname(user_input))):
+                    Path(storage_path).mkdir(parents=True, exist_ok=True)
+                save_path = os.path.join(storage_path, user_input+(".plan" if text_area.text.startswith("@@") else ".prompt"))
+                if text_area.text.strip():
+                    writeTextFile(save_path, text_area.text)
+                elif os.path.isfile(save_path):
+                    os.remove(save_path)
+            return ""
+        elif result == "[DELETEPROMPT]":
+            options = [".deleteprompt", ".deleteplan"]
+            descriptions = ["Delete a prompt", "Delete a plan"]
+            select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Open Prompt / Plan", text="Select an option to continue:")
+            if not select:
+                return ""
+            prompts_path = os.path.join(BIBLEMATE_USER_DIR, "prompts")
+            prompts = os.path.join(prompts_path, "**", "*.prompt")
+            plans_path = os.path.join(BIBLEMATE_USER_DIR, "plans")
+            plans = os.path.join(plans_path, "**", "*.plan")
+            found = glob.glob(plans if select == ".deleteplan" else prompts, recursive=True)
+            if found:
+                prefix = plans_path if select == ".deleteplan" else prompts_path
+                suffix = ".plan" if select == ".deleteplan" else ".prompt"
+                options = [i[len(prefix)+1:-(len(suffix))] for i in found]
+                select = await DIALOGS.getValidOptions(options=options, title="Open Plan" if select == ".deleteplan" else "Open Prompt", text="Select a plan:" if select == ".deleteplan" else "Select a prompt:")
+                if select:
+                    os.remove(os.path.join(prefix, select+suffix))
+            return ""
+        elif result == "[LOADPROMPT]":
+            options = [".openprompt", ".openplan"]
+            descriptions = ["Open a prompt", "Open a plan"]
+            select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Open Prompt / Plan", text="Select an option to continue:")
+            if not select:
+                return ""
+            prompts_path = os.path.join(BIBLEMATE_USER_DIR, "prompts")
+            prompts = os.path.join(prompts_path, "**", "*.prompt")
+            plans_path = os.path.join(BIBLEMATE_USER_DIR, "plans")
+            plans = os.path.join(plans_path, "**", "*.plan")
+            found = glob.glob(plans if select == ".openplan" else prompts, recursive=True)
+            if found:
+                prefix = plans_path if select == ".openplan" else prompts_path
+                suffix = ".plan" if select == ".openplan" else ".prompt"
+                options = [i[len(prefix)+1:-(len(suffix))] for i in found]
+                select = await DIALOGS.getValidOptions(options=options, title="Open Plan" if select == ".openplan" else "Open Prompt", text="Select a plan:" if select == ".openplan" else "Select a prompt:")
+                if select:
+                    config.current_prompt = readTextFile(os.path.join(prefix, select+suffix))
+            return ""
+        elif result == "[SEARCHPROMPT]":
+            options = [".searchprompt", ".searchplan"]
+            descriptions = ["Search prompts", "Search plans"]
+            select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Search Prompts / Plans", text="Select an option to continue:")
+            if not select:
+                return ""
+            prompts_path = os.path.join(BIBLEMATE_USER_DIR, "prompts")
+            prompts = os.path.join(prompts_path, "**", "*.prompt")
+            plans_path = os.path.join(BIBLEMATE_USER_DIR, "plans")
+            plans = os.path.join(plans_path, "**", "*.plan")
+            found = glob.glob(plans if select == ".searchplan" else prompts, recursive=True)
+            if found:
+                prefix = plans_path if select == ".searchplan" else prompts_path
+                suffix = ".plan" if select == ".searchplan" else ".prompt"
+                query = await DIALOGS.getInputDialog(title="Search Plans" if select == ".searchplan" else "Search Prompts", text="Enter a search query:")
+                if query:
+                    searchFolder(prefix, query=query, filter="*"+suffix)
+                    print()
+            return ""
     # return the text content
     return result
 
