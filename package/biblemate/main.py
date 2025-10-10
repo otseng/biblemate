@@ -586,7 +586,7 @@ async def main_async():
                 else:
                     display_info(console, "Temporary conversation not found!")
                     continue
-            if user_request.startswith(".open ") and check_path = isExistingPath(user_request[6:]):
+            if user_request.startswith(".open ") and isExistingPath(user_request[6:]):
                 file_path = isExistingPath(user_request[6:])
                 cmd = f'''{getOpenCommand()} "{file_path}"'''
                 with warnings.catch_warnings():
