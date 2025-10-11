@@ -266,11 +266,12 @@ async def main_async():
     DEFAULT_SYSTEM = "You are BibleMate AI, an autonomous agent designed to assist users with their Bible study."
     DEFAULT_MESSAGES = [{"role": "system", "content": DEFAULT_SYSTEM}, {"role": "user", "content": "Hello!"}, {"role": "assistant", "content": "Hello! I'm BibleMate AI, your personal assistant for Bible study. How can I help you today?"}] # set a tone for bible study; it is userful when auto system is used.
 
-    console = Console(record=True)
-    console.clear()
-    console.print(get_banner(BIBLEMATE_VERSION))
-
     async with client:
+
+        console = Console(record=True)
+        console.clear()
+        console.print(get_banner(BIBLEMATE_VERSION))
+
         tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources, templates = await initialize_app(client)
         resource_suggestions_raw = json.loads(run_uba_api(".resources"))
         # check if default modules are valid:
@@ -404,12 +405,13 @@ async def main_async():
             if user_request == ".ideas":
                 # Generate ideas for `prompts to try`
                 ideas = ""
+                remarks = f'''\n\n# Remarks\n\nPlease note that user has already entered the following prelimary input:\n\n```\n{config.current_prompt}\n```\n\nTherefore, generate your content along this direction.''' if config.current_prompt else ""
                 async def generate_ideas():
                     nonlocal ideas
                     if len(messages) == len(DEFAULT_MESSAGES):
-                        ideas = agentmake("Generate three `prompts to try` for bible study. Each one should be one sentence long.", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                        ideas = agentmake(f"Generate three `prompts to try` for bible study. Each one should be one sentence long.{remarks}", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
                     else:
-                        ideas = agentmake(messages, follow_up_prompt="Generate three follow-up questions according to the on-going conversation.", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                        ideas = agentmake(messages, follow_up_prompt=f"Generate three follow-up questions according to the on-going conversation.{remarks}", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
                 await thinking(generate_ideas, "Generating ideas ...")
                 display_info(console, Markdown(f"## Ideas\n\n{ideas}"))
                 # Get input again
@@ -676,7 +678,9 @@ Viist https://github.com/eliranwong/biblemate
 - `Ctrl+V`: open bible verse features
 - `Ctrl+X`: open cross-references features
 - `Ctrl+F`: open search features
-- `Ctrl+G`: change AI mode
+- `Ctrl+J`: change AI mode
+- `Ctrl+G`: toggle auto input suggestions
+- `Esc+G`: generate ideas for prompts to try
 - `Ctrl+P`: toggle auto prompt engineering
 - `Esc+P`: improve prompt content
 - `Ctrl+D`: delete
@@ -975,7 +979,7 @@ Viist https://github.com/eliranwong/biblemate
                         if "```" in user_request:
                             user_request = re.sub(r"^.*?(```improved_version|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
                     except:
-                        user_request = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, system="improve_prompt_2")[-1].get("content", "").strip()
+                        user_request = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, system="improve_prompt_2", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
                         user_request = re.sub(r"^.*?(```improved_prompt|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
                 await thinking(run_prompt_engineering, "Improving your prompt ...")
 

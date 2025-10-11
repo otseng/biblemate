@@ -153,7 +153,7 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
             config.current_prompt = text_area.text
             event.app.exit(result=".help")
         # change AI mode
-        @bindings.add("c-g")
+        @bindings.add("c-j")
         def _(event):
             config.current_prompt = text_area.text
             event.app.exit(result=".mode")
@@ -162,6 +162,16 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         def _(event):
             config.current_prompt = text_area.text
             event.app.exit(result=".new")
+        # generate ideas
+        @bindings.add("escape", "g")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result=".ideas")
+        # toggle auto input suggestions
+        @bindings.add("c-g")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result=".autosuggestions")
         # improve prompt
         @bindings.add("escape", "p")
         def _(event):

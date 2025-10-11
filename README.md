@@ -291,6 +291,7 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | `.export`            | Export conversation                |
 | `.find`              | search conversation                |
 | `.open`              | Open file or directory             |
+| `.ideas`             | Generate ideas                     |
 | `.autosuggestions`   | Toggle auto input suggestions      |
 | `.promptengineer`    | Toggle auto prompt engineering     |
 | `.lite`              | Toggle lite context                |
@@ -430,7 +431,9 @@ The following key bindings are supported in BibleMate AI prompt field:
 - `Ctrl+V`: open bible verse features
 - `Ctrl+X`: open cross-references features
 - `Ctrl+F`: open search features
-- `Ctrl+G`: change AI mode
+- `Ctrl+J`: change AI mode
+- `Ctrl+G`: toggle auto input suggestions
+- `Esc+G`: generate ideas for prompts to try
 - `Ctrl+P`: toggle auto prompt engineering
 - `Esc+P`: improve prompt content
 - `Ctrl+D`: delete
