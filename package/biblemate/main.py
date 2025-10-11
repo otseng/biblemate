@@ -415,7 +415,7 @@ async def main_async():
                 await thinking(generate_ideas, "Generating ideas ...")
                 display_info(console, Markdown(f"## Ideas\n\n{ideas}"))
                 # Get input again
-                user_request = await getTextArea(input_suggestions=input_suggestions)
+                continue
 
             # display resources
             if user_request.startswith("//") and user_request[2:] in resources:
