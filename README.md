@@ -52,6 +52,10 @@ BibleMate AI + `Groq + Llama 3.3 70B` https://youtu.be/oKQyIEnMM8M
 
 BibleMate AI + `XAI + Grok 4` https://youtu.be/JgcxciOc_Ys
 
+### Examples on Backend Setup
+
+Read https://github.com/eliranwong/biblemate/tree/main/docs/backends_setup for more details.
+
 ## 🎬 Demo - Agent Mode
 
 [![Watch the video](https://img.youtube.com/vi/QvPIyHOhrP0/maxresdefault.jpg)](https://youtu.be/QvPIyHOhrP0)
@@ -116,7 +120,9 @@ biblemate
 
 ### For Android Users
 
-For Pixel Terminal or Termux users, run the built-in MCP server and the MCP client in two different tabs or sessions, as the default stdio MCP connection does not work on these Android apps.
+If you find the default transport `stdio` does not work on Pixel Terminal or Termux terminal apps, use the workaround given below:
+
+Workaround: Run the built-in MCP server and the MCP client in two different tabs or sessions.
 
 Run the built-in BibleMate AI MCP server in a session:
 
