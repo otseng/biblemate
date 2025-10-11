@@ -244,6 +244,8 @@ async def download_data(console, default=""):
 
 async def main_async():
 
+    os.chdir(BIBLEMATE_USER_DIR)
+
     BIBLEMATE_STATIC_TOKEN = args.token if args.token else os.getenv("BIBLEMATE_STATIC_TOKEN")
     BIBLEMATE_MCP_PRIVATE_KEY=os.getenv("BIBLEMATE_MCP_PRIVATE_KEY")
 
