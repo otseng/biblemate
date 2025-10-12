@@ -407,7 +407,7 @@ async def main_async():
             if user_request == ".ideas":
                 # Generate ideas for `prompts to try`
                 ideas = ""
-                remarks = f'''\n\n# Remarks\n\nPlease note that user has already entered the following prelimary input:\n\n```\n{config.current_prompt}\n```\n\nTherefore, generate your content along this direction.''' if config.current_prompt else ""
+                remarks = f'''\n\n# Remarks\n\nPlease note that user has already entered the following prelimary input:\n\n```\n{config.current_prompt}\n```\n\nTherefore, generate your content along this direction.''' if config.current_prompt.strip() else ""
                 async def generate_ideas():
                     nonlocal ideas
                     if len(messages) == len(DEFAULT_MESSAGES):
