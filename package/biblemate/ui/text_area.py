@@ -162,6 +162,16 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         def _(event):
             config.current_prompt = text_area.text
             event.app.exit(result=".new")
+        # edit conversation
+        @bindings.add("escape", "i")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result=".import")
+        # edit conversation
+        @bindings.add("escape", "o")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result=".edit")
         # generate ideas
         @bindings.add("escape", "g")
         def _(event):
@@ -191,6 +201,11 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         def _(event):
             config.current_prompt = text_area.text
             event.app.exit(result=".promptengineer")
+        # conversation menu
+        #@bindings.add("escape", "c")
+        #def _(event):
+        #    config.current_prompt = text_area.text
+        #    event.app.exit(result="[CONVERSATION]")
         # write prompts or plans
         @bindings.add("c-w")
         def _(event):
@@ -339,6 +354,11 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
             return select if select else ""
         elif result == "[COMMENTARY]":
             options = [".aicommentary", ".commentary"]
+            descriptions = [config.action_list[i] for i in options]
+            select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Commentaries", text="Select an option to continue:")
+            return select if select else ""
+        elif result == "[CONVERSATION]":
+            options = [".new", ".reload", ".backup", ".edit", ".trim", ".import", ".export", ".find"]
             descriptions = [config.action_list[i] for i in options]
             select = await DIALOGS.getValidOptions(options=options, descriptions=descriptions, title="Commentaries", text="Select an option to continue:")
             return select if select else ""

@@ -418,6 +418,8 @@ The following key bindings are supported in BibleMate AI prompt field:
 - `Ctrl+Y`: help info
 - `Ctrl+S` or `Esc+ENTER` or `Alt+ENTER`: submit input
 - `Ctrl+N`: new conversation
+- `Esc+I`: import conversation
+- `Esc+O`: edit conversation
 - `Ctrl+O`: edit input in text editor
 - `Ctrl+Q`: exit input
 - `Ctrl+R`: reset input

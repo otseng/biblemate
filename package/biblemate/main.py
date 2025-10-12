@@ -667,6 +667,8 @@ Viist https://github.com/eliranwong/biblemate
 - `Ctrl+Y`: help info
 - `Ctrl+S` or `Esc+ENTER` or `Alt+ENTER`: submit input
 - `Ctrl+N`: new conversation
+- `Esc+I`: import conversation
+- `Esc+O`: edit conversation
 - `Ctrl+O`: edit input in text editor
 - `Ctrl+Q`: exit input
 - `Ctrl+R`: reset input
@@ -989,7 +991,7 @@ Viist https://github.com/eliranwong/biblemate
                     info = Markdown("# Review & Confirm\n\nPlease review and confirm the improved prompt, or make any changes you need.")
                     console.print(info)
                     print()
-                    improved_prompt_edit = await getTextArea(default_entry=user_request, title="Review - Master Plan")
+                    improved_prompt_edit = await getTextArea(default_entry=user_request, title="Review - Prompt Engineering")
                     if not improved_prompt_edit or improved_prompt_edit == ".exit":
                         if messages and messages[-1].get("role", "") == "user":
                             messages = messages[:-1]
