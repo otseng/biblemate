@@ -17,6 +17,7 @@ default_config = '''banner_title=""
 *lite=False
 *web_browser=False
 *hide_tools_order=True
+*skip_connection_check=False
 *default_bible="NET"
 *default_commentary="CBSC"
 *default_encyclopedia="ISB"
@@ -114,6 +115,7 @@ max_steps={config.max_steps}
 lite={config.lite}
 web_browser={config.web_browser}
 hide_tools_order={config.hide_tools_order}
+skip_connection_check={config.skip_connection_check}
 default_bible="{config.default_bible}"
 default_commentary="{config.default_commentary}"
 default_encyclopedia="{config.default_encyclopedia}"
