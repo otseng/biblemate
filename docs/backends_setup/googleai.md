@@ -26,7 +26,7 @@ or
 
 Remarks: To use library `google-genai`, you need to install biblemate with running:
 
-> pip install --upgrade "agentmake[genai]"
+> pip install --upgrade "biblemate[genai]"
 
 5. Use backend `googleai` or `genai` without setting it as default:
 

@@ -251,13 +251,16 @@ async def main_async():
 
     # The client that interacts with the Bible Study MCP server
     if args.mcp:
-        mcp_server = f"http://127.0.0.1:{config.mcp_port}/mcp/" if args.mcp == "biblemate" else args.mcp
-        transport = StreamableHttpTransport(
-            mcp_server,
-            auth=BIBLEMATE_STATIC_TOKEN if BIBLEMATE_STATIC_TOKEN else BIBLEMATE_MCP_PRIVATE_KEY if BIBLEMATE_MCP_PRIVATE_KEY else None,
-            sse_read_timeout=config.mcp_timeout,
-        )
-        client = Client(transport=transport, timeout=config.mcp_timeout)
+        if os.path.isfile(args.mcp):
+            client = Client(args.mcp)
+        else:
+            mcp_server = f"http://127.0.0.1:{config.mcp_port}/mcp/" if args.mcp == "biblemate" else args.mcp
+            transport = StreamableHttpTransport(
+                mcp_server,
+                auth=BIBLEMATE_STATIC_TOKEN if BIBLEMATE_STATIC_TOKEN else BIBLEMATE_MCP_PRIVATE_KEY if BIBLEMATE_MCP_PRIVATE_KEY else None,
+                sse_read_timeout=config.mcp_timeout,
+            )
+            client = Client(transport=transport, timeout=config.mcp_timeout)
     else:
         builtin_mcp_server = os.path.join(os.path.dirname(os.path.realpath(__file__)), "bible_study_mcp.py")
         user_mcp_server = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "bible_study_mcp.py") # The user path has the same basename as the built-in one; users may copy the built-in server settings to this location for customization. 

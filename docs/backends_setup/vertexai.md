@@ -76,7 +76,7 @@ Remarks:
 
 1. To use Vertex AI with library `google-genai`, you need to install with running:
 
-> pip install --upgrade "agentmake[genai]"
+> pip install --upgrade "biblemate[genai]"
 
 2. Edit the backend configuration file by running `.backend` in the BibleMate AI prompt.
 
