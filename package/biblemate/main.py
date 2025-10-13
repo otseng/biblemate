@@ -171,10 +171,11 @@ Get a static text-based response directly from a text-based AI model without usi
     
     return tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources, templates
 
-def display_info(console, info):
+def display_info(console, info, title=None):
     """ Info panel with background """
     info_panel = Panel(
         Text(info, style="bold white on grey11", justify="center") if isinstance(info, str) else info,
+        title=title,
         border_style="bright_blue",
         box=box.ROUNDED,
         style="on grey11" if isinstance(info, str) else "",
