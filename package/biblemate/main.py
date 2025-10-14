@@ -1176,7 +1176,7 @@ Available tools are: {available_tools}.
                     else:
                         next_tool_description = tools.get(next_tool, "No description available.")
                         system_tool_instruction = get_system_tool_instruction(next_tool, next_tool_description)
-                        next_step = agentmake(next_suggestion, system=system_tool_instruction, **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                        next_step = agentmake([{"role": "system", "content": system_tool_instruction}]+messages[len(DEFAULT_MESSAGES):], follow_up_prompt=next_suggestion, **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
                 await thinking(get_next_step, "Crafting the next instruction ...")
                 # partner mode
                 if config.agent_mode == False:
