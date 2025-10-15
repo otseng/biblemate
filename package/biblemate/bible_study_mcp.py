@@ -4,7 +4,7 @@ from fastmcp.server.auth.providers.jwt import JWTVerifier
 from fastmcp import FastMCP
 from fastmcp.prompts.prompt import PromptMessage, TextContent
 from agentmake import agentmake, DEVELOPER_MODE, readTextFile
-from biblemate import BIBLEMATEDATA, AGENTMAKE_CONFIG, config
+from biblemate import BIBLEMATE_VERSION, BIBLEMATEDATA, AGENTMAKE_CONFIG, config
 from biblemate.uba.bible import search_bible
 from biblemate.uba.api import run_uba_api, run_uba_ai_commentary, run_uba_words, run_uba_discourse, run_uba_translation, run_uba_index
 from typing import List, Dict, Any, Union
@@ -40,8 +40,8 @@ def getResponse(messages:list) -> str:
 @mcp.resource("resource://info")
 def info() -> str:
     """Display BibleMate AI information"""
-    info = "BibleMate AI " + readTextFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), "version.txt"))
-    info += "\n\nSource: https://github.com/eliranwong/biblemate\nDeveloper: Eliran Wong"
+    info = "BibleMate AI " + BIBLEMATE_VERSION
+    info += "\n\nSource: https://github.com/eliranwong/biblemate\n\nDeveloper: Eliran Wong"
     return info
 
 @mcp.resource("uba://{command}")

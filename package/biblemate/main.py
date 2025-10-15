@@ -162,11 +162,11 @@ Get a static text-based response directly from a text-based AI model without usi
         prompts_schema[p.name] = schema
     
     resources_raw = await client.list_resources()
-    resources = {r.name: r.description for r in resources_raw}
+    resources = {r.name: (r.description, str(r.uri)) for r in resources_raw}
     resources = dict(sorted(resources.items()))
 
     templates_raw = await client.list_resource_templates()
-    templates = {r.name: r.description for r in templates_raw}
+    templates = {r.name: (r.description, r.uriTemplate) for r in templates_raw}
     templates = dict(sorted(templates.items()))
     
     return tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources, templates
@@ -426,8 +426,9 @@ async def main_async():
 
             # display resources
             if user_request.startswith("//") and user_request[2:] in resources:
-                resource = user_request[2:]
-                resource_content = await client.read_resource(f"resource://{resource}")
+                resource_name = user_request[2:]
+                uri = resources[resource_name][1]
+                resource_content = await client.read_resource(uri)
                 if hasattr(resource_content[0], 'text'):
                     resource_text = resource_content[0].text
                     if resource_text.startswith("{"):
@@ -435,8 +436,10 @@ async def main_async():
                         display_content = "\n".join([f"- `{k}`: {v}" for k, v in resource_dict.items()])
                     else:
                         display_content = resource_text
-                    resource_description = resources.get(resource, "")
-                    info = Markdown(f"## Information - `{resource.capitalize()}`\n\n{resource_description}\n\n{display_content}")
+                    resource_description = resources.get(resource_name, "")
+                    if resource_description:
+                        resource_description = resource_description[0]
+                    info = Markdown(f"## Information - `{resource_name.capitalize()}`\n\n{resource_description}\n\n{display_content}")
                     display_info(console, info)
                 continue
 
@@ -535,7 +538,8 @@ async def main_async():
                     elif user_request.count("/") > 3:
                         user_request = re.sub("^(//.*?/)(.*?)$", r"\1"+r"\2".replace("/", "「」"), user_request)
                 try:
-                    uri = re.sub("^(.*?)/", r"\1://", user_request[2:])
+                    template_name, template_args = user_request[2:].split("/", 1)
+                    uri = re.sub("{.*?$", "", templates[template_name][1])+template_args
                     resource_content = await client.read_resource(uri)
                     resource_content = resource_content[0].text
                     while resource_content.startswith("[") and resource_content.endswith("]"):
