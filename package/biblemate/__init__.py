@@ -27,6 +27,7 @@ default_config = '''banner_title=""
 *mcp_port=33333
 *mcp_timeout=9999999999
 *embedding_model="paraphrase-multilingual"
+*custom_input_suggestions=[]
 *disabled_tools=['search_1_chronicles_only',
 'search_1_corinthians_only',
 'search_1_john_only',
@@ -125,6 +126,7 @@ max_log_lines={config.max_log_lines}
 mcp_port={config.mcp_port}
 mcp_timeout={config.mcp_timeout}
 embedding_model="{config.embedding_model}"
+custom_input_suggestions={pprint.pformat(config.custom_input_suggestions)}
 disabled_tools={pprint.pformat(config.disabled_tools)}"""
     writeTextFile(CONFIG_FILE_BACKUP if backup else CONFIG_FILE, configurations)
 
