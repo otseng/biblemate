@@ -181,7 +181,7 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         @bindings.add("c-g")
         def _(event):
             config.current_prompt = text_area.text
-            event.app.exit(result=".autosuggestions")
+            event.app.exit(result=".autosuggest")
         # improve prompt
         @bindings.add("escape", "p")
         def _(event):
@@ -200,7 +200,7 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         @bindings.add("c-p")
         def _(event):
             config.current_prompt = text_area.text
-            event.app.exit(result=".promptengineer")
+            event.app.exit(result=".autoprompt")
         # conversation menu
         #@bindings.add("escape", "c")
         #def _(event):

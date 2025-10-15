@@ -289,11 +289,12 @@ The '@@' trick works even when you are using 'chat' mode with 'agent' mode disab
 | `.trim`              | Trim current conversation          |
 | `.import`            | Import conversation                |
 | `.export`            | Export conversation                |
-| `.find`              | search conversation                |
+| `.find`              | Search conversation                |
+| `.content`           | Show current directory content     |
 | `.open`              | Open file or directory             |
 | `.ideas`             | Generate ideas                     |
-| `.autosuggestions`   | Toggle auto input suggestions      |
-| `.promptengineer`    | Toggle auto prompt engineering     |
+| `.autosuggest`       | Toggle auto input suggestions      |
+| `.autoprompt`        | Toggle auto prompt engineering     |
 | `.lite`              | Toggle lite context                |
 | `.steps`             | Set max number of steps            |
 | `.matches`           | Set max number of semantic matches |
@@ -336,7 +337,7 @@ Key bindings `Ctrl+B`, `Ctrl+C`, `Ctrl+V` and `Ctrl+X` are designed for opening 
 * To use `.import`, you need to specify a python file that contains a saved conversation.  Conversation is saved into a file each time when a backup is executed. Check the message `Conversation backup saved to ...` or locate the backups in `~/agentmake/xomate`. Instead of loading a mere conversation, you can load both a conversation and its master plan. To do so, specify a backup directory path that contains both `conversation.py` and `master_plan.md`.
 * To use `.open`, you need to specify a file or a directory that is to be opened.
 * `.edit` command allows you to edit the current conversation with our built-in text editor.  You may customize to use your favorite text editor. Enter `.backend` and change the value of `DEFAULT_TEXT_EDITOR` with a command that calls your favorite text editor.
-* Use `.autosuggestions` to toggle auto input suggestions. If enabled, you can use `TAB` key to open input suggestions menu.
+* Use `.autosuggest` to toggle auto input suggestions. If disabled, you can use `TAB` key to open input suggestions menu.
 * Use `.reload` to reload the last saved conversation, if any.  It is useful for continuing an unfinished agentic flow after a conversation was broken for any reasons.
 * Command `.matches` works for local MCP connection only.  It doesn't apply to remote MCP connection, as the changes in local settings does not affect the settings in remote servers.
 

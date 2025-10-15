@@ -2,7 +2,7 @@ from biblemate.core.systems import *
 from biblemate.uba.dialogs import *
 from biblemate.ui.text_area import getTextArea
 from biblemate.ui.info import get_banner
-from biblemate import config, DIALOGS, BIBLEMATE_VERSION, AGENTMAKE_CONFIG, BIBLEMATE_USER_DIR, BIBLEMATEDATA, fix_string, write_user_config
+from biblemate import config, DIALOGS, BIBLEMATE_VERSION, AGENTMAKE_CONFIG, BIBLEMATE_USER_DIR, BIBLEMATEDATA, fix_string, write_user_config, run_system_command, list_dir_content
 from biblemate.uba.api import DEFAULT_MODULES, run_uba_api, run_uba_ai_commentary, run_uba_words, run_uba_discourse, run_uba_translation
 from pathlib import Path
 import urllib.parse
@@ -400,15 +400,31 @@ async def main_async():
                 master_plan = ""
             # open a text file as a prompt
             check_path = isExistingPath(user_request)
-            if check_path:
+            if check_path and not user_request == ".":
                 config.current_prompt = readTextFile(check_path)
                 continue
             # luanch action menu
-            if user_request == ".":
-                select = await DIALOGS.getValidOptions(options=config.action_list.keys(), descriptions=[i.capitalize() for i in config.action_list.values()], title="Action Menu", text="Select an action:")
-                user_request = select if select else ""
             if not user_request:
                 continue
+            elif user_request == ".":
+                select = await DIALOGS.getValidOptions(options=config.action_list.keys(), descriptions=[i.capitalize() for i in config.action_list.values()], title="Action Menu", text="Select an action:")
+                user_request = select if select else ""
+            elif user_request.startswith("!"):
+                pre_cwd = os.getcwd()
+                cmd = user_request[1:].strip()
+                if not cmd:
+                    cmd = "cd" if USER_OS == "Windows" else "pwd"
+                cmd_output, cwd = run_system_command(cmd)
+                display_info(console, Markdown(f"```\n{cmd_output}\n```"))
+                #messages += [
+                #    {"role": "user", "content": f"Run system command:\n\n```\n{cmd}\n```"},
+                #    {"role": "assistant", "content": f"```output\n{cmd_output}\n```"},
+                #]
+                if (not pre_cwd == cwd) and os.path.isdir(cwd):
+                    os.chdir(cwd)
+                    display_info(console, list_dir_content(cwd), title=cwd)
+                continue
+            # ideas
             if user_request == ".ideas":
                 # Generate ideas for `prompts to try`
                 ideas = ""
@@ -838,12 +854,15 @@ Viist https://github.com/eliranwong/biblemate
                         except:
                             info = "Invalid input."
                             display_info(console, info)
-                elif user_request == ".promptengineer":
+                elif user_request == ".content":
+                    cwd = os.getcwd()
+                    display_info(console, list_dir_content(cwd), title=cwd)
+                elif user_request == ".autoprompt":
                     config.prompt_engineering = not config.prompt_engineering
                     write_user_config()
                     info = f"Prompt Engineering {'Enabled' if config.prompt_engineering else 'Disabled'}!"
                     display_info(console, info)
-                elif user_request == ".autosuggestions":
+                elif user_request == ".autosuggest":
                     config.auto_suggestions = not config.auto_suggestions
                     write_user_config()
                     info = f"Auto Input Suggestions {'Enabled' if config.auto_suggestions else 'Disabled'}!"

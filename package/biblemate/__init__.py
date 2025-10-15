@@ -1,7 +1,7 @@
-from agentmake import AGENTMAKE_USER_DIR, readTextFile, writeTextFile
+from agentmake import USER_OS, AGENTMAKE_USER_DIR, readTextFile, writeTextFile
 from pathlib import Path
 from biblemate.ui.selection_dialog import TerminalModeDialogs
-import os, shutil, pprint
+import os, shutil, pprint, subprocess
 
 CONFIG_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.py")
 CONFIG_FILE_BACKUP = os.path.join(AGENTMAKE_USER_DIR, "biblemate", "config.py")
@@ -202,10 +202,11 @@ config.action_list = {
     #".agent": "switch to agent mode",
     #".partner": "switch to partner mode",
     #".chat": "switch to chat mode",
-    ".autosuggestions": "toggle auto input suggestions",
-    ".promptengineer": "toggle auto prompt engineering",
+    ".autosuggest": "toggle auto input suggestions",
+    ".autoprompt": "toggle auto prompt engineering",
     ".lite": "toggle lite context",
     # file access
+    ".content": "show current directory content",
     ".open": "open file or folder",
     ".download": "download data files",
     # help
@@ -237,3 +238,31 @@ DIALOGS = TerminalModeDialogs()
 
 def fix_string(content):
     return content.replace(" ", " ").replace("‑", "-")
+
+def run_system_command(cmd: str):
+    cmd += " && cd" if USER_OS == "Windows" else " && pwd"
+    result = subprocess.run(
+        cmd,
+        shell=True,
+        capture_output=True,
+        text=True,
+    )
+    text_output = result.stdout.strip()
+    text_error = result.stderr.strip()
+    lines = text_output.split("\n")
+    if len(lines) == 1:
+        return text_error if text_error else"Done!", lines[0]
+    return "\n".join(lines[:-1]), lines[-1]
+
+def list_dir_content(directory:str="."):
+    directory = os.path.expanduser(directory.replace("%2F", "/"))
+    if os.path.isdir(directory):
+        folders = []
+        files = []
+        for item in sorted(os.listdir(directory)):
+            if os.path.isdir(os.path.join(directory, item)):
+                folders.append(f"📁 {item}")
+            else:
+                files.append(f"📄 {item}")
+        return " ".join(folders) + ("\n\n" if folders and files else "") + " ".join(files)
+    return "Invalid path!"
