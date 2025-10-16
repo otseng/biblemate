@@ -239,21 +239,6 @@ DIALOGS = TerminalModeDialogs()
 def fix_string(content):
     return content.replace(" ", " ").replace("‑", "-")
 
-def run_system_command(cmd: str):
-    cmd += " && cd" if USER_OS == "Windows" else " && pwd"
-    result = subprocess.run(
-        cmd,
-        shell=True,
-        capture_output=True,
-        text=True,
-    )
-    text_output = result.stdout.strip()
-    text_error = result.stderr.strip()
-    lines = text_output.split("\n")
-    if len(lines) == 1:
-        return text_error if text_error else"Done!", lines[0]
-    return "\n".join(lines[:-1]), lines[-1]
-
 def list_dir_content(directory:str="."):
     directory = os.path.expanduser(directory.replace("%2F", "/"))
     if os.path.isdir(directory):

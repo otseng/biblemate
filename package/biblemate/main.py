@@ -2,7 +2,7 @@ from biblemate.core.systems import *
 from biblemate.uba.dialogs import *
 from biblemate.ui.text_area import getTextArea
 from biblemate.ui.info import get_banner
-from biblemate import config, DIALOGS, BIBLEMATE_VERSION, AGENTMAKE_CONFIG, BIBLEMATE_USER_DIR, BIBLEMATEDATA, fix_string, write_user_config, run_system_command, list_dir_content
+from biblemate import config, DIALOGS, BIBLEMATE_VERSION, AGENTMAKE_CONFIG, BIBLEMATE_USER_DIR, BIBLEMATEDATA, fix_string, write_user_config, list_dir_content
 from biblemate.uba.api import DEFAULT_MODULES, run_uba_api, run_uba_ai_commentary, run_uba_words, run_uba_discourse, run_uba_translation
 from pathlib import Path
 import urllib.parse
@@ -410,19 +410,11 @@ async def main_async():
                 select = await DIALOGS.getValidOptions(options=config.action_list.keys(), descriptions=[i.capitalize() for i in config.action_list.values()], title="Action Menu", text="Select an action:")
                 user_request = select if select else ""
             elif user_request.startswith("!"):
-                pre_cwd = os.getcwd()
                 cmd = user_request[1:].strip()
                 if not cmd:
                     cmd = "cd" if USER_OS == "Windows" else "pwd"
-                cmd_output, cwd = run_system_command(cmd)
-                display_info(console, Markdown(f"```\n{cmd_output}\n```"))
-                #messages += [
-                #    {"role": "user", "content": f"Run system command:\n\n```\n{cmd}\n```"},
-                #    {"role": "assistant", "content": f"```output\n{cmd_output}\n```"},
-                #]
-                if (not pre_cwd == cwd) and os.path.isdir(cwd):
-                    os.chdir(cwd)
-                    display_info(console, list_dir_content(cwd), title=cwd)
+                os.system(cmd)
+                print()
                 continue
             # ideas
             if user_request == ".ideas":

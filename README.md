@@ -56,6 +56,10 @@ BibleMate AI + `XAI + Grok 4` https://youtu.be/JgcxciOc_Ys
 
 Read https://github.com/eliranwong/biblemate/tree/main/docs/backends_setup for more details.
 
+### Tips
+
+To get started quickly, we recommend beginning with the `googleai` backend, which has been extensively tested with BibleMate AI. You can obtain a Gemini API key free of charge. For more information, visit: [https://github.com/eliranwong/biblemate/blob/main/docs/backends_setup/googleai.md](https://github.com/eliranwong/biblemate/blob/main/docs/backends_setup/googleai.md).
+
 ## 🎬 Demo - Agent Mode
 
 [![Watch the video](https://img.youtube.com/vi/QvPIyHOhrP0/maxresdefault.jpg)](https://youtu.be/QvPIyHOhrP0)
