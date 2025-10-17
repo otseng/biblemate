@@ -28,6 +28,7 @@ default_config = '''banner_title=""
 *mcp_timeout=9999999999
 *color_agent_mode="#FF8800"
 *color_partner_mode="#8000AA"
+*color_info_border="bright_blue"
 *embedding_model="paraphrase-multilingual"
 *custom_input_suggestions=[]
 *disabled_tools=['search_1_chronicles_only',
@@ -129,6 +130,7 @@ mcp_port={config.mcp_port}
 mcp_timeout={config.mcp_timeout}
 color_agent_mode="{config.color_agent_mode}"
 color_partner_mode="{config.color_partner_mode}"
+color_info_border="{config.color_info_border}"
 embedding_model="{config.embedding_model}"
 custom_input_suggestions={pprint.pformat(config.custom_input_suggestions)}
 disabled_tools={pprint.pformat(config.disabled_tools)}"""
