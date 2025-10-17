@@ -33,7 +33,7 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
     pygments_style = get_style_by_name('github-dark')
     markdown_style = style_from_pygments_cls(pygments_style)
     # Define custom style
-    custom_style = Style.from_dict({
+    frame_style = {
         #'frame.border': '#00ff00',  # Green border
         #'frame.label': '#ffaa00 bold',  # Orange label
         #'completion-menu': 'bg:#008888 #ffffff',
@@ -41,8 +41,10 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         #'completion-menu.completion.current': 'bg:#00aaaa #000000',
         #"status": "reverse",
         "textarea": "bg:#1E1E1E",
-    })
-
+    }
+    if config.agent_mode is not None:
+        frame_style["frame.border"] = "#FF8800" if config.agent_mode else "#8000AA"
+    custom_style = Style.from_dict(frame_style)
     style = merge_styles([markdown_style, custom_style])
 
     # TextArea with a completer
