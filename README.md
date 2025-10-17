@@ -203,6 +203,12 @@ To switch between modes, use the `.mode` command in the BibleMate AI prompt. Thi
 
 <img width="714" height="271" alt="Image" src="https://github.com/user-attachments/assets/f836a0ad-ae77-4b07-bb74-f9af5bce26c6" />
 
+To help users stay aware of the current AI mode, the input border color changes when switching between modes.
+
+<img width="1732" height="1258" alt="Image" src="https://github.com/user-attachments/assets/0b765955-02e5-4eee-95ca-8cdc5216dd1a" />
+
+You can customize the border colors of agent and partner modes in `config.py`, by changing the values of `color_agent_mode` and `color_partner_mode`.
+
 ## 📚 Built-in Tools & Plans
 
 ### Built-in Tools

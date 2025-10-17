@@ -26,6 +26,8 @@ default_config = '''banner_title=""
 *max_log_lines=2000
 *mcp_port=33333
 *mcp_timeout=9999999999
+*color_agent_mode="#FF8800"
+*color_partner_mode="#8000AA"
 *embedding_model="paraphrase-multilingual"
 *custom_input_suggestions=[]
 *disabled_tools=['search_1_chronicles_only',
@@ -125,6 +127,8 @@ max_semantic_matches={config.max_semantic_matches}
 max_log_lines={config.max_log_lines}
 mcp_port={config.mcp_port}
 mcp_timeout={config.mcp_timeout}
+color_agent_mode="{config.color_agent_mode}"
+color_partner_mode="{config.color_partner_mode}"
 embedding_model="{config.embedding_model}"
 custom_input_suggestions={pprint.pformat(config.custom_input_suggestions)}
 disabled_tools={pprint.pformat(config.disabled_tools)}"""
