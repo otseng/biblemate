@@ -1,16 +1,23 @@
-import logging, json, os
+import logging, json, os, argparse
 from fastmcp.server.auth.providers.jwt import StaticTokenVerifier
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from fastmcp import FastMCP
 from fastmcp.prompts.prompt import PromptMessage, TextContent
-from agentmake import agentmake, DEVELOPER_MODE, readTextFile
+from agentmake import agentmake, DEVELOPER_MODE, DEFAULT_AI_BACKEND
 from biblemate import BIBLEMATE_VERSION, BIBLEMATEDATA, AGENTMAKE_CONFIG, config
 from biblemate.uba.bible import search_bible
 from biblemate.uba.api import run_uba_api, run_uba_ai_commentary, run_uba_words, run_uba_discourse, run_uba_translation, run_uba_index
 from typing import List, Dict, Any, Union
 
 # configure backend
-AGENTMAKE_CONFIG["backend"] = config.backend
+parser = argparse.ArgumentParser(description = f"""BibleMate AI {BIBLEMATE_VERSION} CLI options""")
+parser.add_argument("-b", "--backend", action="store", dest="backend", help="AI backend; overrides the default backend temporarily.")
+args = parser.parse_args()
+THIS_BACKEND = args.backend if args.backend else DEFAULT_AI_BACKEND
+THIS_BACKEND = config.backend if not config.backend == DEFAULT_AI_BACKEND else THIS_BACKEND
+
+# configure backend
+AGENTMAKE_CONFIG["backend"] = THIS_BACKEND
 
 # Configure logging before creating the FastMCP server
 logging.basicConfig(format="[%(levelname)s]: %(message)s", level=logging.ERROR)
@@ -40,8 +47,10 @@ def getResponse(messages:list) -> str:
 @mcp.resource("resource://info")
 def info() -> str:
     """Display BibleMate AI information"""
+    global THIS_BACKEND
     info = "BibleMate AI " + BIBLEMATE_VERSION
     info += "\n\nSource: https://github.com/eliranwong/biblemate\n\nDeveloper: Eliran Wong"
+    info += f"\n\nAI Backend: {THIS_BACKEND}"
     return info
 
 @mcp.resource("uba://{command}")
