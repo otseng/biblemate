@@ -171,6 +171,11 @@ async def getTextArea(input_suggestions:list=None, default_entry="", title="", m
         def _(event):
             config.current_prompt = text_area.text
             event.app.exit(result="[SEARCHPROMPT]")
+        # toggle auto tool selection in chat mode
+        @bindings.add("escape", "t")
+        def _(event):
+            config.current_prompt = text_area.text
+            event.app.exit(result=".autotool")
         # open commentaries
         @bindings.add("c-c")
         def _(event):

@@ -13,6 +13,7 @@ default_config = '''banner_title=""
 *agent_mode=False
 *prompt_engineering=False
 *auto_suggestions=True
+*auto_tool_selection=False
 *max_steps=50
 *lite=False
 *web_browser=False
@@ -115,6 +116,7 @@ def write_user_config(backup=False):
 agent_mode={config.agent_mode}
 prompt_engineering={config.prompt_engineering}
 auto_suggestions={config.auto_suggestions}
+auto_tool_selection={config.auto_tool_selection}
 max_steps={config.max_steps}
 lite={config.lite}
 web_browser={config.web_browser}
@@ -210,6 +212,7 @@ config.action_list = {
     #".chat": "switch to chat mode",
     ".autosuggest": "toggle auto input suggestions",
     ".autoprompt": "toggle auto prompt engineering",
+    ".autotool": "toggle auto tool selection in chat mode",
     ".lite": "toggle lite context",
     # file access
     ".content": "show current directory content",

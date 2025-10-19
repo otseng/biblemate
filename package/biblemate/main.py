@@ -713,6 +713,7 @@ https://github.com/eliranwong/biblemate
 - `Esc+G`: generate ideas for prompts to try
 - `Ctrl+P`: toggle auto prompt engineering
 - `Esc+P`: improve prompt content
+- `Esc+T`: toggle auto tool selection in chat mode
 - `Ctrl+D`: delete
 - `Ctrl+H`: backspace
 - `Ctrl+W`: delete previous word
@@ -813,12 +814,11 @@ https://github.com/eliranwong/biblemate
                             writeTextFile(temp_file, edit_content)
                             edit_file(temp_file)
                             edited_content = readTextFile(temp_file).strip()
-                        if edited_content:
+                        if edited_content and not (messages[index_to_edit]["content"] == edited_content):
                             messages[index_to_edit]["content"] = edited_content
                             backup_conversation(messages, master_plan) # backup
                             config.backup_required = True
-                            info = "Changes saved!"
-                            display_info(console, info)
+                            display_info(console, "Edited!")
                 elif user_request == ".backend":
                     edit_configurations()
                     info = "Restart to make the changes in the backend effective!"
@@ -867,6 +867,11 @@ https://github.com/eliranwong/biblemate
                     config.auto_suggestions = not config.auto_suggestions
                     write_user_config()
                     info = f"Auto Input Suggestions {'Enabled' if config.auto_suggestions else 'Disabled'}!"
+                    display_info(console, info)
+                elif user_request == ".autotool":
+                    config.auto_tool_selection = not config.auto_tool_selection
+                    write_user_config()
+                    info = f"Auto Tool Selection in Chat Mode {'Enabled' if config.auto_tool_selection else 'Disabled'}!"
                     display_info(console, info)
                 elif user_request == ".lite":
                     config.lite = not config.lite
@@ -952,6 +957,10 @@ https://github.com/eliranwong/biblemate
 
             # Tool selection systemm message
             system_tool_selection = get_system_tool_selection(available_tools, tool_descriptions)
+
+            # auto tool selection in chat mode
+            if config.agent_mode is None and config.auto_tool_selection and not user_request.startswith("@"):
+                user_request = f"@ {user_request}"
 
             if user_request.startswith("@ "):
                 user_request = user_request[2:].strip()
@@ -1154,7 +1163,7 @@ Available tools are: {available_tools}.
                 async def make_next_suggestion():
                     nonlocal next_suggestion, system_make_suggestion, messages, step
                     next_suggestion = agentmake(user_request if next_suggestion == "START" else [{"role": "system", "content": system_make_suggestion}]+messages[len(DEFAULT_MESSAGES):], system=system_make_suggestion, follow_up_prompt=None if next_suggestion == "START" else "Please provide me with the next step suggestion, based on the action plan.", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
-                await thinking(make_next_suggestion, "Marking a suggestion ...")
+                await thinking(make_next_suggestion, "Making a suggestion ...")
                 display_info(console, Markdown(next_suggestion), title=f"Suggestion [{step}]")
 
                 # Get tool suggestion for the next iteration
