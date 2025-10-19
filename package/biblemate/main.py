@@ -742,17 +742,17 @@ https://github.com/eliranwong/biblemate
                         config.disabled_tools = [i for i in master_available_tools if not i in available_tools]
                         write_user_config()
                     tools_descriptions = [f"- `{name}`: {description}" for name, description in tools.items()]
-                    info = Markdown("## Available Tools\n\n"+"\n".join(tools_descriptions))
-                    display_info(console, info)
+                    info = Markdown("\n".join(tools_descriptions))
+                    display_info(console, info, title="Available Tools")
                 elif user_request == ".resources":
                     resources_descriptions = [f"- `//{name}`: {description}" for name, description in resources.items()]
                     templates_descriptions = [f"- `//{name}/...`: {description}" for name, description in templates.items()]
-                    info = Markdown("## Available Information\n\n"+"\n".join(resources_descriptions)+"\n\n## Available Resources\n\n"+"\n".join(templates_descriptions))
-                    display_info(console, info)
+                    info = Markdown("## Information\n\n"+"\n".join(resources_descriptions)+"\n\n## Templates\n\n"+"\n".join(templates_descriptions))
+                    display_info(console, info, title="Available Resources")
                 elif user_request == ".plans":
                     prompts_descriptions = [f"- `/{name}`: {description}" for name, description in prompts.items()]
-                    info = Markdown("## Available Plans\n\n"+"\n".join(prompts_descriptions))
-                    display_info(console, info)
+                    info = Markdown("\n".join(prompts_descriptions))
+                    display_info(console, info, title="Available Plans")
                 elif user_request == ".export":
                     cwd = os.getcwd()
                     chats_path = os.path.join(BIBLEMATE_USER_DIR, "chats")
@@ -816,13 +816,13 @@ https://github.com/eliranwong/biblemate
                             edited_content = readTextFile(temp_file).strip()
                         if edited_content and not (messages[index_to_edit]["content"] == edited_content):
                             messages[index_to_edit]["content"] = edited_content
-                            backup_conversation(messages, master_plan) # backup
+                            backup_conversation(messages, master_plan) # temporary backup
+                            display_info(console, Markdown(edited_content), title="Edited")
                             config.backup_required = True
-                            display_info(console, "Edited!")
                 elif user_request == ".backend":
                     edit_configurations()
                     info = "Restart to make the changes in the backend effective!"
-                    display_info(console, info)
+                    display_info(console, info, title="configuration")
                 elif user_request == ".steps":
                     console.print("Enter below the maximum number of steps allowed:")
                     max_steps = await getTextArea(default_entry=str(config.max_steps), title="Enter a positive integer:", multiline=False)
@@ -835,10 +835,10 @@ https://github.com/eliranwong/biblemate
                                 config.max_steps = max_steps
                                 write_user_config()
                                 info = f"Maximum number of steps set to: {config.max_steps}"
-                                display_info(console, info)
+                                display_info(console, info, title="configuration")
                         except:
                             info = "Invalid input."
-                            display_info(console, info)
+                            display_info(console, info, title="Error!")
                 elif user_request == ".matches":
                     console.print("Enter below the maximum number of semantic matches allowed:")
                     max_semantic_matches = await getTextArea(default_entry=str(config.max_semantic_matches), title="Enter a positive integer:", multiline=False)
@@ -851,33 +851,33 @@ https://github.com/eliranwong/biblemate
                                 config.max_semantic_matches = max_semantic_matches
                                 write_user_config()
                                 info = f"Maximum number of semantic matches set to: {config.max_semantic_matches}"
-                                display_info(console, info)
+                                display_info(console, info, title="configuration")
                         except:
                             info = "Invalid input."
-                            display_info(console, info)
+                            display_info(console, info, title="Error!")
                 elif user_request == ".content":
                     cwd = os.getcwd()
                     display_info(console, list_dir_content(cwd), title=cwd)
                 elif user_request == ".autoprompt":
                     config.prompt_engineering = not config.prompt_engineering
                     write_user_config()
-                    info = f"Prompt Engineering {'Enabled' if config.prompt_engineering else 'Disabled'}!"
-                    display_info(console, info)
+                    info = f"Prompt Engineering {'Enabled' if config.prompt_engineering else 'Disabled'}"
+                    display_info(console, info, title="configuration")
                 elif user_request == ".autosuggest":
                     config.auto_suggestions = not config.auto_suggestions
                     write_user_config()
-                    info = f"Auto Input Suggestions {'Enabled' if config.auto_suggestions else 'Disabled'}!"
-                    display_info(console, info)
+                    info = f"Auto Input Suggestions {'Enabled' if config.auto_suggestions else 'Disabled'}"
+                    display_info(console, info, title="configuration")
                 elif user_request == ".autotool":
                     config.auto_tool_selection = not config.auto_tool_selection
                     write_user_config()
-                    info = f"Auto Tool Selection in Chat Mode {'Enabled' if config.auto_tool_selection else 'Disabled'}!"
-                    display_info(console, info)
+                    info = f"Auto Tool Selection in Chat Mode {'Enabled' if config.auto_tool_selection else 'Disabled'}"
+                    display_info(console, info, title="configuration")
                 elif user_request == ".lite":
                     config.lite = not config.lite
                     write_user_config()
-                    info = f"Lite Context {'Enabled' if config.lite else 'Disabled'}!"
-                    display_info(console, info)
+                    info = f"Lite Context {'Enabled' if config.lite else 'Disabled'}"
+                    display_info(console, info, title="configuration")
                 elif user_request == ".download":
                     await download_data(console)
                 elif user_request == ".find":
@@ -902,43 +902,43 @@ https://github.com/eliranwong/biblemate
                         else:
                             config.agent_mode = None
                         write_user_config()
-                        display_info(console, f"`{ai_mode.capitalize()}` Mode Enabled!")
+                        display_info(console, f"`{ai_mode.capitalize()}` Mode Enabled", title="configuration")
                 elif user_request == ".agent":
                     config.agent_mode = True
                     write_user_config()
-                    display_info(console, f"`Agent` Mode Enabled!")
+                    display_info(console, f"`Agent` Mode Enabled", title="configuration")
                 elif user_request == ".partner":
                     config.agent_mode = False
                     write_user_config()
-                    display_info(console, f"`Partner` Mode Enabled!")
+                    display_info(console, f"`Partner` Mode Enabled", title="configuration")
                 elif user_request == ".chat":
                     config.agent_mode = None
                     write_user_config()
-                    display_info(console, f"`Chat` Mode Enabled!")
+                    display_info(console, f"`Chat` Mode Enabled", title="configuration")
                 elif user_request == ".defaultbible":
                     select = await uba_default_bible(options=resource_suggestions_raw["bibleListAbb"], descriptions=resource_suggestions_raw["bibleList"])
                     if select:
                         config.default_bible = select
                         write_user_config()
-                        display_info(console, f"Default bible set to: `{config.default_bible}`")
+                        display_info(console, f"Default bible set to: `{config.default_bible}`", title="configuration")
                 elif user_request == ".defaultcommentary":
                     select = await uba_default_commentary(options=resource_suggestions_raw["commentaryListAbb"], descriptions=resource_suggestions_raw["commentaryList"])
                     if select:
                         config.default_commentary = select
                         write_user_config()
-                        display_info(console, f"Default commentary set to: `{config.default_commentary}`")
+                        display_info(console, f"Default commentary set to: `{config.default_commentary}`", title="configuration")
                 elif user_request == ".defaultencyclopedia":
                     select = await uba_default_encyclopedia(options=resource_suggestions_raw["encyclopediaListAbb"], descriptions=resource_suggestions_raw["encyclopediaList"])
                     if select:
                         config.default_encyclopedia = select
                         write_user_config()
-                        display_info(console, f"Default encyclopedia set to: `{config.default_encyclopedia}`")
+                        display_info(console, f"Default encyclopedia set to: `{config.default_encyclopedia}`", title="configuration")
                 elif user_request == ".defaultlexicon":
                     select = await uba_default_lexicon(options=resource_suggestions_raw["lexiconList"])
                     if select:
                         config.default_lexicon = select
                         write_user_config()
-                        display_info(console, f"Default lexicon set to: `{config.default_lexicon}`")
+                        display_info(console, f"Default lexicon set to: `{config.default_lexicon}`", title="configuration")
                 elif user_request in (".new", ".exit"):
                     backup_conversation(messages, master_plan, console) # backup
                     config.backup_required = False
