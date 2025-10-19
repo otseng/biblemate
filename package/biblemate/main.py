@@ -215,6 +215,13 @@ def backup_conversation(messages, master_plan, console=None, storage_path=None):
             info = f"Conversation saved to: {storage_path}\nReport saved to: {html_file}"
             display_info(console, info)
 
+def get_border_style():
+    if config.agent_mode:
+        return config.color_agent_mode
+    elif config.agent_mode is not None:
+        return config.color_partner_mode
+    return "none"
+
 async def download_data(console, default=""):
     file_ids = {
         "bible.db": "1E6pDKfjUMhmMWjjazrg5ZcpH1RBD8qgW",
@@ -394,7 +401,7 @@ async def main_async():
             if args.default:
                 user_request = " ".join(args.default).strip()
                 args.default = None # reset to avoid repeated use
-                display_info(console, user_request)
+                display_info(console, user_request, border_style=get_border_style())
             else:
                 user_request = await getTextArea(input_suggestions=input_suggestions)
                 master_plan = ""
@@ -428,7 +435,7 @@ async def main_async():
                     else:
                         ideas = agentmake(messages, follow_up_prompt=f"Generate three follow-up questions according to the on-going conversation.{remarks}", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
                 await thinking(generate_ideas, "Generating ideas ...")
-                display_info(console, Markdown(f"## Ideas\n\n{ideas}"))
+                display_info(console, Markdown(ideas), title="Ideas")
                 # Get input again
                 continue
 
@@ -447,8 +454,8 @@ async def main_async():
                     resource_description = resources.get(resource_name, "")
                     if resource_description:
                         resource_description = resource_description[0]
-                    info = Markdown(f"## Information - `{resource_name.capitalize()}`\n\n{resource_description}\n\n{display_content}")
-                    display_info(console, info)
+                    info = Markdown(f"## `{resource_name.capitalize()}`\n\n{resource_description}\n\n{display_content}")
+                    display_info(console, info, title="Information")
                 continue
 
             # run templates
@@ -651,13 +658,7 @@ async def main_async():
                     if messages:
                         for i in messages:
                             if i.get("role", "") == "user":
-                                if config.agent_mode:
-                                    border_style = config.color_agent_mode
-                                elif config.agent_mode is not None:
-                                    border_style = config.color_partner_mode
-                                else:
-                                    border_style = "none"
-                                display_info(console,Markdown(i['content'].strip()), border_style=border_style)
+                                display_info(console,Markdown(i['content'].strip()), border_style=get_border_style())
                             elif i.get("role", "") == "assistant":
                                 console.print(Markdown(i['content'].strip()))
                                 console.print()
@@ -679,9 +680,9 @@ async def main_async():
                     config.backup_required = False
                 elif user_request == ".help":
                     actions = "\n".join([f"- `{k}`: {v}" for k, v in config.action_list.items()])
-                    help_info = f"""## Help Page
+                    help_info = f"""## Readme
 
-Viist https://github.com/eliranwong/biblemate
+https://github.com/eliranwong/biblemate
 
 ## Key Commands
 
@@ -726,7 +727,7 @@ Viist https://github.com/eliranwong/biblemate
 - `Shift+TAB`: insert four spaces
 - `TAB` or `Ctrl+I`: open input suggestion menu
 - `Esc`: close input suggestion menu"""
-                    display_info(console, Markdown(help_info))
+                    display_info(console, Markdown(help_info), title="Help")
                 elif user_request == ".tools":
                     enabled_tools = await DIALOGS.getMultipleSelection(
                         default_values=available_tools,
@@ -958,10 +959,6 @@ Viist https://github.com/eliranwong/biblemate
                 suggested_tools = []
                 async def get_tool_suggestion():
                     nonlocal suggested_tools, user_request, system_tool_selection
-                    if DEVELOPER_MODE and not config.hide_tools_order:
-                        console.print(Markdown(f"## Tool Selection (descending order by relevance)"), "\n")
-                    else:
-                        console.print(Markdown(f"## Tool Selection"), "\n")
                     # Extract suggested tools from the step suggestion
                     suggested_tools = agentmake(user_request, system=system_tool_selection, **AGENTMAKE_CONFIG)[-1].get("content", "").strip() # Note: suggested tools are printed on terminal by default, could be hidden by setting `print_on_terminal` to false
                     suggested_tools = re.sub(r"^.*?(\[.*?\]).*?$", r"\1", suggested_tools, flags=re.DOTALL)
@@ -969,7 +966,7 @@ Viist https://github.com/eliranwong/biblemate
                         suggested_tools = eval(suggested_tools.replace("`", "'")) if suggested_tools.startswith("[") and suggested_tools.endswith("]") else ["get_direct_text_response"] # fallback to direct response
                     except:
                         suggested_tools = ["get_direct_text_response"]
-                await thinking(get_tool_suggestion)
+                await thinking(get_tool_suggestion, "Selecting a tool ...")
                 # Single Tool Selection
                 if config.agent_mode:
                     this_tool = suggested_tools[0] if suggested_tools else "get_direct_text_response"
@@ -977,6 +974,7 @@ Viist https://github.com/eliranwong/biblemate
                     this_tool = await DIALOGS.getValidOptions(options=suggested_tools if suggested_tools else available_tools, title="Suggested Tools", text="Select a tool:")
                     if not this_tool:
                         this_tool = "get_direct_text_response"
+                display_info(console, Markdown(f"`{this_tool}`"), title="Selected Tool")
                 # Re-format user request
                 user_request = f"@{this_tool} " + user_request
 
@@ -997,9 +995,8 @@ Viist https://github.com/eliranwong/biblemate
                         user_request = re.sub(r"^.*?(```instruction|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
                 await thinking(refine_custom_plan)
                 # display info
-                console.print(Markdown(f"# User Request\n\n{user_request}"))
-                info = Markdown(f"# Master plan\n\n{master_plan}")
-                display_info(console, info)
+                display_info(console, Markdown(user_request), title="User Request", border_style=get_border_style())
+                display_info(console, Markdown(master_plan), title="Master Plan", border_style=get_border_style())
 
             # Prompt Engineering
             original_request = user_request
@@ -1016,9 +1013,7 @@ Viist https://github.com/eliranwong/biblemate
                 await thinking(run_prompt_engineering, "Improving your prompt ...")
 
                 if not config.agent_mode:
-                    info = Markdown("# Review & Confirm\n\nPlease review and confirm the improved prompt, or make any changes you need.")
-                    console.print(info)
-                    print()
+                    display_info(console, "Please review and confirm the improved prompt, or make any changes you need.", title="Review & Confirm")
                     improved_prompt_edit = await getTextArea(default_entry=user_request, title="Review - Prompt Engineering")
                     if not improved_prompt_edit or improved_prompt_edit == ".exit":
                         if messages and messages[-1].get("role", "") == "user":
@@ -1063,13 +1058,7 @@ Viist https://github.com/eliranwong/biblemate
 
             # user specify a single tool
             if specified_tool and not specified_tool == "@@" and not specified_prompt:
-                if config.agent_mode:
-                    border_style = config.color_agent_mode
-                elif config.agent_mode is not None:
-                    border_style = config.color_partner_mode
-                else:
-                    border_style = "none"
-                display_info(console,Markdown(messages[-1]['content']), border_style=border_style)
+                display_info(console,Markdown(messages[-1]['content']), border_style=get_border_style())
                 await process_tool(specified_tool, user_request)
                 print()
                 console.print(Markdown(messages[-1]['content']))
@@ -1107,12 +1096,11 @@ Viist https://github.com/eliranwong/biblemate
                     #print(result, "\n\n")
                     master_plan = result.messages[0].content.text
                     # display info# display info
-                    console.print(Markdown(f"# User Request\n\n{user_request}"))
-                    info = Markdown(f"# Master plan\n\n{master_plan}")
-                    display_info(console, info)
+                    display_info(console, Markdown(user_request), title="User Request", border_style=get_border_style())
+                    display_info(console, Markdown(master_plan), title="Master Plan", border_style=get_border_style())
                 else:
                     # display info
-                    console.print(Markdown(f"# User Request\n\n{user_request}"), "\n")
+                    display_info(console, Markdown(user_request), title="User Request", border_style=get_border_style())
                     # Generate master plan
                     master_plan = ""
                     async def generate_master_plan():
@@ -1134,9 +1122,7 @@ Available tools are: {available_tools}.
 
                     # partner mode
                     if not config.agent_mode:
-                        info = Markdown("# Review & Confirm\n\nPlease review and confirm the master plan, or make any changes you need.")
-                        console.print(info)
-                        print()
+                        display_info(console, "Please review and confirm the master plan, or make any changes you need.", title="Review & Confirm")
                         master_plan_edit = await getTextArea(default_entry=master_plan, title="Review - Master Plan")
                         if not master_plan_edit or master_plan_edit == ".exit":
                             if messages and messages[-1].get("role", "") == "user":
@@ -1147,8 +1133,7 @@ Available tools are: {available_tools}.
                             master_plan = master_plan_edit
 
                     # display info
-                    info = Markdown(f"# Master plan\n\n{master_plan}")
-                    display_info(console, info)
+                    display_info(console, Markdown(master_plan), title="Master Plan", border_style=get_border_style())
 
             # Step suggestion system message
             system_progress = get_system_progress(master_plan=master_plan)
@@ -1170,8 +1155,7 @@ Available tools are: {available_tools}.
                     nonlocal next_suggestion, system_make_suggestion, messages, step
                     next_suggestion = agentmake(user_request if next_suggestion == "START" else [{"role": "system", "content": system_make_suggestion}]+messages[len(DEFAULT_MESSAGES):], system=system_make_suggestion, follow_up_prompt=None if next_suggestion == "START" else "Please provide me with the next step suggestion, based on the action plan.", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
                 await thinking(make_next_suggestion, "Marking a suggestion ...")
-                info = Markdown(f"## Suggestion [{step}]\n\n{next_suggestion}")
-                display_info(console, info)
+                display_info(console, Markdown(next_suggestion), title=f"Suggestion [{step}]")
 
                 # Get tool suggestion for the next iteration
                 suggested_tools = []
@@ -1186,8 +1170,8 @@ Available tools are: {available_tools}.
                         suggested_tools = ["get_direct_text_response"]
                 await thinking(get_tool_suggestion, "Selecting a tool ...")
                 if DEVELOPER_MODE and not config.hide_tools_order:
-                    info = Markdown(f"## Tool Selection (descending order by relevance) [{step}]\n\n{suggested_tools}")
-                    display_info(console, info)
+                    info = Markdown(f"## Descending Order by Relevance\n\n{suggested_tools}")
+                    display_info(console, info, title=f"Tool Selection [{step}]")
 
                 # Use the next suggested tool
                 # partner mode
@@ -1197,9 +1181,9 @@ Available tools are: {available_tools}.
                     next_tool = await DIALOGS.getValidOptions(options=suggested_tools if suggested_tools else available_tools, title="Suggested Tools", text="Select a tool:")
                     if not next_tool:
                         next_tool = "get_direct_text_response"
-                prefix = f"## Next Tool [{step}]\n\n" if DEVELOPER_MODE and not config.hide_tools_order else f"## Tool Selection [{step}]\n\n"
-                info = Markdown(f"{prefix}`{next_tool}`")
-                display_info(console, info)
+                prefix = f"Next Tool [{step}]" if DEVELOPER_MODE and not config.hide_tools_order else f"Tool Selection [{step}]"
+                info = Markdown(f"`{next_tool}`")
+                display_info(console, info, title=prefix)
 
                 # Get next step instruction
                 next_step = ""
@@ -1210,21 +1194,20 @@ Available tools are: {available_tools}.
                     else:
                         next_tool_description = tools.get(next_tool, "No description available.")
                         system_tool_instruction = get_system_tool_instruction(next_tool, next_tool_description)
-                        next_step = agentmake([{"role": "system", "content": system_tool_instruction}]+messages[len(DEFAULT_MESSAGES):], follow_up_prompt=next_suggestion, **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                        next_step = agentmake(next_suggestion, system=system_tool_instruction, **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                        # The following line may give better context, but when a conversation goes long, the agent loses track of the system message.
+                        #next_step = agentmake([{"role": "system", "content": system_tool_instruction}]+messages[len(DEFAULT_MESSAGES):], follow_up_prompt=next_suggestion, **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
                 await thinking(get_next_step, "Crafting the next instruction ...")
                 # partner mode
                 if config.agent_mode == False:
-                    info = Markdown("# Review & Confirm\n\nPlease review and confirm the next instruction, or make any changes you need.")
-                    console.print(info)
-                    print()
+                    display_info(console, "Please review and confirm the next instruction, or make any changes you need.", title="Review & Confirm")
                     next_step_edit = await getTextArea(default_entry=next_step, title="Review - Next Instruction")
                     if not next_step_edit or next_step_edit == ".exit":
                         display_info(console, "I've stopped processing for you.")
                         break
                     else:
                         next_step = next_step_edit
-                info = Markdown(f"## Next Instruction [{step}]\n\n{next_step}")
-                display_info(console, info)
+                display_info(console, Markdown(next_step), title=f"Next Instruction [{step}]", border_style=get_border_style())
 
                 if messages[-1]["role"] != "assistant": # first iteration
                     messages.append({"role": "assistant", "content": "Please provide me with an initial instruction to begin."})

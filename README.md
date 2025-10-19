@@ -344,7 +344,7 @@ Key bindings `Ctrl+B`, `Ctrl+C`, `Ctrl+V` and `Ctrl+X` are designed for opening 
 ### Remarks:
 
 * Use `.lite` to enable or disable lite context. When lite context is enabled, BibleMate runs faster, with a slight trade‑off in tool response quality.
-* To use `.import`, you need to specify a python file that contains a saved conversation.  Conversation is saved into a file each time when a backup is executed. Check the message `Conversation backup saved to ...` or locate the backups in `~/agentmake/xomate`. Instead of loading a mere conversation, you can load both a conversation and its master plan. To do so, specify a backup directory path that contains both `conversation.py` and `master_plan.md`.
+* To use `.import`, you need to specify a python file that contains a saved conversation.  Conversation is saved into a file each time when a backup is executed. Check the message `Conversation backup saved to ...` or locate the backups in `~/agentmake/computemate`. Instead of loading a mere conversation, you can load both a conversation and its master plan. To do so, specify a backup directory path that contains both `conversation.py` and `master_plan.md`.
 * To use `.open`, you need to specify a file or a directory that is to be opened.
 * `.edit` command allows you to edit the current conversation with our built-in text editor.  You may customize to use your favorite text editor. Enter `.backend` and change the value of `DEFAULT_TEXT_EDITOR` with a command that calls your favorite text editor.
 * Use `.autosuggest` to toggle auto input suggestions. If disabled, you can use `TAB` key to open input suggestions menu.
@@ -579,6 +579,6 @@ This project is licensed under the Creative Commons Attribution-NonCommercial 4.
 
 BibleMate AI is built upon the foundations of our other projects:
 *   [UniqueBible App](https.github.com/eliranwong/UniqueBible)
-*   [XoMate AI](https.github.com/eliranwong/xomate)
+*   [ComputeMate AI](https.github.com/eliranwong/computemate)
 *   [AgentMake AI](https.github.com/eliranwong/agentmake)
 *   [AgentMake AI MCP](https.github.com/eliranwong/agentmakemcp)
