@@ -6,7 +6,7 @@ from biblemate import config, DIALOGS, BIBLEMATE_VERSION, AGENTMAKE_CONFIG, BIBL
 from biblemate.uba.api import DEFAULT_MODULES, run_uba_api, run_uba_ai_commentary, run_uba_words, run_uba_discourse, run_uba_translation
 from pathlib import Path
 import urllib.parse
-import asyncio, re, os, subprocess, click, gdown, pprint, argparse, json, zipfile, warnings, sys
+import asyncio, re, os, subprocess, click, gdown, pprint, argparse, json, zipfile, warnings, sys, traceback
 from copy import deepcopy
 from alive_progress import alive_bar
 from fastmcp import Client
@@ -170,6 +170,11 @@ Get a static text-based response directly from a text-based AI model without usi
     templates = dict(sorted(templates.items()))
     
     return tools, tools_schema, master_available_tools, available_tools, tool_descriptions, prompts, prompts_schema, resources, templates
+
+def display_cancel_message(console):
+    console.print(f"[bold {get_border_style()}]Cancelled![/bold {get_border_style()}]\n")
+    # display_info(console, "I've stopped processing for you.")
+    config.cancelled = True
 
 def display_info(console, info, title=None, border_style=config.color_info_border):
     """ Info panel with background """
@@ -339,15 +344,17 @@ async def main_async():
                     TextColumn("[progress.description]{task.description}"),
                     transient=True  # This makes the progress bar disappear after the task is done
                 ) as progress:
-                    # Add an indefinite task (total=None)
                     task_id = progress.add_task(description if description else "Thinking ...", total=None)
-                    # Create and run the async task concurrently
                     async_task = asyncio.create_task(process())
-                    # Loop until the async task is done
-                    while not async_task.done():
-                        progress.update(task_id)
-                        await asyncio.sleep(0.01)
-                await async_task
+                    try:
+                        while not async_task.done():
+                            progress.update(task_id)
+                            await asyncio.sleep(0.02)
+                        await async_task  # Await here to raise any exceptions from the task
+                    except asyncio.CancelledError:
+                        async_task.cancel()
+                        await asyncio.sleep(0) # Allow the cancellation to propagate
+                        raise  # Re-raise CancelledError to be caught by the caller
             # progress bar for processing steps
             async def async_alive_bar(task):
                 """
@@ -356,7 +363,7 @@ async def main_async():
                 with alive_bar(title="Processing...", spinner='dots') as bar:
                     while not task.done():
                         bar() # Update the bar
-                        await asyncio.sleep(0.01) # Yield control back to the event loop
+                        await asyncio.sleep(0.02) # Yield control back to the event loop
                 return task.result()
             async def process_tool(tool, tool_instruction, step_number=None):
                 """
@@ -367,7 +374,12 @@ async def main_async():
                 # Create the async task but don't await it yet.
                 task = asyncio.create_task(run_tool(tool, tool_instruction))
                 # Await the custom async progress bar that awaits the task.
-                await async_alive_bar(task)
+                try:
+                    await async_alive_bar(task)
+                except asyncio.CancelledError:
+                    task.cancel()
+                    await asyncio.sleep(0) # Allow cancellation to propagate
+                    raise # Re-raise CancelledError
 
             if not APP_START and args.exit:
                 break
@@ -396,6 +408,7 @@ async def main_async():
                                 exit()
             # Original user request
             # note: `python3 -m rich.emoji` for checking emoji
+            config.cancelled = False
             console.print("Enter your request :smiley: :" if len(messages) == len(DEFAULT_MESSAGES) else "Enter a follow-up request :flexed_biceps: :")
             input_suggestions = list(config.action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+[f"{p} " for p in prompt_list]+[f"//{r}" for r in resources.keys()]+template_list+resource_suggestions+config.custom_input_suggestions
             if args.default:
@@ -426,15 +439,27 @@ async def main_async():
             # ideas
             if user_request == ".ideas":
                 # Generate ideas for `prompts to try`
+                ideas_output = []
                 ideas = ""
                 remarks = f'''\n\n# Remarks\n\nPlease note that user has already entered the following prelimary input:\n\n```\n{config.current_prompt}\n```\n\nTherefore, generate your content along this direction.''' if config.current_prompt.strip() else ""
                 async def generate_ideas():
-                    nonlocal ideas
+                    nonlocal ideas_output, ideas
                     if len(messages) == len(DEFAULT_MESSAGES):
-                        ideas = agentmake(f"Generate three `prompts to try` for bible study. Each one should be one sentence long.{remarks}", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                        ideas_output = agentmake(f"Generate three `prompts to try` for bible study. Each one should be one sentence long.{remarks}", **AGENTMAKE_CONFIG)
+                        if ideas_output:
+                            ideas = ideas_output[-1].get("content", "").strip() if ideas_output else ""
                     else:
-                        ideas = agentmake(messages, follow_up_prompt=f"Generate three follow-up questions according to the on-going conversation.{remarks}", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
-                await thinking(generate_ideas, "Generating ideas ...")
+                        ideas_output = agentmake(messages, follow_up_prompt=f"Generate three follow-up questions according to the on-going conversation.{remarks}", **AGENTMAKE_CONFIG)
+                        if ideas_output:
+                            ideas = ideas_output[-1].get("content", "").strip() if ideas_output else ""
+                try:
+                    await thinking(generate_ideas, "Generating ideas ...")
+                    if not ideas_output:
+                        display_cancel_message(console)
+                        continue
+                except (KeyboardInterrupt, asyncio.CancelledError):
+                    display_cancel_message(console)
+                    continue
                 display_info(console, Markdown(ideas), title="Ideas")
                 # Get input again
                 continue
@@ -727,7 +752,11 @@ https://github.com/eliranwong/biblemate
 - `Ctrl+DOWN`: scroll down
 - `Shift+TAB`: insert four spaces
 - `TAB` or `Ctrl+I`: open input suggestion menu
-- `Esc`: close input suggestion menu"""
+- `Esc`: close input suggestion menu
+
+## Cancel Loading an AI response
+
+Press `Ctrl+C` once or twice until the loading is cancelled, while you are waiting for a response."""
                     display_info(console, Markdown(help_info), title="Help")
                 elif user_request == ".tools":
                     enabled_tools = await DIALOGS.getMultipleSelection(
@@ -821,7 +850,7 @@ https://github.com/eliranwong/biblemate
                             config.backup_required = True
                 elif user_request == ".backend":
                     edit_configurations()
-                    info = "Restart to make the changes in the backend effective!"
+                    info = "`Restart` to make the changes in the backend effective!"
                     display_info(console, info, title="configuration")
                 elif user_request == ".steps":
                     console.print("Enter below the maximum number of steps allowed:")
@@ -834,7 +863,7 @@ https://github.com/eliranwong/biblemate
                             else:
                                 config.max_steps = max_steps
                                 write_user_config()
-                                info = f"Maximum number of steps set to: {config.max_steps}"
+                                info = f"Maximum number of steps set to `{config.max_steps}`"
                                 display_info(console, info, title="configuration")
                         except:
                             info = "Invalid input."
@@ -850,7 +879,7 @@ https://github.com/eliranwong/biblemate
                             else:
                                 config.max_semantic_matches = max_semantic_matches
                                 write_user_config()
-                                info = f"Maximum number of semantic matches set to: {config.max_semantic_matches}"
+                                info = f"Maximum number of semantic matches set to `{config.max_semantic_matches}`"
                                 display_info(console, info, title="configuration")
                         except:
                             info = "Invalid input."
@@ -861,22 +890,22 @@ https://github.com/eliranwong/biblemate
                 elif user_request == ".autoprompt":
                     config.prompt_engineering = not config.prompt_engineering
                     write_user_config()
-                    info = f"Prompt Engineering {'Enabled' if config.prompt_engineering else 'Disabled'}"
+                    info = f"Prompt Engineering `{'Enabled' if config.prompt_engineering else 'Disabled'}`"
                     display_info(console, info, title="configuration")
                 elif user_request == ".autosuggest":
                     config.auto_suggestions = not config.auto_suggestions
                     write_user_config()
-                    info = f"Auto Input Suggestions {'Enabled' if config.auto_suggestions else 'Disabled'}"
+                    info = f"Auto Input Suggestions `{'Enabled' if config.auto_suggestions else 'Disabled'}`"
                     display_info(console, info, title="configuration")
                 elif user_request == ".autotool":
                     config.auto_tool_selection = not config.auto_tool_selection
                     write_user_config()
-                    info = f"Auto Tool Selection in Chat Mode {'Enabled' if config.auto_tool_selection else 'Disabled'}"
+                    info = f"Auto Tool Selection in Chat Mode `{'Enabled' if config.auto_tool_selection else 'Disabled'}`"
                     display_info(console, info, title="configuration")
                 elif user_request == ".lite":
                     config.lite = not config.lite
                     write_user_config()
-                    info = f"Lite Context {'Enabled' if config.lite else 'Disabled'}"
+                    info = f"Lite Context `{'Enabled' if config.lite else 'Disabled'}`"
                     display_info(console, info, title="configuration")
                 elif user_request == ".download":
                     await download_data(console)
@@ -920,25 +949,25 @@ https://github.com/eliranwong/biblemate
                     if select:
                         config.default_bible = select
                         write_user_config()
-                        display_info(console, f"Default bible set to: `{config.default_bible}`", title="configuration")
+                        display_info(console, f"Default bible set to `{config.default_bible}`", title="configuration")
                 elif user_request == ".defaultcommentary":
                     select = await uba_default_commentary(options=resource_suggestions_raw["commentaryListAbb"], descriptions=resource_suggestions_raw["commentaryList"])
                     if select:
                         config.default_commentary = select
                         write_user_config()
-                        display_info(console, f"Default commentary set to: `{config.default_commentary}`", title="configuration")
+                        display_info(console, f"Default commentary set to `{config.default_commentary}`", title="configuration")
                 elif user_request == ".defaultencyclopedia":
                     select = await uba_default_encyclopedia(options=resource_suggestions_raw["encyclopediaListAbb"], descriptions=resource_suggestions_raw["encyclopediaList"])
                     if select:
                         config.default_encyclopedia = select
                         write_user_config()
-                        display_info(console, f"Default encyclopedia set to: `{config.default_encyclopedia}`", title="configuration")
+                        display_info(console, f"Default encyclopedia set to `{config.default_encyclopedia}`", title="configuration")
                 elif user_request == ".defaultlexicon":
                     select = await uba_default_lexicon(options=resource_suggestions_raw["lexiconList"])
                     if select:
                         config.default_lexicon = select
                         write_user_config()
-                        display_info(console, f"Default lexicon set to: `{config.default_lexicon}`", title="configuration")
+                        display_info(console, f"Default lexicon set to `{config.default_lexicon}`", title="configuration")
                 elif user_request in (".new", ".exit"):
                     backup_conversation(messages, master_plan, console) # backup
                     config.backup_required = False
@@ -965,17 +994,29 @@ https://github.com/eliranwong/biblemate
             if user_request.startswith("@ "):
                 user_request = user_request[2:].strip()
                 # Single Tool Suggestion
+                suggested_tools_output = []
                 suggested_tools = []
                 async def get_tool_suggestion():
-                    nonlocal suggested_tools, user_request, system_tool_selection
+                    nonlocal suggested_tools_output, suggested_tools, user_request, system_tool_selection
                     # Extract suggested tools from the step suggestion
-                    suggested_tools = agentmake(user_request, system=system_tool_selection, **AGENTMAKE_CONFIG)[-1].get("content", "").strip() # Note: suggested tools are printed on terminal by default, could be hidden by setting `print_on_terminal` to false
-                    suggested_tools = re.sub(r"^.*?(\[.*?\]).*?$", r"\1", suggested_tools, flags=re.DOTALL)
-                    try:
-                        suggested_tools = eval(suggested_tools.replace("`", "'")) if suggested_tools.startswith("[") and suggested_tools.endswith("]") else ["get_direct_text_response"] # fallback to direct response
-                    except:
-                        suggested_tools = ["get_direct_text_response"]
-                await thinking(get_tool_suggestion, "Selecting a tool ...")
+                    suggested_tools_output = agentmake(user_request, system=system_tool_selection, **AGENTMAKE_CONFIG)
+                    if suggested_tools_output:
+                        suggested_tools = suggested_tools_output[-1].get("content", "").strip() # Note: suggested tools are printed on terminal by default, could be hidden by setting `print_on_terminal` to false
+                        suggested_tools = re.sub(r"^.*?(\[.*?\]).*?$", r"\1", suggested_tools, flags=re.DOTALL)
+                        try:
+                            suggested_tools = eval(suggested_tools.replace("`", "'")) if suggested_tools.startswith("[") and suggested_tools.endswith("]") else ["get_direct_text_response"] # fallback to direct response
+                        except:
+                            suggested_tools = ["get_direct_text_response"]
+                try:
+                    await thinking(get_tool_suggestion, "Selecting a tool ...")
+                    if not suggested_tools_output:
+                        display_cancel_message(console)
+                        config.current_prompt = user_request
+                        continue
+                except (KeyboardInterrupt, asyncio.CancelledError):
+                    display_cancel_message(console)
+                    config.current_prompt = user_request
+                    continue
                 # Single Tool Selection
                 if config.agent_mode:
                     this_tool = suggested_tools[0] if suggested_tools else "get_direct_text_response"
@@ -996,13 +1037,30 @@ https://github.com/eliranwong/biblemate
             elif user_request.startswith("@@"):
                 specified_tool = "@@"
                 master_plan = user_request[2:].strip()
+                refine_output = []
                 async def refine_custom_plan():
-                    nonlocal messages, user_request, master_plan
+                    nonlocal refine_output, messages, user_request, master_plan
                     # Summarize user request in one-sentence instruction
-                    user_request = agentmake(master_plan, tool="biblemate/summarize_task_instruction", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
-                    if "```" in user_request:
-                        user_request = re.sub(r"^.*?(```instruction|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
-                await thinking(refine_custom_plan)
+                    refine_output = agentmake(master_plan, tool="biblemate/summarize_task_instruction", **AGENTMAKE_CONFIG)
+                    if refine_output:
+                        user_request_content = refine_output[-1].get("content", "").strip()
+                        if "```" in user_request_content:
+                            user_request_content = re.sub(r"^.*?(```instruction|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
+                        user_request = user_request_content
+                try:
+                    await thinking(refine_custom_plan, "Refining custom plan ...")
+                    if not refine_output:
+                        display_cancel_message(console)
+                        config.current_prompt = user_request
+                        master_plan = ""
+                        specified_tool = ""
+                        continue
+                except (KeyboardInterrupt, asyncio.CancelledError):
+                    display_cancel_message(console)
+                    config.current_prompt = user_request
+                    master_plan = ""
+                    specified_tool = ""
+                    continue
                 # display info
                 display_info(console, Markdown(user_request), title="User Request", border_style=get_border_style())
                 display_info(console, Markdown(master_plan), title="Master Plan", border_style=get_border_style())
@@ -1010,16 +1068,30 @@ https://github.com/eliranwong/biblemate
             # Prompt Engineering
             original_request = user_request
             if not specified_tool == "@@" and config.prompt_engineering and not user_request in ("[STOP]", "[CONTINUE]"):
+                improved_prompt_output = ""
                 async def run_prompt_engineering():
-                    nonlocal user_request
+                    nonlocal user_request, improved_prompt_output
                     try:
-                        user_request = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, tool="improve_prompt", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
-                        if "```" in user_request:
-                            user_request = re.sub(r"^.*?(```improved_version|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
+                        improved_prompt_output = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, tool="improve_prompt", **AGENTMAKE_CONFIG)
+                        if improved_prompt_output:
+                            user_request = improved_prompt_output[-1].get("content", "").strip()
+                            if "```" in user_request:
+                                user_request = re.sub(r"^.*?(```improved_version|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
                     except:
-                        user_request = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, system="improve_prompt_2", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
-                        user_request = re.sub(r"^.*?(```improved_prompt|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
-                await thinking(run_prompt_engineering, "Improving your prompt ...")
+                        improved_prompt_output = agentmake(messages if messages else user_request, follow_up_prompt=user_request if messages else None, system="improve_prompt_2", **AGENTMAKE_CONFIG)
+                        if improved_prompt_output:
+                            user_request = improved_prompt_output[-1].get("content", "").strip()
+                            user_request = re.sub(r"^.*?(```improved_prompt|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
+                try:
+                    await thinking(run_prompt_engineering, "Improving your prompt ...")
+                    if not improved_prompt_output:
+                        display_cancel_message(console)
+                        config.current_prompt = original_request
+                        continue
+                except (KeyboardInterrupt, asyncio.CancelledError):
+                    display_cancel_message(console)
+                    config.current_prompt = original_request
+                    continue
 
                 if not config.agent_mode:
                     display_info(console, "Please review and confirm the improved prompt, or make any changes you need.", title="Review & Confirm")
@@ -1054,6 +1126,7 @@ https://github.com/eliranwong/biblemate
                             else:
                                 tool_result = await client.call_tool(tool, {"request": tool_instruction}, timeout=config.mcp_timeout)
                         else:
+                            # TODO: check getDictionaryOutput
                             structured_output = getDictionaryOutput(messages=messages, schema=tool_schema, backend=config.backend)
                             tool_result = await client.call_tool(tool, structured_output, timeout=config.mcp_timeout)
                         tool_result = tool_result.content[0].text
@@ -1062,13 +1135,20 @@ https://github.com/eliranwong/biblemate
                     except Exception as e:
                         if DEVELOPER_MODE:
                             console.print(f"Error: {e}\nFallback to direct response...\n\n")
+                            print(traceback.format_exc())
                         messages = agentmake(messages, system="auto", **AGENTMAKE_CONFIG)
                 messages[-1]["content"] = fix_string(messages[-1]["content"])
 
             # user specify a single tool
             if specified_tool and not specified_tool == "@@" and not specified_prompt:
                 display_info(console,Markdown(messages[-1]['content']), border_style=get_border_style())
-                await process_tool(specified_tool, user_request)
+                try:
+                    await process_tool(specified_tool, user_request)
+                except (KeyboardInterrupt, asyncio.CancelledError):
+                    display_cancel_message(console)
+                    messages = messages[:-1] # remove the last user message
+                    config.current_prompt = original_request
+                    continue
                 print()
                 console.print(Markdown(messages[-1]['content']))
                 console.print()
@@ -1076,12 +1156,28 @@ https://github.com/eliranwong/biblemate
                 continue
 
             # Chat mode
+            messages_output = []
             if config.agent_mode is None and not specified_tool == "@@" and not specified_prompt:
                 display_info(console,Markdown(messages[-1]['content']), border_style="none")
                 async def run_chat_mode():
-                    nonlocal messages, user_request
-                    messages = agentmake(messages if messages else user_request, system="auto", **AGENTMAKE_CONFIG)
-                await thinking(run_chat_mode, "Processing your request ...")
+                    nonlocal messages_output, messages, user_request
+                    messages_output = agentmake(messages if messages else user_request, system="auto", **AGENTMAKE_CONFIG)
+                    if messages_output:
+                        messages = deepcopy(messages_output)
+                try:
+                    await thinking(run_chat_mode, "Processing your request ...")
+                    if not messages_output:
+                        display_cancel_message(console)
+                        config.current_prompt = original_request
+                        if messages and messages[-1].get("role", "") == "user":
+                            messages = messages[:-1] # remove the last user message
+                        continue
+                except (KeyboardInterrupt, asyncio.CancelledError):
+                    display_cancel_message(console)
+                    config.current_prompt = original_request
+                    if messages and messages[-1].get("role", "") == "user":
+                        messages = messages[:-1] # remove the last user message
+                    continue
                 print()
                 console.print(Markdown(messages[-1]['content']))
                 # temporaily save after each step
@@ -1100,6 +1196,7 @@ https://github.com/eliranwong/biblemate
                     if len(prompt_properties) == 1 and "request" in prompt_properties: # AgentMake MCP Servers or alike
                         result = await client.get_prompt(specified_prompt[1:], {"request": user_request})
                     else:
+                        # TODO: check getDictionaryOutput
                         structured_output = getDictionaryOutput(messages=messages, schema=prompt_schema, backend=config.backend)
                         result = await client.get_prompt(specified_prompt[1:], structured_output)
                     #print(result, "\n\n")
@@ -1111,9 +1208,10 @@ https://github.com/eliranwong/biblemate
                     # display info
                     display_info(console, Markdown(user_request), title="User Request", border_style=get_border_style())
                     # Generate master plan
+                    master_plan_output = []
                     master_plan = ""
                     async def generate_master_plan():
-                        nonlocal master_plan
+                        nonlocal master_plan_output, master_plan
                         # Create initial prompt to create master plan
                         initial_prompt = f"""Provide me with the `Preliminary Action Plan` and the `Measurable Outcome` for resolving `My Request`.
     
@@ -1126,8 +1224,23 @@ Available tools are: {available_tools}.
 # My Request
 
 {user_request}"""
-                        master_plan = agentmake(messages+[{"role": "user", "content": initial_prompt}], system="create_action_plan", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
-                    await thinking(generate_master_plan, "Crafting a master plan ...")
+                        master_plan_output = agentmake(messages+[{"role": "user", "content": initial_prompt}], system="create_action_plan", **AGENTMAKE_CONFIG)
+                        if master_plan_output:
+                            master_plan = master_plan_output[-1].get("content", "").strip() if output else ""
+                    try:
+                        await thinking(generate_master_plan, "Crafting a master plan ...")
+                        if not master_plan_output:
+                            display_cancel_message(console)
+                            if messages and messages[-1].get("role", "") == "user":
+                                messages = messages[:-1]
+                            config.current_prompt = original_request
+                            continue
+                    except (KeyboardInterrupt, asyncio.CancelledError):
+                        display_cancel_message(console)
+                        if messages and messages[-1].get("role", "") == "user":
+                            messages = messages[:-1] # remove the last user message
+                        config.current_prompt = original_request
+                        continue
 
                     # partner mode
                     if not config.agent_mode:
@@ -1160,24 +1273,56 @@ Available tools are: {available_tools}.
             step = int(((len(messages)-len(DEFAULT_MESSAGES)-2)/2+1)) if user_request == "[CONTINUE]" else 1
             while not ("STOP" in next_suggestion or re.sub("^[^A-Za-z]*?([A-Za-z]+?)[^A-Za-z]*?$", r"\1", next_suggestion).upper() == "STOP"):
 
+                next_suggestion_output = []
                 async def make_next_suggestion():
-                    nonlocal next_suggestion, system_make_suggestion, messages, step
-                    next_suggestion = agentmake(user_request if next_suggestion == "START" else [{"role": "system", "content": system_make_suggestion}]+messages[len(DEFAULT_MESSAGES):], system=system_make_suggestion, follow_up_prompt=None if next_suggestion == "START" else "Please provide me with the next step suggestion, based on the action plan.", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
-                await thinking(make_next_suggestion, "Making a suggestion ...")
+                    nonlocal next_suggestion_output, next_suggestion, system_make_suggestion, messages, step
+                    next_suggestion_output = agentmake(user_request if next_suggestion == "START" else [{"role": "system", "content": system_make_suggestion}]+messages[len(DEFAULT_MESSAGES):], system=system_make_suggestion, follow_up_prompt=None if next_suggestion == "START" else "Please provide me with the next step suggestion, based on the action plan.", **AGENTMAKE_CONFIG)
+                    if next_suggestion_output:
+                        next_suggestion = next_suggestion_output[-1].get("content", "").strip()
+                try:
+                    await thinking(make_next_suggestion, "Making a suggestion ...")
+                    if not next_suggestion_output:
+                        display_cancel_message(console)
+                        if step == 1:
+                            config.current_prompt = original_request
+                        conversation_broken = True
+                        break
+                except (KeyboardInterrupt, asyncio.CancelledError):
+                    display_cancel_message(console)
+                    if step == 1:
+                        config.current_prompt = original_request
+                    conversation_broken = True
+                    break
                 display_info(console, Markdown(next_suggestion), title=f"Suggestion [{step}]")
 
                 # Get tool suggestion for the next iteration
+                suggested_tools_output = []
                 suggested_tools = []
                 async def get_tool_suggestion():
-                    nonlocal suggested_tools, next_suggestion, system_tool_selection
+                    nonlocal suggested_tools_output, suggested_tools, next_suggestion, system_tool_selection
                     # Extract suggested tools from the step suggestion
-                    suggested_tools = agentmake(next_suggestion, system=system_tool_selection, **AGENTMAKE_CONFIG)[-1].get("content", "").strip() # Note: suggested tools are printed on terminal by default, could be hidden by setting `print_on_terminal` to false
-                    suggested_tools = re.sub(r"^.*?(\[.*?\]).*?$", r"\1", suggested_tools, flags=re.DOTALL)
-                    try:
-                        suggested_tools = eval(suggested_tools.replace("`", "'")) if suggested_tools.startswith("[") and suggested_tools.endswith("]") else ["get_direct_text_response"] # fallback to direct response
-                    except:
-                        suggested_tools = ["get_direct_text_response"]
-                await thinking(get_tool_suggestion, "Selecting a tool ...")
+                    suggested_tools_output = agentmake(next_suggestion, system=system_tool_selection, **AGENTMAKE_CONFIG)
+                    if suggested_tools_output:
+                        suggested_tools = suggested_tools_output[-1].get("content", "").strip()
+                        suggested_tools = re.sub(r"^.*?(\[.*?\]).*?$", r"\1", suggested_tools, flags=re.DOTALL)
+                        try:
+                            suggested_tools = eval(suggested_tools.replace("`", "'")) if suggested_tools.startswith("[") and suggested_tools.endswith("]") else ["get_direct_text_response"] # fallback to direct response
+                        except:
+                            suggested_tools = ["get_direct_text_response"]
+                try:
+                    await thinking(get_tool_suggestion, "Selecting a tool ...")
+                    if not suggested_tools_output:
+                        display_cancel_message(console)
+                        if step == 1:
+                            config.current_prompt = original_request
+                        conversation_broken = True
+                        break
+                except (KeyboardInterrupt, asyncio.CancelledError):
+                    display_cancel_message(console)
+                    if step == 1:
+                        config.current_prompt = original_request
+                    conversation_broken = True
+                    break
                 if DEVELOPER_MODE and not config.hide_tools_order:
                     info = Markdown(f"## Descending Order by Relevance\n\n{suggested_tools}")
                     display_info(console, info, title=f"Tool Selection [{step}]")
@@ -1195,24 +1340,40 @@ Available tools are: {available_tools}.
                 display_info(console, info, title=prefix)
 
                 # Get next step instruction
+                next_step_output = []
                 next_step = ""
                 async def get_next_step():
-                    nonlocal next_step, next_tool, next_suggestion, tools
+                    nonlocal next_step_output, next_step, next_tool, next_suggestion, tools
                     if next_tool == "get_direct_text_response":
-                        next_step = agentmake(next_suggestion, system="biblemate/direct_instruction", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                        next_step_output = agentmake(next_suggestion, system="biblemate/direct_instruction", **AGENTMAKE_CONFIG)
+                        next_step = next_step_output[-1].get("content", "").strip()
                     else:
                         next_tool_description = tools.get(next_tool, "No description available.")
                         system_tool_instruction = get_system_tool_instruction(next_tool, next_tool_description)
-                        next_step = agentmake(next_suggestion, system=system_tool_instruction, **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
+                        next_step_output = agentmake(next_suggestion, system=system_tool_instruction, **AGENTMAKE_CONFIG)
+                        next_step = next_step_output[-1].get("content", "").strip()
                         # The following line may give better context, but when a conversation goes long, the agent loses track of the system message.
                         #next_step = agentmake([{"role": "system", "content": system_tool_instruction}]+messages[len(DEFAULT_MESSAGES):], follow_up_prompt=next_suggestion, **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
-                await thinking(get_next_step, "Crafting the next instruction ...")
+                try:
+                    await thinking(get_next_step, "Crafting the next instruction ...")
+                    if not next_step_output:
+                        display_cancel_message(console)
+                        if step == 1:
+                            config.current_prompt = original_request
+                        conversation_broken = True
+                        break
+                except (KeyboardInterrupt, asyncio.CancelledError):
+                    display_cancel_message(console)
+                    if step == 1:
+                        config.current_prompt = original_request
+                    conversation_broken = True
+                    break
                 # partner mode
                 if config.agent_mode == False:
                     display_info(console, "Please review and confirm the next instruction, or make any changes you need.", title="Review & Confirm")
                     next_step_edit = await getTextArea(default_entry=next_step, title="Review - Next Instruction")
                     if not next_step_edit or next_step_edit == ".exit":
-                        display_info(console, "I've stopped processing for you.")
+                        display_cancel_message(console)
                         break
                     else:
                         next_step = next_step_edit
@@ -1222,7 +1383,12 @@ Available tools are: {available_tools}.
                     messages.append({"role": "assistant", "content": "Please provide me with an initial instruction to begin."})
                 messages.append({"role": "user", "content": next_step})
 
-                await process_tool(next_tool, next_step, step_number=step)
+                try:
+                    await process_tool(next_tool, next_step, step_number=step)
+                except (KeyboardInterrupt, asyncio.CancelledError):
+                    display_cancel_message(console)
+                    conversation_broken = True
+                    break
                 console.rule()
                 console.print(Markdown(f"\n## Output [{step}]\n\n{messages[-1]['content']}"))
                 console.print()
@@ -1240,18 +1406,32 @@ Available tools are: {available_tools}.
                     break
 
                 # Check the progress
+                next_suggestion_output = []
                 async def get_next_suggestion():
-                    nonlocal next_suggestion, messages, system_progress
-                    next_suggestion = agentmake([{"role": "system", "content": system_progress}]+messages[len(DEFAULT_MESSAGES):], system=system_progress, follow_up_prompt="Please decide either to `CONTINUE` or `STOP` the process.", **AGENTMAKE_CONFIG)[-1].get("content", "").strip()
-                await thinking(get_next_suggestion, description="Checking the progress ...")
+                    nonlocal next_suggestion_output, next_suggestion, messages, system_progress
+                    next_suggestion_output = agentmake([{"role": "system", "content": system_progress}]+messages[len(DEFAULT_MESSAGES):], system=system_progress, follow_up_prompt="Please decide either to `CONTINUE` or `STOP` the process.", **AGENTMAKE_CONFIG)
+                    next_suggestion = next_suggestion_output[-1].get("content", "").strip()
+                try:
+                    await thinking(get_next_suggestion, description="Checking the progress ...")
+                    if not next_suggestion_output:
+                        display_cancel_message(console)
+                        conversation_broken = True
+                        break
+                except (KeyboardInterrupt, asyncio.CancelledError):
+                    display_cancel_message(console)
+                    conversation_broken = True
+                    break
             
             if messages[-1].get("role") == "user":
-                messages.append({"role": "assistant", "content": next_suggestion})
+                if conversation_broken:
+                    messages = messages[:-1]
+                else:
+                    messages.append({"role": "assistant", "content": next_suggestion})
             
             # write the final answer
             if messages[-2].get("content") == "[STOP]" and messages[-1].get("content") == "STOP":
                 messages = messages[:-2]
-            if not conversation_broken and not messages[-2].get("content").startswith(FINAL_INSTRUCTION):
+            if not conversation_broken and not messages[-2].get("content").startswith(FINAL_INSTRUCTION) and not config.cancelled:
                 console.print(Markdown("# Wrapping up ..."))
                 messages = agentmake(
                     messages,
@@ -1264,9 +1444,10 @@ Available tools are: {available_tools}.
                 console.print(Markdown(messages[-1]['content']))
 
             # Backup
-            print()
-            backup_conversation(messages, master_plan, console)
-            config.backup_required = False
+            if not conversation_broken:
+                print()
+                backup_conversation(messages, master_plan, console)
+                config.backup_required = False
     
     # back up configurations
     write_user_config(backup=True)

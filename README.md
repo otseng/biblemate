@@ -464,7 +464,11 @@ The following key bindings are supported in BibleMate AI prompt field:
 - `TAB` or `Ctrl+I`: open input suggestion menu
 - `Esc`: close input suggestion menu
 
-Common shortcuts on Terminal Apps:
+### Cancel Loading an AI response
+
+Press `Ctrl+C` once or twice until the loading is cancelled, while you are waiting for a response.
+
+### Common shortcuts on Terminal Apps:
 
 - `Ctrl+Shift+C`: Copy
 - `Ctrl+Shift+V`: Paste
