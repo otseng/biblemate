@@ -12,7 +12,7 @@ from alive_progress import alive_bar
 from fastmcp import Client
 from fastmcp.client.transports import StreamableHttpTransport
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
-from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_file, edit_configurations, readTextFile, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND, DEFAULT_TEXT_EDITOR
+from agentmake import agentmake, getOpenCommand, getDictionaryOutput, edit_file, edit_configurations, extractText, readTextFile, writeTextFile, getCurrentDateTime, AGENTMAKE_USER_DIR, USER_OS, DEVELOPER_MODE, DEFAULT_AI_BACKEND, DEFAULT_TEXT_EDITOR
 from agentmake.utils.files import searchFolder, isExistingPath
 from agentmake.etextedit import launch_async
 from agentmake.utils.manage_package import getPackageLatestVersion
@@ -408,7 +408,6 @@ async def main_async():
                                 exit()
             # Original user request
             # note: `python3 -m rich.emoji` for checking emoji
-            config.cancelled = False
             console.print("Enter your request :smiley: :" if len(messages) == len(DEFAULT_MESSAGES) else "Enter a follow-up request :flexed_biceps: :")
             input_suggestions = list(config.action_list.keys())+["@ ", "@@ "]+[f"@{t} " for t in available_tools]+[f"{p} " for p in prompt_list]+[f"//{r}" for r in resources.keys()]+template_list+resource_suggestions+config.custom_input_suggestions
             if args.default:
@@ -420,8 +419,16 @@ async def main_async():
                 master_plan = ""
             # open a text file as a prompt
             check_path = isExistingPath(user_request)
-            if check_path and not user_request == ".":
-                config.current_prompt = readTextFile(check_path)
+            if check_path and os.path.isfile(check_path) and not user_request == ".":
+                try:
+                    config.current_prompt = extractText(check_path)
+                except:
+                    try:
+                        config.current_prompt = readTextFile(check_path)
+                    except:
+                        info = f"File `{check_path}` not readable!"
+                        display_info(console, info, title="Error!")
+                        config.current_prompt = check_path
                 continue
             # luanch action menu
             if not user_request:
@@ -1099,7 +1106,7 @@ Press `Ctrl+C` once or twice until the loading is cancelled, while you are waiti
                     if not improved_prompt_edit or improved_prompt_edit == ".exit":
                         if messages and messages[-1].get("role", "") == "user":
                             messages = messages[:-1]
-                        display_info(console, "I've stopped processing for you.")
+                        display_cancel_message(console)
                         config.current_prompt = original_request
                         continue
                     else:
@@ -1249,7 +1256,7 @@ Available tools are: {available_tools}.
                         if not master_plan_edit or master_plan_edit == ".exit":
                             if messages and messages[-1].get("role", "") == "user":
                                 messages = messages[:-1]
-                            display_info(console, "I've stopped processing for you.")
+                            display_cancel_message(console)
                             continue
                         else:
                             master_plan = master_plan_edit

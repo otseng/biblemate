@@ -150,6 +150,7 @@ if just_upgraded:
 
 # temporary config
 config.current_prompt = ""
+config.cancelled = False
 config.last_multi_bible_selection = [config.default_bible]
 config.last_bible_reference = ""
 config.last_book = 43
